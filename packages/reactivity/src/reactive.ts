@@ -261,6 +261,7 @@ function createReactiveObject(
   collectionHandlers: ProxyHandler<any>,
   proxyMap: WeakMap<Target, any>,
 ) {
+  // reactive需要传入一个对象
   if (!isObject(target)) {
     if (__DEV__) {
       warn(
