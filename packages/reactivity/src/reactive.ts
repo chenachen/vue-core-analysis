@@ -44,17 +44,20 @@ function targetTypeMap(rawType: string) {
   switch (rawType) {
     case 'Object':
     case 'Array':
+      // 普通对象和数组是一种处理
       return TargetType.COMMON
     case 'Map':
     case 'Set':
     case 'WeakMap':
     case 'WeakSet':
+      // map set 对象又是另外一种处理方式
       return TargetType.COLLECTION
     default:
       return TargetType.INVALID
   }
 }
 
+// 获取对象的类型
 function getTargetType(value: Target) {
   return value[ReactiveFlags.SKIP] || !Object.isExtensible(value)
     ? TargetType.INVALID
@@ -280,16 +283,19 @@ function createReactiveObject(
   ) {
     return target
   }
+  // 如果已经被代理了那就直接返回代理对象
   // target already has corresponding Proxy
   const existingProxy = proxyMap.get(target)
   if (existingProxy) {
     return existingProxy
   }
+  // 只有特定对象可以被代理
   // only specific value types can be observed.
   const targetType = getTargetType(target)
   if (targetType === TargetType.INVALID) {
     return target
   }
+  // 缓存代理对象并返回
   const proxy = new Proxy(
     target,
     targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers,

@@ -55,11 +55,15 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
   get(target: Target, key: string | symbol, receiver: object): any {
     const isReadonly = this._isReadonly,
       isShallow = this._isShallow
+    // 返回特定值
     if (key === ReactiveFlags.IS_REACTIVE) {
+      // 是否响应式对象
       return !isReadonly
     } else if (key === ReactiveFlags.IS_READONLY) {
+      // 是否只读
       return isReadonly
     } else if (key === ReactiveFlags.IS_SHALLOW) {
+      // 是否浅层监听对象
       return isShallow
     } else if (key === ReactiveFlags.RAW) {
       if (
@@ -76,16 +80,19 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
         // this means the receiver is a user proxy of the reactive proxy
         Object.getPrototypeOf(target) === Object.getPrototypeOf(receiver)
       ) {
+        // 返回源对象
         return target
       }
       // early return undefined
       return
     }
 
+    // 判断是否数组
     const targetIsArray = isArray(target)
 
     if (!isReadonly) {
       let fn: Function | undefined
+      // 判断是否数组的原生方法
       if (targetIsArray && (fn = arrayInstrumentations[key])) {
         return fn
       }
@@ -94,6 +101,7 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
       }
     }
 
+    // 获取值
     const res = Reflect.get(
       target,
       key,
@@ -103,10 +111,12 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
       isRef(target) ? target : receiver,
     )
 
+    // 如果是symbol并且是内置的Symbol或者无需追踪的Symbol值，则直接返回值
     if (isSymbol(key) ? builtInSymbols.has(key) : isNonTrackableKeys(key)) {
       return res
     }
 
+    // 依赖追踪
     if (!isReadonly) {
       track(target, TrackOpTypes.GET, key)
     }
@@ -116,10 +126,12 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
     }
 
     if (isRef(res)) {
+      // 如果是ref，则解包
       // ref unwrapping - skip unwrap for Array + integer key.
       return targetIsArray && isIntegerKey(key) ? res : res.value
     }
 
+    // 如果值依然是对象，则继续深度追踪
     if (isObject(res)) {
       // Convert returned value into a proxy as well. we do the isObject check
       // here to avoid invalid value warning. Also need to lazy access readonly
