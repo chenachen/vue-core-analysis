@@ -108,10 +108,13 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
       // if this is a proxy wrapping a ref, return methods using the raw ref
       // as receiver so that we don't have to call `toRaw` on the ref in all
       // its class methods
+      // 这个判断是针对reactive(ref(obj))这种情况的，这种情况下如果不做以下判断，在RefImpl和ComputedRefImpl中的this指向的是代理对象，而不是ref本身
+      // 会导致在RefImpl和ComputedRefImpl内部get value()方法中需要通过toRaw方法获取到原始对象
+      // 改动的commit在这https://github.com/vuejs/core/pull/10397/commits/1318017d111ded1977daed0db4e301f676a78628
       isRef(target) ? target : receiver,
     )
 
-    // 如果是symbol并且是内置的Symbol或者无需追踪的Symbol值，则直接返回值
+    // 先判断是否Symbol，如果是的话判断是否Symbol对象自有属性方法，如果否的话判断是否不追踪的key值
     if (isSymbol(key) ? builtInSymbols.has(key) : isNonTrackableKeys(key)) {
       return res
     }
@@ -121,6 +124,7 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
       track(target, TrackOpTypes.GET, key)
     }
 
+    // 浅层监听直接返回
     if (isShallow) {
       return res
     }
@@ -131,7 +135,7 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
       return targetIsArray && isIntegerKey(key) ? res : res.value
     }
 
-    // 如果值依然是对象，则继续深度追踪
+    // 如果值依然是对象，则继续深度追踪或者深度只读
     if (isObject(res)) {
       // Convert returned value into a proxy as well. we do the isObject check
       // here to avoid invalid value warning. Also need to lazy access readonly
@@ -154,13 +158,17 @@ class MutableReactiveHandler extends BaseReactiveHandler {
     value: unknown,
     receiver: object,
   ): boolean {
+    // 先记录旧的值
     let oldValue = target[key]
     if (!this._isShallow) {
+      // 判断是不是只读
       const isOldValueReadonly = isReadonly(oldValue)
       if (!isShallow(value) && !isReadonly(value)) {
+        // 新的值和旧的值都获取源对象
         oldValue = toRaw(oldValue)
         value = toRaw(value)
       }
+      // 判断旧值值是否是ref且新值不是ref，如果不是只读，那么对ref进行赋值，而不是直接替换
       if (!isArray(target) && isRef(oldValue) && !isRef(value)) {
         if (isOldValueReadonly) {
           return false
@@ -173,6 +181,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
       // in shallow mode, objects are set as-is regardless of reactive or not
     }
 
+    // 判断是否已经有这个key值，用于判定是新增还是修改
     const hadKey =
       isArray(target) && isIntegerKey(key)
         ? Number(key) < target.length
@@ -184,6 +193,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
       isRef(target) ? target : receiver,
     )
     // don't trigger if target is something up in the prototype chain of original
+    // 如果是修改原型链上的某些值则不触发
     if (target === toRaw(receiver)) {
       if (!hadKey) {
         trigger(target, TriggerOpTypes.ADD, key, value)
@@ -198,9 +208,13 @@ class MutableReactiveHandler extends BaseReactiveHandler {
     target: Record<string | symbol, unknown>,
     key: string | symbol,
   ): boolean {
+    // 判断是否有这个值
     const hadKey = hasOwn(target, key)
+    // 获取旧值
     const oldValue = target[key]
+    // 获取删除结果
     const result = Reflect.deleteProperty(target, key)
+    // 如果有值并且删除成功则触发
     if (result && hadKey) {
       trigger(target, TriggerOpTypes.DELETE, key, undefined, oldValue)
     }
@@ -209,6 +223,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
 
   has(target: Record<string | symbol, unknown>, key: string | symbol): boolean {
     const result = Reflect.has(target, key)
+    // 不是symbol或者不是Symbol对象的静态方法属性则触发追踪
     if (!isSymbol(key) || !builtInSymbols.has(key)) {
       track(target, TrackOpTypes.HAS, key)
     }
@@ -216,6 +231,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
   }
 
   ownKeys(target: Record<string | symbol, unknown>): (string | symbol)[] {
+    // 直接触发追踪
     track(
       target,
       TrackOpTypes.ITERATE,
@@ -225,6 +241,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
   }
 }
 
+// readonly不对修改操作生效，并且也不会触发trigger函数
 class ReadonlyReactiveHandler extends BaseReactiveHandler {
   constructor(isShallow = false) {
     super(true, isShallow)

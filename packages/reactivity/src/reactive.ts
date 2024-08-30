@@ -23,6 +23,7 @@ export interface Target {
   [ReactiveFlags.RAW]?: any
 }
 
+// 代理对象映射池 key源对象 value 代理对象
 export const reactiveMap: WeakMap<Target, any> = new WeakMap<Target, any>()
 export const shallowReactiveMap: WeakMap<Target, any> = new WeakMap<
   Target,
@@ -277,6 +278,7 @@ function createReactiveObject(
   }
   // target is already a Proxy, return it.
   // exception: calling readonly() on a reactive object
+  // 如果已经被代理，并且不是尝试用readonly()传入一个响应式对象 例子 readonly(reactive({}))
   if (
     target[ReactiveFlags.RAW] &&
     !(isReadonly && target[ReactiveFlags.IS_REACTIVE])

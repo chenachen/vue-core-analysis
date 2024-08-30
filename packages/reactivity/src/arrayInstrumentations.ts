@@ -9,6 +9,7 @@ import { isArray } from '@vue/shared'
  * - if input is reactive: a cloned raw array with reactive values
  * - if input is non-reactive or shallowReactive: the original raw array
  */
+// 判断是否响应式数组，如果是的话依赖收集，如果不是浅层监听，则将数组项继续深层遍历设置为reactive
 export function reactiveReadArray<T>(array: T[]): T[] {
   const raw = toRaw(array)
   if (raw === array) return raw
@@ -24,6 +25,7 @@ export function shallowReadArray<T>(arr: T[]): T[] {
   return arr
 }
 
+// 映射数组原生方法的map
 export const arrayInstrumentations: Record<string | symbol, Function> = <any>{
   __proto__: null,
 
@@ -207,10 +209,14 @@ function iterator(
   // partially iterated in another, then iterated more in yet another.
   // given that JS iterator can only be read once, this doesn't seem like
   // a plausible use-case, so this tracking simplification seems ok.
+  // 浅层监听并获取源对象
   const arr = shallowReadArray(self)
+  // 获取迭代器
   const iter = (arr[method] as any)() as IterableIterator<unknown> & {
     _next: IterableIterator<unknown>['next']
   }
+  // arr !== self意味着是代理对象，!isShallow(self)非浅层监听
+  // 同时满足以上情形时做深度监听代理，并且返回结果
   if (arr !== self && !isShallow(self)) {
     iter._next = iter.next
     iter.next = () => {
@@ -239,6 +245,7 @@ function apply(
   wrappedRetFn?: (result: any) => unknown,
   args?: IArguments,
 ) {
+  // 依赖收集
   const arr = shallowReadArray(self)
   const needsWrap = arr !== self && !isShallow(self)
   // @ts-expect-error our code is limited to es2016 but user code is not
@@ -266,6 +273,7 @@ function apply(
     }
   }
   const result = methodFn.call(arr, wrappedFn, thisArg)
+  // 判断是否需要对结果响应式处理
   return needsWrap && wrappedRetFn ? wrappedRetFn(result) : result
 }
 
@@ -276,8 +284,10 @@ function reduce(
   fn: (acc: unknown, item: unknown, index: number, array: unknown[]) => unknown,
   args: unknown[],
 ) {
+  // 依赖收集
   const arr = shallowReadArray(self)
   let wrappedFn = fn
+  // 判断是否需要深层代理
   if (arr !== self) {
     if (!isShallow(self)) {
       wrappedFn = function (this: unknown, acc, item, index) {
@@ -299,6 +309,7 @@ function searchProxy(
   args: unknown[],
 ) {
   const arr = toRaw(self) as any
+  // 依赖收集
   track(arr, TrackOpTypes.ITERATE, ARRAY_ITERATE_KEY)
   // we run the method using the original args first (which may be reactive)
   const res = arr[method](...args)
