@@ -32,21 +32,28 @@ function get(
   // #1772: readonly(reactive(Map)) should return readonly + reactive version
   // of the value
   target = target[ReactiveFlags.RAW]
+  // 获取源对象
   const rawTarget = toRaw(target)
+  // weakmap key是对象
   const rawKey = toRaw(key)
   if (!isReadonly) {
+    // 依赖收集
     if (hasChanged(key, rawKey)) {
       track(rawTarget, TrackOpTypes.GET, key)
     }
     track(rawTarget, TrackOpTypes.GET, rawKey)
   }
+  // 获取原型链上的has方法
   const { has } = getProto(rawTarget)
   const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive
+  // 如果源对象存在这个key值，将之转为对应的响应式对象
   if (has.call(rawTarget, key)) {
     return wrap(target.get(key))
   } else if (has.call(rawTarget, rawKey)) {
+    // 源对象存在这个源key值,则通过源key值获取到源值,然后进行响应式处理
     return wrap(target.get(rawKey))
   } else if (target !== rawTarget) {
+    // 如果target是代理对象,则手动调用一次get(key)确保追踪被响应
     // #3602 readonly(reactive(Map))
     // ensure that the nested reactive `Map` can do tracking for itself
     target.get(key)
@@ -63,6 +70,7 @@ function has(this: CollectionTypes, key: unknown, isReadonly = false): boolean {
     }
     track(rawTarget, TrackOpTypes.HAS, rawKey)
   }
+  // 如果key是原值,直接返回has，否则两个key都尝试一下
   return key === rawKey
     ? target.has(key)
     : target.has(key) || target.has(rawKey)
@@ -83,6 +91,7 @@ function add(this: SetTypes, value: unknown, _isShallow = false) {
   const hadKey = proto.has.call(target, value)
   if (!hadKey) {
     target.add(value)
+    // 新的值加进来则触发trigger，相当于普通对象的set
     trigger(target, TriggerOpTypes.ADD, value, value)
   }
   return this
@@ -95,6 +104,7 @@ function set(this: MapTypes, key: unknown, value: unknown, _isShallow = false) {
   const target = toRaw(this)
   const { has, get } = getProto(target)
 
+  // 判断key值是否存在，存在则是更新，否则是新增key
   let hadKey = has.call(target, key)
   if (!hadKey) {
     key = toRaw(key)
@@ -103,8 +113,10 @@ function set(this: MapTypes, key: unknown, value: unknown, _isShallow = false) {
     checkIdentityKeys(target, has, key)
   }
 
+  // 获取旧值后设置新值
   const oldValue = get.call(target, key)
   target.set(key, value)
+  // 触发副作用
   if (!hadKey) {
     trigger(target, TriggerOpTypes.ADD, key, value)
   } else if (hasChanged(value, oldValue)) {
@@ -114,6 +126,7 @@ function set(this: MapTypes, key: unknown, value: unknown, _isShallow = false) {
 }
 
 function deleteEntry(this: CollectionTypes, key: unknown) {
+  // 和设值👆的处理相近
   const target = toRaw(this)
   const { has, get } = getProto(target)
   let hadKey = has.call(target, key)
@@ -155,11 +168,14 @@ function createForEach(isReadonly: boolean, isShallow: boolean) {
     callback: Function,
     thisArg?: unknown,
   ) {
+    // 获取源对象
     const observed = this
     const target = observed[ReactiveFlags.RAW]
     const rawTarget = toRaw(target)
+
     const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive
     !isReadonly && track(rawTarget, TrackOpTypes.ITERATE, ITERATE_KEY)
+    // 遍历时根据情况决定是否深度监听对象或者只读
     return target.forEach((value: unknown, key: unknown) => {
       // important: make sure the callback is
       // 1. invoked with the reactive map as `this` and 3rd arg
@@ -178,14 +194,17 @@ function createIterableMethod(
     this: IterableCollections,
     ...args: unknown[]
   ): Iterable<unknown> & Iterator<unknown> {
+    // 获取源对象
     const target = this[ReactiveFlags.RAW]
     const rawTarget = toRaw(target)
+    // 判断target是否Map
     const targetIsMap = isMap(rawTarget)
     const isPair =
       method === 'entries' || (method === Symbol.iterator && targetIsMap)
     const isKeyOnly = method === 'keys' && targetIsMap
     const innerIterator = target[method](...args)
     const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive
+    // 依赖收集
     !isReadonly &&
       track(
         rawTarget,
@@ -201,6 +220,7 @@ function createIterableMethod(
         return done
           ? { value, done }
           : {
+              // 对值进行包装
               value: isPair ? [wrap(value[0]), wrap(value[1])] : wrap(value),
               done,
             }
@@ -348,6 +368,7 @@ function createInstrumentationGetter(isReadonly: boolean, shallow: boolean) {
     key: string | symbol,
     receiver: CollectionTypes,
   ) => {
+    // 和basehandler一样，一些内置key的判断
     if (key === ReactiveFlags.IS_REACTIVE) {
       return !isReadonly
     } else if (key === ReactiveFlags.IS_READONLY) {
@@ -389,6 +410,7 @@ function checkIdentityKeys(
   key: unknown,
 ) {
   const rawKey = toRaw(key)
+  // 检查key值是否被代理，主要是针对weakmap，weakset，如果是的话，开发环境中给出警告
   if (rawKey !== key && has.call(target, rawKey)) {
     const type = toRawType(target)
     warn(

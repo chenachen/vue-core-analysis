@@ -330,10 +330,14 @@ function noTracking(
   method: keyof Array<any>,
   args: unknown[] = [],
 ) {
+  // 暂停依赖收集
   pauseTracking()
+  // 开始批量统计
   startBatch()
   const res = (toRaw(self) as any)[method].apply(self, args)
+  // 结束收集并执行批量任务
   endBatch()
+  // 重置可收集状态
   resetTracking()
   return res
 }
