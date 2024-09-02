@@ -94,6 +94,7 @@ export function shallowRef(value?: unknown) {
 }
 
 function createRef(rawValue: unknown, shallow: boolean) {
+  // 如果已经是ref了，直接返回
   if (isRef(rawValue)) {
     return rawValue
   }
@@ -109,16 +110,19 @@ class RefImpl<T = any> {
 
   dep: Dep = new Dep()
 
+  // 一些标识性的属性
   public readonly [ReactiveFlags.IS_REF] = true
   public readonly [ReactiveFlags.IS_SHALLOW]: boolean = false
 
   constructor(value: T, isShallow: boolean) {
     this._rawValue = isShallow ? value : toRaw(value)
+    // 如果不是浅监听，则使用reactive进行深度监听
     this._value = isShallow ? value : toReactive(value)
     this[ReactiveFlags.IS_SHALLOW] = isShallow
   }
 
   get value() {
+    // 依赖收集
     if (__DEV__) {
       this.dep.track({
         target: this,
@@ -133,11 +137,13 @@ class RefImpl<T = any> {
 
   set value(newValue) {
     const oldValue = this._rawValue
+    // 判断是否直接使用传入的值
     const useDirectValue =
       this[ReactiveFlags.IS_SHALLOW] ||
       isShallow(newValue) ||
       isReadonly(newValue)
     newValue = useDirectValue ? newValue : toRaw(newValue)
+    // 判断两个值是否相等，相等则不做其他处理，不相等则赋值并触发副作用
     if (hasChanged(newValue, oldValue)) {
       this._rawValue = newValue
       this._value = useDirectValue ? newValue : toReactive(newValue)
@@ -182,6 +188,7 @@ class RefImpl<T = any> {
  * @see {@link https://vuejs.org/api/reactivity-advanced.html#triggerref}
  */
 export function triggerRef(ref: Ref): void {
+  // 主动触发依赖
   if (__DEV__) {
     ;(ref as unknown as RefImpl).dep.trigger({
       target: ref,
@@ -219,6 +226,7 @@ export type MaybeRefOrGetter<T = any> = MaybeRef<T> | ComputedRef<T> | (() => T)
  * @see {@link https://vuejs.org/api/reactivity-utilities.html#unref}
  */
 export function unref<T>(ref: MaybeRef<T> | ComputedRef<T>): T {
+  // ref解包
   return isRef(ref) ? ref.value : ref
 }
 
@@ -242,6 +250,7 @@ export function toValue<T>(source: MaybeRefOrGetter<T>): T {
   return isFunction(source) ? source() : unref(source)
 }
 
+// 浅层代理
 const shallowUnwrapHandlers: ProxyHandler<any> = {
   get: (target, key, receiver) =>
     key === ReactiveFlags.RAW
@@ -294,6 +303,7 @@ class CustomRefImpl<T> {
 
   constructor(factory: CustomRefFactory<T>) {
     const dep = (this.dep = new Dep())
+    // 传入工厂函数，自定义如何进行依赖收集和触发
     const { get, set } = factory(dep.track.bind(dep), dep.trigger.bind(dep))
     this._get = get
     this._set = set
@@ -316,6 +326,7 @@ class CustomRefImpl<T> {
  * @see {@link https://vuejs.org/api/reactivity-advanced.html#customref}
  */
 export function customRef<T>(factory: CustomRefFactory<T>): Ref<T> {
+  // 创建自定义的ref
   return new CustomRefImpl(factory) as any
 }
 
@@ -342,6 +353,7 @@ export function toRefs<T extends object>(object: T): ToRefs<T> {
   return ret
 }
 
+// 一个包含value属性的对象的封装
 class ObjectRefImpl<T extends object, K extends keyof T> {
   public readonly [ReactiveFlags.IS_REF] = true
   public _value: T[K] = undefined!
@@ -443,13 +455,17 @@ export function toRef(
   key?: string,
   defaultValue?: unknown,
 ): Ref {
+  // 如果已经是ref，直接返回
   if (isRef(source)) {
     return source
   } else if (isFunction(source)) {
+    // 如果是一个函数，则返回一个包装.value的对象
     return new GetterRefImpl(source) as any
   } else if (isObject(source) && arguments.length > 1) {
+    // 如果是对象，则根据属性去返回
     return propertyToRef(source, key!, defaultValue)
   } else {
+    // 如果都不是以上情景，则直接返回一个ref对象
     return ref(source)
   }
 }
