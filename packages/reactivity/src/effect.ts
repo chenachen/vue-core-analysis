@@ -178,12 +178,15 @@ export class ReactiveEffect<T = any>
   run(): T {
     // TODO cleanupEffect
 
+    // 如果当前实例不是活跃状态，直接执行fn并返回执行结果
     if (!(this.flags & EffectFlags.ACTIVE)) {
       // stopped during cleanup
       return this.fn()
     }
 
+    // 设为执行状态
     this.flags |= EffectFlags.RUNNING
+    // 清除旧的副作用
     cleanupEffect(this)
     prepareDeps(this)
     const prevEffect = activeSub
@@ -444,21 +447,28 @@ export function effect<T = any>(
   fn: () => T,
   options?: ReactiveEffectOptions,
 ): ReactiveEffectRunner<T> {
+  // 判断fn是否存在effect并且是ReactiveEffect的实例
+  // TODO:为何要判断这个
+  // 猜测是为了避免嵌套问题
   if ((fn as ReactiveEffectRunner).effect instanceof ReactiveEffect) {
     fn = (fn as ReactiveEffectRunner).effect.fn
   }
 
+  // 实例化ReactiveEffect函数
   const e = new ReactiveEffect(fn)
+  // 如果存在options，合并到实例
   if (options) {
     extend(e, options)
   }
   try {
+    // 运行实例
     e.run()
   } catch (err) {
     e.stop()
     throw err
   }
   const runner = e.run.bind(e) as ReactiveEffectRunner
+  // 将实例挂在到执行器函数的effect属性上
   runner.effect = e
   return runner
 }
@@ -526,10 +536,13 @@ export function onEffectCleanup(fn: () => void, failSilently = false): void {
 }
 
 function cleanupEffect(e: ReactiveEffect) {
+  // 获取清除函数，并且将实例的cleanup属性置为undefined
   const { cleanup } = e
   e.cleanup = undefined
+  // 如果存在清理函数
   if (cleanup) {
     // run cleanup without active effect
+    // 避免当前的副作用被清除
     const prevSub = activeSub
     activeSub = undefined
     try {

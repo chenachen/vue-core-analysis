@@ -121,6 +121,7 @@ export class ComputedRefImpl<T = any> implements Subscriber {
   }
 
   get value(): T {
+    // 依赖收集
     const link = __DEV__
       ? this.dep.track({
           target: this,
@@ -128,6 +129,7 @@ export class ComputedRefImpl<T = any> implements Subscriber {
           key: 'value',
         })
       : this.dep.track()
+    // 依赖收集
     refreshComputed(this)
     // sync version after evaluation
     if (link) {
@@ -194,6 +196,7 @@ export function computed<T>(
   let getter: ComputedGetter<T>
   let setter: ComputedSetter<T> | undefined
 
+  // 判断传参是函数还是对象，如果是函数代表没有setter，该computed为只读
   if (isFunction(getterOrOptions)) {
     getter = getterOrOptions
   } else {
