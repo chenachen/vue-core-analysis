@@ -139,11 +139,13 @@ export class ReactiveEffect<T = any>
   onTrigger?: (event: DebuggerEvent) => void
 
   constructor(public fn: () => T) {
+    // 判断是否有活跃的作用域，有的话放到作用域中
     if (activeEffectScope && activeEffectScope.active) {
       activeEffectScope.effects.push(this)
     }
   }
 
+  // 暂停
   pause(): void {
     this.flags |= EffectFlags.PAUSED
   }
@@ -151,6 +153,7 @@ export class ReactiveEffect<T = any>
   resume(): void {
     if (this.flags & EffectFlags.PAUSED) {
       this.flags &= ~EffectFlags.PAUSED
+      // 如果暂停期间有被触发过，则恢复后重新执行
       if (pausedQueueEffects.has(this)) {
         pausedQueueEffects.delete(this)
         this.trigger()
@@ -162,12 +165,14 @@ export class ReactiveEffect<T = any>
    * @internal
    */
   notify(): void {
+    // 如果运行中且不允许递归，则跳过
     if (
       this.flags & EffectFlags.RUNNING &&
       !(this.flags & EffectFlags.ALLOW_RECURSE)
     ) {
       return
     }
+    // 还没执行过通知
     if (!(this.flags & EffectFlags.NOTIFIED)) {
       this.flags |= EffectFlags.NOTIFIED
       this.nextEffect = batchedEffect
@@ -188,13 +193,16 @@ export class ReactiveEffect<T = any>
     this.flags |= EffectFlags.RUNNING
     // 清除旧的副作用
     cleanupEffect(this)
+    // 初始化依赖
     prepareDeps(this)
+    // 将当前的活跃订阅设为本实例
     const prevEffect = activeSub
     const prevShouldTrack = shouldTrack
     activeSub = this
     shouldTrack = true
 
     try {
+      // 运行函数
       return this.fn()
     } finally {
       if (__DEV__ && activeSub !== this) {
@@ -203,7 +211,9 @@ export class ReactiveEffect<T = any>
             'this is likely a Vue internal bug.',
         )
       }
+      // 清除已执行的
       cleanupDeps(this)
+      // 状态回滚
       activeSub = prevEffect
       shouldTrack = prevShouldTrack
       this.flags &= ~EffectFlags.RUNNING
@@ -212,9 +222,11 @@ export class ReactiveEffect<T = any>
 
   stop(): void {
     if (this.flags & EffectFlags.ACTIVE) {
+      // 移除依赖
       for (let link = this.deps; link; link = link.nextDep) {
         removeSub(link)
       }
+
       this.deps = this.depsTail = undefined
       cleanupEffect(this)
       this.onStop && this.onStop()
@@ -223,9 +235,11 @@ export class ReactiveEffect<T = any>
   }
 
   trigger(): void {
+    // 如果是暂停状态，把实例缓存到pausedQueueEffects
     if (this.flags & EffectFlags.PAUSED) {
       pausedQueueEffects.add(this)
     } else if (this.scheduler) {
+      // 存在调度器则调用调度器
       this.scheduler()
     } else {
       this.runIfDirty()
@@ -270,6 +284,7 @@ export function endBatch(): void {
     let e: ReactiveEffect | undefined = batchedEffect
     batchedEffect = undefined
     while (e) {
+      // 遍历节点，逐个执行trigger
       const next: ReactiveEffect | undefined = e.nextEffect
       e.nextEffect = undefined
       e.flags &= ~EffectFlags.NOTIFIED
@@ -292,6 +307,7 @@ function prepareDeps(sub: Subscriber) {
   for (let link = sub.deps; link; link = link.nextDep) {
     // set all previous deps' (if any) version to -1 so that we can track
     // which ones are unused after the run
+    // 设置为-1，以便追踪运行后哪些订阅没有使用
     link.version = -1
     // store previous active sub if link was being used in another context
     link.prevActiveLink = link.dep.activeLink
@@ -305,6 +321,7 @@ function cleanupDeps(sub: Subscriber) {
   let tail = sub.depsTail
   for (let link = tail; link; link = link.prevDep) {
     if (link.version === -1) {
+      // 将未执行的从订阅队列和依赖队列移除
       if (link === tail) tail = link.prevDep
       // unused - remove it from the dep's subscribing effect list
       removeSub(link)
@@ -328,6 +345,7 @@ function cleanupDeps(sub: Subscriber) {
 function isDirty(sub: Subscriber): boolean {
   for (let link = sub.deps; link; link = link.nextDep) {
     if (
+      // 根据version去判断是否脏数据，需要更新
       link.dep.version !== link.version ||
       (link.dep.computed && refreshComputed(link.dep.computed) === false) ||
       link.dep.version !== link.version
@@ -348,6 +366,7 @@ function isDirty(sub: Subscriber): boolean {
  * @internal
  */
 export function refreshComputed(computed: ComputedRefImpl): false | undefined {
+  // 运行中或者没有更新则终止执行
   if (computed.flags & EffectFlags.RUNNING) {
     return false
   }
@@ -357,10 +376,12 @@ export function refreshComputed(computed: ComputedRefImpl): false | undefined {
   ) {
     return
   }
+  // 设置为脏数据
   computed.flags &= ~EffectFlags.DIRTY
 
   // Global version fast path when no reactive changes has happened since
   // last refresh.
+  // 上次更新后没有再变化
   if (computed.globalVersion === globalVersion) {
     return
   }
@@ -372,19 +393,24 @@ export function refreshComputed(computed: ComputedRefImpl): false | undefined {
   // and therefore tracks no deps, thus we cannot rely on the dirty check.
   // Instead, computed always re-evaluate and relies on the globalVersion
   // fast path above for caching.
+  // SSR没有渲染effect，所以computed没有订阅者因此无法收集依赖，所以不能依赖于脏数据检查
+  // 作为替代，computed总是依赖于上面的globalVersion进行缓存
   if (dep.version > 0 && !computed.isSSR && !isDirty(computed)) {
     computed.flags &= ~EffectFlags.RUNNING
     return
   }
 
+  // 将当前活跃的订阅设置为本computed
   const prevSub = activeSub
   const prevShouldTrack = shouldTrack
   activeSub = computed
   shouldTrack = true
 
   try {
+    // 将computed的一些状态重置
     prepareDeps(computed)
     const value = computed.fn(computed._value)
+    // 判断计算值是否变化
     if (dep.version === 0 || hasChanged(value, computed._value)) {
       computed._value = value
       dep.version++
@@ -393,6 +419,7 @@ export function refreshComputed(computed: ComputedRefImpl): false | undefined {
     dep.version++
     throw err
   } finally {
+    // 回退状态
     activeSub = prevSub
     shouldTrack = prevShouldTrack
     cleanupDeps(computed)
@@ -401,6 +428,7 @@ export function refreshComputed(computed: ComputedRefImpl): false | undefined {
 }
 
 function removeSub(link: Link) {
+  // 链表删除当前节点
   const { dep, prevSub, nextSub } = link
   if (prevSub) {
     prevSub.nextSub = nextSub
@@ -419,6 +447,7 @@ function removeSub(link: Link) {
     // last subscriber removed
     // if computed, unsubscribe it from all its deps so this computed and its
     // value can be GCed
+    // 如果是computed，则设置为非追踪状态，并将该computed的依赖同样做移除订阅
     dep.computed.flags &= ~EffectFlags.TRACKING
     for (let l = dep.computed.deps; l; l = l.nextDep) {
       removeSub(l)
@@ -513,9 +542,10 @@ export function resetTracking(): void {
 }
 
 /**
- * Registers a cleanup function for the current active effect.
+ * Registers a cleanup function for the current active 影响fect.
  * The cleanup function is called right before the next effect run, or when the
  * effect is stopped.
+ * 为当前活跃的effect注册一个清理函数，清理函数在下一个effect函数执行前或者effect停止时运行
  *
  * Throws a warning if there is no current active effect. The warning can be
  * suppressed by passing `true` to the second argument.

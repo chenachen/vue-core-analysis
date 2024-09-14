@@ -247,6 +247,7 @@ function apply(
 ) {
   // 依赖收集
   const arr = shallowReadArray(self)
+  // 判断是否需要深度监听
   const needsWrap = arr !== self && !isShallow(self)
   // @ts-expect-error our code is limited to es2016 but user code is not
   const methodFn = arr[method]
@@ -255,6 +256,7 @@ function apply(
   // If the method being called is from a user-extended Array, the arguments will be unknown
   // (unknown order and unknown parameter types). In this case, we skip the shallowReadArray
   // handling and directly call apply with self.
+  // 如果是扩展的方法，参数是未知的，直接用apply执行，跳过shallowReadArray，然后对结果判断是否需要继续包装成reactive
   if (methodFn !== arrayProto[method as any]) {
     const result = methodFn.apply(self, args)
     return needsWrap ? toReactive(result) : result

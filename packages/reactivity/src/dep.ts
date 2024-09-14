@@ -51,6 +51,7 @@ export class Dep {
     }
 
     let link = this.activeLink
+    // 判断当前link是否未定义或者订阅者不是当前活跃的订阅
     if (link === undefined || link.sub !== activeSub) {
       link = this.activeLink = {
         dep: this,
@@ -64,6 +65,7 @@ export class Dep {
       }
 
       // add the link to the activeEffect as a dep (as tail)
+      // 将当前link连接到当前活跃的订阅者的deps的双向链表尾部
       if (!activeSub.deps) {
         activeSub.deps = activeSub.depsTail = link
       } else {
@@ -72,6 +74,7 @@ export class Dep {
         activeSub.depsTail = link
       }
 
+      // 如果当前订阅者处于依赖收集状态，添加依赖到
       if (activeSub.flags & EffectFlags.TRACKING) {
         addSub(link)
       }
@@ -83,18 +86,21 @@ export class Dep {
       // tail. This ensures the effect's dep list is in the order they are
       // accessed during evaluation.
       if (link.nextDep) {
+        // link的上下游链接在一起，相当于把当前link从链表中删除
         const next = link.nextDep
         next.prevDep = link.prevDep
         if (link.prevDep) {
           link.prevDep.nextDep = next
         }
 
+        // 把当前link放到尾节点
         link.prevDep = activeSub.depsTail
         link.nextDep = undefined
         activeSub.depsTail!.nextDep = link
         activeSub.depsTail = link
 
         // this was the head - point to the new head
+        // 如果link是首节点，则从新指向下一个节点
         if (activeSub.deps === link) {
           activeSub.deps = next
         }
@@ -145,10 +151,12 @@ export class Dep {
           }
         }
       }
+      // 遍历订阅者，触发通知函数
       for (let link = this.subs; link; link = link.prevSub) {
         link.sub.notify()
       }
     } finally {
+      // 结束批量执行
       endBatch()
     }
   }
@@ -158,13 +166,16 @@ function addSub(link: Link) {
   const computed = link.dep.computed
   // computed getting its first subscriber
   // enable tracking + lazily subscribe to all its deps
+  // 判断是否一个computed且尚未添加订阅者
   if (computed && !link.dep.subs) {
     computed.flags |= EffectFlags.TRACKING | EffectFlags.DIRTY
+    // 遍历链表，添加订阅者
     for (let l = computed.deps; l; l = l.nextDep) {
       addSub(l)
     }
   }
 
+  // 获取当前依赖订阅链表的尾节点，如果和当前link不相等，则将当前的link追加到尾节点
   const currentTail = link.dep.subs
   if (currentTail !== link) {
     link.prevSub = currentTail
@@ -206,6 +217,7 @@ export const ARRAY_ITERATE_KEY: unique symbol = Symbol(
  * @param key - Identifier of the reactive property to track.
  */
 export function track(target: object, type: TrackOpTypes, key: unknown): void {
+  // targetMap是个WeakMap，以原始对象为key，Map为值，而这个map则以target的key为key，存储Dep对象，Dep对象则是存储调用响应式对象的副作用函数
   if (shouldTrack && activeSub) {
     let depsMap = targetMap.get(target)
     if (!depsMap) {
@@ -215,6 +227,7 @@ export function track(target: object, type: TrackOpTypes, key: unknown): void {
     if (!dep) {
       depsMap.set(key, (dep = new Dep()))
     }
+    // 创建完毕之后调用dep对象的track方法
     if (__DEV__) {
       dep.track({
         target,
@@ -245,6 +258,7 @@ export function trigger(
 ): void {
   const depsMap = targetMap.get(target)
   if (!depsMap) {
+    // 未被调用，所以没有相关追踪
     // never been tracked
     globalVersion++
     return
@@ -256,6 +270,7 @@ export function trigger(
     // trigger all effects for target
     deps = [...depsMap.values()]
   } else {
+    // 判断是否数组和key是否数组索引
     const targetIsArray = isArray(target)
     const isArrayIndex = targetIsArray && isIntegerKey(key)
 
@@ -263,8 +278,11 @@ export function trigger(
       const newLength = Number(newValue)
       depsMap.forEach((dep, key) => {
         if (
+          // key是length
           key === 'length' ||
+          // 或者key是遍历标记
           key === ARRAY_ITERATE_KEY ||
+          // 或者key不是标记并且key（索引值）大于新的数组长度
           (!isSymbol(key) && key >= newLength)
         ) {
           deps.push(dep)
@@ -278,11 +296,13 @@ export function trigger(
         push(depsMap.get(key))
       }
 
+      // 数组索引的话还要触发迭代类型的依赖
       // schedule ARRAY_ITERATE for any numeric key change (length is handled above)
       if (isArrayIndex) {
         push(depsMap.get(ARRAY_ITERATE_KEY))
       }
 
+      // 根据对象的类型去获取需要触发的依赖
       // also run for iteration key on ADD | DELETE | Map.SET
       switch (type) {
         case TriggerOpTypes.ADD:
@@ -312,6 +332,8 @@ export function trigger(
       }
     }
   }
+  // 需要触发的依赖获取完毕
+  // 开始执行
 
   startBatch()
   for (const dep of deps) {

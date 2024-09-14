@@ -267,8 +267,9 @@ export default class Tokenizer {
     private readonly cbs: Callbacks,
   ) {
     if (!__BROWSER__) {
-      this.entityDecoder = new EntityDecoder(htmlDecodeTree, (cp, consumed) =>
-        this.emitCodePoint(cp, consumed),
+      this.entityDecoder = new EntityDecoder(
+        htmlDecodeTree,
+        (cp: any, consumed: any) => this.emitCodePoint(cp, consumed),
       )
     }
   }
