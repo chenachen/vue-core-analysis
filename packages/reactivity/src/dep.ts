@@ -4,7 +4,7 @@ import { type TrackOpTypes, TriggerOpTypes } from './constants'
 import {
   type DebuggerEventExtraInfo,
   EffectFlags,
-  type Link,
+  type Subscriber,
   activeSub,
   endBatch,
   shouldTrack,
@@ -17,6 +17,49 @@ import {
  * has changed.
  */
 export let globalVersion = 0
+
+/**
+ * Represents a link between a source (Dep) and a subscriber (Effect or Computed).
+ * Deps and subs have a many-to-many relationship - each link between a
+ * dep and a sub is represented by a Link instance.
+ *
+ * A Link is also a node in two doubly-linked lists - one for the associated
+ * sub to track all its deps, and one for the associated dep to track all its
+ * subs.
+ *
+ * @internal
+ */
+export class Link {
+  /**
+   * - Before each effect run, all previous dep links' version are reset to -1
+   * - During the run, a link's version is synced with the source dep on access
+   * - After the run, links with version -1 (that were never used) are cleaned
+   *   up
+   */
+  version: number
+
+  /**
+   * Pointers for doubly-linked lists
+   */
+  nextDep?: Link
+  prevDep?: Link
+  nextSub?: Link
+  prevSub?: Link
+  prevActiveLink?: Link
+
+  constructor(
+    public sub: Subscriber,
+    public dep: Dep,
+  ) {
+    this.version = dep.version
+    this.nextDep =
+      this.prevDep =
+      this.nextSub =
+      this.prevSub =
+      this.prevActiveLink =
+        undefined
+  }
+}
 
 /**
  * @internal
@@ -39,6 +82,17 @@ export class Dep {
    */
   subsHead?: Link
 
+  /**
+   * For object property deps cleanup
+   */
+  map?: KeyToDepMap = undefined
+  key?: unknown = undefined
+
+  /**
+   * Subscriber counter
+   */
+  sc: number = 0
+
   constructor(public computed?: ComputedRefImpl | undefined) {
     if (__DEV__) {
       this.subsHead = undefined
@@ -53,16 +107,7 @@ export class Dep {
     let link = this.activeLink
     // 判断当前link是否未定义或者订阅者不是当前活跃的订阅
     if (link === undefined || link.sub !== activeSub) {
-      link = this.activeLink = {
-        dep: this,
-        sub: activeSub,
-        version: this.version,
-        nextDep: undefined,
-        prevDep: undefined,
-        nextSub: undefined,
-        prevSub: undefined,
-        prevActiveLink: undefined,
-      }
+      link = this.activeLink = new Link(activeSub, this)
 
       // add the link to the activeEffect as a dep (as tail)
       // 将当前link连接到当前活跃的订阅者的deps的双向链表尾部
@@ -74,10 +119,7 @@ export class Dep {
         activeSub.depsTail = link
       }
 
-      // 如果当前订阅者处于依赖收集状态，添加依赖到
-      if (activeSub.flags & EffectFlags.TRACKING) {
-        addSub(link)
-      }
+      addSub(link)
     } else if (link.version === -1) {
       // reused from last run - already a sub, just sync version
       link.version = this.version
@@ -135,11 +177,7 @@ export class Dep {
         // original order at the end of the batch, but onTrigger hooks should
         // be invoked in original order here.
         for (let head = this.subsHead; head; head = head.nextSub) {
-          if (
-            __DEV__ &&
-            head.sub.onTrigger &&
-            !(head.sub.flags & EffectFlags.NOTIFIED)
-          ) {
+          if (head.sub.onTrigger && !(head.sub.flags & EffectFlags.NOTIFIED)) {
             head.sub.onTrigger(
               extend(
                 {
@@ -153,7 +191,12 @@ export class Dep {
       }
       // 遍历订阅者，触发通知函数
       for (let link = this.subs; link; link = link.prevSub) {
-        link.sub.notify()
+        if (link.sub.notify()) {
+          // if notify() returns `true`, this is a computed. Also call notify
+          // on its dep - it's called here instead of inside computed's notify
+          // in order to reduce call stack depth.
+          ;(link.sub as ComputedRefImpl).dep.notify()
+        }
       }
     } finally {
       // 结束批量执行
@@ -163,30 +206,30 @@ export class Dep {
 }
 
 function addSub(link: Link) {
-  const computed = link.dep.computed
-  // computed getting its first subscriber
-  // enable tracking + lazily subscribe to all its deps
-  // 判断是否一个computed且尚未添加订阅者
-  if (computed && !link.dep.subs) {
-    computed.flags |= EffectFlags.TRACKING | EffectFlags.DIRTY
-    // 遍历链表，添加订阅者
-    for (let l = computed.deps; l; l = l.nextDep) {
-      addSub(l)
+  link.dep.sc++
+  if (link.sub.flags & EffectFlags.TRACKING) {
+    const computed = link.dep.computed
+    // computed getting its first subscriber
+    // enable tracking + lazily subscribe to all its deps
+    if (computed && !link.dep.subs) {
+      computed.flags |= EffectFlags.TRACKING | EffectFlags.DIRTY
+      for (let l = computed.deps; l; l = l.nextDep) {
+        addSub(l)
+      }
     }
-  }
 
-  // 获取当前依赖订阅链表的尾节点，如果和当前link不相等，则将当前的link追加到尾节点
-  const currentTail = link.dep.subs
-  if (currentTail !== link) {
-    link.prevSub = currentTail
-    if (currentTail) currentTail.nextSub = link
-  }
+    const currentTail = link.dep.subs
+    if (currentTail !== link) {
+      link.prevSub = currentTail
+      if (currentTail) currentTail.nextSub = link
+    }
 
-  if (__DEV__ && link.dep.subsHead === undefined) {
-    link.dep.subsHead = link
-  }
+    if (__DEV__ && link.dep.subsHead === undefined) {
+      link.dep.subsHead = link
+    }
 
-  link.dep.subs = link
+    link.dep.subs = link
+  }
 }
 
 // The main WeakMap that stores {target -> key -> dep} connections.
@@ -194,7 +237,8 @@ function addSub(link: Link) {
 // which maintains a Set of subscribers, but we simply store them as
 // raw Maps to reduce memory overhead.
 type KeyToDepMap = Map<any, Dep>
-const targetMap = new WeakMap<object, KeyToDepMap>()
+
+export const targetMap: WeakMap<object, KeyToDepMap> = new WeakMap()
 
 export const ITERATE_KEY: unique symbol = Symbol(
   __DEV__ ? 'Object iterate' : '',
@@ -226,6 +270,8 @@ export function track(target: object, type: TrackOpTypes, key: unknown): void {
     let dep = depsMap.get(key)
     if (!dep) {
       depsMap.set(key, (dep = new Dep()))
+      dep.map = depsMap
+      dep.key = key
     }
     // 创建完毕之后调用dep对象的track方法
     if (__DEV__) {
@@ -264,11 +310,29 @@ export function trigger(
     return
   }
 
-  let deps: Dep[] = []
+  const run = (dep: Dep | undefined) => {
+    if (dep) {
+      if (__DEV__) {
+        dep.trigger({
+          target,
+          type,
+          key,
+          newValue,
+          oldValue,
+          oldTarget,
+        })
+      } else {
+        dep.trigger()
+      }
+    }
+  }
+
+  startBatch()
+
   if (type === TriggerOpTypes.CLEAR) {
     // collection being cleared
     // trigger all effects for target
-    deps = [...depsMap.values()]
+    depsMap.forEach(run)
   } else {
     // 判断是否数组和key是否数组索引
     const targetIsArray = isArray(target)
@@ -285,21 +349,19 @@ export function trigger(
           // 或者key不是标记并且key（索引值）大于新的数组长度
           (!isSymbol(key) && key >= newLength)
         ) {
-          deps.push(dep)
+          run(dep)
         }
       })
     } else {
-      const push = (dep: Dep | undefined) => dep && deps.push(dep)
-
       // schedule runs for SET | ADD | DELETE
-      if (key !== void 0) {
-        push(depsMap.get(key))
+      if (key !== void 0 || depsMap.has(void 0)) {
+        run(depsMap.get(key))
       }
 
       // 数组索引的话还要触发迭代类型的依赖
       // schedule ARRAY_ITERATE for any numeric key change (length is handled above)
       if (isArrayIndex) {
-        push(depsMap.get(ARRAY_ITERATE_KEY))
+        run(depsMap.get(ARRAY_ITERATE_KEY))
       }
 
       // 根据对象的类型去获取需要触发的依赖
@@ -307,26 +369,26 @@ export function trigger(
       switch (type) {
         case TriggerOpTypes.ADD:
           if (!targetIsArray) {
-            push(depsMap.get(ITERATE_KEY))
+            run(depsMap.get(ITERATE_KEY))
             if (isMap(target)) {
-              push(depsMap.get(MAP_KEY_ITERATE_KEY))
+              run(depsMap.get(MAP_KEY_ITERATE_KEY))
             }
           } else if (isArrayIndex) {
             // new index added to array -> length changes
-            push(depsMap.get('length'))
+            run(depsMap.get('length'))
           }
           break
         case TriggerOpTypes.DELETE:
           if (!targetIsArray) {
-            push(depsMap.get(ITERATE_KEY))
+            run(depsMap.get(ITERATE_KEY))
             if (isMap(target)) {
-              push(depsMap.get(MAP_KEY_ITERATE_KEY))
+              run(depsMap.get(MAP_KEY_ITERATE_KEY))
             }
           }
           break
         case TriggerOpTypes.SET:
           if (isMap(target)) {
-            push(depsMap.get(ITERATE_KEY))
+            run(depsMap.get(ITERATE_KEY))
           }
           break
       }
@@ -335,31 +397,13 @@ export function trigger(
   // 需要触发的依赖获取完毕
   // 开始执行
 
-  startBatch()
-  for (const dep of deps) {
-    if (__DEV__) {
-      dep.trigger({
-        target,
-        type,
-        key,
-        newValue,
-        oldValue,
-        oldTarget,
-      })
-    } else {
-      dep.trigger()
-    }
-  }
   endBatch()
 }
 
-/**
- * Test only
- */
 export function getDepFromReactive(
   object: any,
   key: string | number | symbol,
 ): Dep | undefined {
-  // eslint-disable-next-line
-  return targetMap.get(object)?.get(key)
+  const depMap = targetMap.get(object)
+  return depMap && depMap.get(key)
 }
