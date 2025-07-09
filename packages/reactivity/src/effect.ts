@@ -49,6 +49,7 @@ export enum EffectFlags {
   DIRTY = 1 << 4, // 脏状态，需要从新执行
   ALLOW_RECURSE = 1 << 5, // 是否允许递归调用
   PAUSED = 1 << 6, // 是否暂停中
+  EVALUATED = 1 << 7,
 }
 
 /**
@@ -398,22 +399,22 @@ export function refreshComputed(computed: ComputedRefImpl): undefined {
   }
   computed.globalVersion = globalVersion
 
-  const dep = computed.dep
-  computed.flags |= EffectFlags.RUNNING
   // In SSR there will be no render effect, so the computed has no subscriber
   // and therefore tracks no deps, thus we cannot rely on the dirty check.
   // Instead, computed always re-evaluate and relies on the globalVersion
   // fast path above for caching.
+  // #12337 if computed has no deps (does not rely on any reactive data) and evaluated,
+  // there is no need to re-evaluate.
   if (
-    dep.version > 0 &&
     !computed.isSSR &&
-    computed.deps &&
-    !isDirty(computed)
+    computed.flags & EffectFlags.EVALUATED &&
+    ((!computed.deps && !(computed as any)._dirty) || !isDirty(computed))
   ) {
-    computed.flags &= ~EffectFlags.RUNNING
     return
   }
+  computed.flags |= EffectFlags.RUNNING
 
+  const dep = computed.dep
   // 将当前活跃的订阅设置为本computed
   const prevSub = activeSub
   const prevShouldTrack = shouldTrack
@@ -426,6 +427,7 @@ export function refreshComputed(computed: ComputedRefImpl): undefined {
     const value = computed.fn(computed._value)
     // 判断计算值是否变化
     if (dep.version === 0 || hasChanged(value, computed._value)) {
+      computed.flags |= EffectFlags.EVALUATED
       computed._value = value
       dep.version++
     }
