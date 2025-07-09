@@ -42,13 +42,13 @@ export enum EffectFlags {
   /**
    * ReactiveEffect only
    */
-  ACTIVE = 1 << 0,
-  RUNNING = 1 << 1,
-  TRACKING = 1 << 2,
-  NOTIFIED = 1 << 3,
-  DIRTY = 1 << 4,
-  ALLOW_RECURSE = 1 << 5,
-  PAUSED = 1 << 6,
+  ACTIVE = 1 << 0, // 活跃状态
+  RUNNING = 1 << 1, // 运行中
+  TRACKING = 1 << 2, // 正在收集依赖
+  NOTIFIED = 1 << 3, // 是否已通知需要重新执行
+  DIRTY = 1 << 4, // 脏状态，需要从新执行
+  ALLOW_RECURSE = 1 << 5, // 是否允许递归调用
+  PAUSED = 1 << 6, // 是否暂停中
 }
 
 /**

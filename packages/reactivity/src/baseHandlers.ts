@@ -27,6 +27,7 @@ import { warn } from './warning'
 
 const isNonTrackableKeys = /*@__PURE__*/ makeMap(`__proto__,__v_isRef,__isVue`)
 
+// 获取内置的Symbol
 const builtInSymbols = new Set(
   /*@__PURE__*/
   Object.getOwnPropertyNames(Symbol)
@@ -80,6 +81,7 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
           ).get(target) ||
         // receiver is not the reactive proxy, but has the same prototype
         // this means the receiver is a user proxy of the reactive proxy
+        // 如果receiver和target有着相同的原型链，同样返回target
         Object.getPrototypeOf(target) === Object.getPrototypeOf(receiver)
       ) {
         // 返回源对象
@@ -133,7 +135,7 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
 
     if (isRef(res)) {
       // 如果是ref，则解包
-      // ref unwrapping - skip unwrap for Array + integer key.
+      // ref unwrapping - 跳过 Array + integer 键的 解包。
       return targetIsArray && isIntegerKey(key) ? res : res.value
     }
 

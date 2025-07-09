@@ -209,6 +209,10 @@ function iterator(
   // partially iterated in another, then iterated more in yet another.
   // given that JS iterator can only be read once, this doesn't seem like
   // a plausible use-case, so this tracking simplification seems ok.
+  // 请注意，此处获取ARRAY_ITERATE依赖项并不严格等同于在代理数组上调用 iterate
+  // 创建迭代器不会访问任何数组属性：只有在调用 .next（） 时，才会访问 length 和 indexs
+  // 如果极端一点，可以在一个 Effect Scope 中创建迭代器，在另一个 Effect Scope 中部分迭代，然后在另一个 Effect Scope 中迭代更多
+  // 鉴于 JS 迭代器只能读取一次，这似乎不是一个合理的用例，因此这种跟踪简化似乎还可以。
   // 浅层监听并获取源对象
   const arr = shallowReadArray(self)
   // 获取迭代器

@@ -291,7 +291,7 @@ function createReactiveObject(
   if (existingProxy) {
     return existingProxy
   }
-  // 只有特定对象可以被代理
+  // 只有特定对象可以被代理，非法对象直接返回target不做代理
   // only specific value types can be observed.
   const targetType = getTargetType(target)
   if (targetType === TargetType.INVALID) {
