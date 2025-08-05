@@ -115,6 +115,7 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
       // 这个判断是针对reactive(ref(obj))这种情况的，这种情况下如果不做以下判断，在RefImpl和ComputedRefImpl中的this指向的是代理对象，而不是ref本身
       // 会导致在RefImpl和ComputedRefImpl内部get value()方法中需要通过toRaw方法获取到原始对象
       // 改动的commit在这https://github.com/vuejs/core/pull/10397/commits/1318017d111ded1977daed0db4e301f676a78628
+      // 本质在于this指向问题
       isRef(target) ? target : receiver,
     )
 
@@ -200,7 +201,24 @@ class MutableReactiveHandler extends BaseReactiveHandler {
       isRef(target) ? target : receiver,
     )
     // don't trigger if target is something up in the prototype chain of original
-    // 如果是修改原型链上的某些值则不触发
+    /**
+     * 如果是修改原型链上的某些值则不触发
+     * 例子：
+     * const proxy = new Proxy({ a: 1, b: 2 }, {
+     *     get(target, key, receiver) {
+     *         console.log(receiver === target)
+     *
+     *         return Reflect.get(target, key, receiver);
+     *     },
+     *     set(target, key, value, receiver) {
+     *         console.log(receiver === target)
+     *         return Reflect.set(target, key, value, receiver);
+     *     }
+     * })
+     *
+     * console.log(proxy.__proto__) // get的log会输出false
+     * proxy.__proto__.c = 3 // set中的log输出false
+     */
     if (target === toRaw(receiver)) {
       if (!hadKey) {
         trigger(target, TriggerOpTypes.ADD, key, value)

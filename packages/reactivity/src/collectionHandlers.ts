@@ -101,10 +101,11 @@ function createInstrumentations(
     get(this: MapTypes, key: unknown) {
       // #1772: readonly(reactive(Map)) should return readonly + reactive version
       // of the value
-      const target = this[ReactiveFlags.RAW]
-      const rawTarget = toRaw(target)
-      const rawKey = toRaw(key)
+      const target = this[ReactiveFlags.RAW] // 被代理的对象
+      const rawTarget = toRaw(target) // 代理对象的原始版本，target和rawTarget不一致的场景在于readonly(reactive(Map))这种套娃的场景
+      const rawKey = toRaw(key) // key可以是对象，所以这里获取原始版本的key
       if (!readonly) {
+        // 其实是判断key是否也是代理对象而不是真的判断key是否有被改过
         if (hasChanged(key, rawKey)) {
           track(rawTarget, TrackOpTypes.GET, key)
         }
@@ -119,6 +120,7 @@ function createInstrumentations(
       } else if (target !== rawTarget) {
         // #3602 readonly(reactive(Map))
         // ensure that the nested reactive `Map` can do tracking for itself
+        // readonly(reactive(Map))这种套娃的场景,确保reactive自身的Map可以进行追踪
         target.get(key)
       }
     },
@@ -310,7 +312,7 @@ function checkIdentityKeys(
   key: unknown,
 ) {
   const rawKey = toRaw(key)
-  // 检查key值是否被代理，主要是针对weakmap，weakset，如果是的话，开发环境中给出警告
+  // 检查target是否同时存在key的原始版本和代理版本，开发环境中给出提示，不建议这么做
   if (rawKey !== key && has.call(target, rawKey)) {
     const type = toRawType(target)
     warn(

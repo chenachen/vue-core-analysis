@@ -46,7 +46,7 @@ export enum EffectFlags {
   RUNNING = 1 << 1, // 运行中
   TRACKING = 1 << 2, // 正在收集依赖
   NOTIFIED = 1 << 3, // 是否已通知需要重新执行
-  DIRTY = 1 << 4, // 脏状态，需要从新执行
+  DIRTY = 1 << 4, // 脏状态，需要重新执行
   ALLOW_RECURSE = 1 << 5, // 是否允许递归调用
   PAUSED = 1 << 6, // 是否暂停中
   EVALUATED = 1 << 7,
@@ -505,8 +505,7 @@ export function effect<T = any>(
   options?: ReactiveEffectOptions,
 ): ReactiveEffectRunner<T> {
   // 判断fn是否存在effect并且是ReactiveEffect的实例
-  // TODO:为何要判断这个
-  // 猜测是为了避免嵌套问题
+  // 避免自身嵌套问题
   if ((fn as ReactiveEffectRunner).effect instanceof ReactiveEffect) {
     fn = (fn as ReactiveEffectRunner).effect.fn
   }
@@ -570,7 +569,7 @@ export function resetTracking(): void {
 }
 
 /**
- * Registers a cleanup function for the current active 影响fect.
+ * Registers a cleanup function for the current active effect.
  * The cleanup function is called right before the next effect run, or when the
  * effect is stopped.
  * 为当前活跃的effect注册一个清理函数，清理函数在下一个effect函数执行前或者effect停止时运行
