@@ -150,6 +150,7 @@ export function watch(
   let forceTrigger = false
   let isMultiSource = false
 
+  // 根据不同的 source 类型，设置 getter 函数
   if (isRef(source)) {
     getter = () => source.value
     forceTrigger = isShallow(source)
@@ -160,6 +161,7 @@ export function watch(
     isMultiSource = true
     forceTrigger = source.some(s => isReactive(s) || isShallow(s))
     getter = () =>
+      // 监听多个来源时，遍历每个来源，返回一个包含所有来源值的数组
       source.map(s => {
         if (isRef(s)) {
           return s.value
@@ -172,6 +174,11 @@ export function watch(
         }
       })
   } else if (isFunction(source)) {
+    /**
+     * source是函数时，获取函数返回值
+     * 例子：
+     * watch(() => someReactiveObject.someProperty, cb)
+     */
     if (cb) {
       // getter with cb
       getter = call
@@ -179,6 +186,7 @@ export function watch(
         : (source as () => any)
     } else {
       // no cb -> simple effect
+      // TODO: 这是啥场景
       getter = () => {
         if (cleanup) {
           pauseTracking()
@@ -207,6 +215,7 @@ export function watch(
   if (cb && deep) {
     const baseGetter = getter
     const depth = deep === true ? Infinity : deep
+    // 深度遍历时，递归执行getter
     getter = () => traverse(baseGetter(), depth)
   }
 
@@ -231,6 +240,7 @@ export function watch(
     : INITIAL_WATCHER_VALUE
 
   const job = (immediateFirstRun?: boolean) => {
+    // 当前副作用函数未激活，或者副作用函数未脏且不是首次执行，则直接返回
     if (
       !(effect.flags & EffectFlags.ACTIVE) ||
       (!effect.dirty && !immediateFirstRun)
@@ -238,7 +248,7 @@ export function watch(
       return
     }
     if (cb) {
-      // watch(source, cb)
+      // watch(source, cb)， 执行副作用函数得到新值
       const newValue = effect.run()
       if (
         deep ||
@@ -283,8 +293,10 @@ export function watch(
     augmentJob(job)
   }
 
+  // 创建一个副作用函数，监听getter中涉及的响应式数据变化时触发执行
   effect = new ReactiveEffect(getter)
 
+  // 设置调度器，在响应式数据变化时执行job函数
   effect.scheduler = scheduler
     ? () => scheduler(job, false)
     : (job as EffectScheduler)

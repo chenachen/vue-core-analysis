@@ -39,14 +39,19 @@ function createIterableMethod(
     this: IterableCollections,
     ...args: unknown[]
   ): Iterable<unknown> & Iterator<unknown> {
+    // 获取本次代理的对象
     const target = this[ReactiveFlags.RAW]
+    // 获取源对象，本次代理的对象不一定是基础对象类型，有可能是经过代理的对象，比如readonly(reactive(Map))这种套娃的场景
     const rawTarget = toRaw(target)
+    // 判断是否map
     const targetIsMap = isMap(rawTarget)
     const isPair =
       method === 'entries' || (method === Symbol.iterator && targetIsMap)
     const isKeyOnly = method === 'keys' && targetIsMap
     const innerIterator = target[method](...args)
+    // 根据是否是只读和浅层监听来决定返回的值
     const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive
+    // 如果是只读的情况，不做依赖追踪
     !isReadonly &&
       track(
         rawTarget,
@@ -56,6 +61,7 @@ function createIterableMethod(
     // return a wrapped iterator which returns observed versions of the
     // values emitted from the real iterator
     return {
+      // 模拟一个迭代器对象，对迭代对象做包装
       // iterator protocol
       next() {
         const { value, done } = innerIterator.next()
@@ -112,9 +118,12 @@ function createInstrumentations(
         track(rawTarget, TrackOpTypes.GET, rawKey)
       }
       const { has } = getProto(rawTarget)
+      // 根据是否是只读和浅层监听来决定包装函数
       const wrap = shallow ? toShallow : readonly ? toReadonly : toReactive
+      // 如果key在源中存在，则返回对应的值
       if (has.call(rawTarget, key)) {
         return wrap(target.get(key))
+        // 如果key在源中不存在，但是原始版本的key存在，则返回对应的值
       } else if (has.call(rawTarget, rawKey)) {
         return wrap(target.get(rawKey))
       } else if (target !== rawTarget) {
@@ -169,12 +178,14 @@ function createInstrumentations(
         }
       : {
           add(this: SetTypes, value: unknown) {
+            // 查值是否是浅层、只读或已经是响应式对象，如果不是，则将其转换为原始值
             if (!shallow && !isShallow(value) && !isReadonly(value)) {
               value = toRaw(value)
             }
             const target = toRaw(this)
             const proto = getProto(target)
             const hadKey = proto.has.call(target, value)
+            // 通过原始集合的 has 方法检查值是否已存在。如果值不存在，则将其添加到集合中，并触发依赖收集
             if (!hadKey) {
               target.add(value)
               trigger(target, TriggerOpTypes.ADD, value, value)

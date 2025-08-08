@@ -371,10 +371,7 @@ function isDirty(sub: Subscriber): boolean {
   }
   // @ts-expect-error only for backwards compatibility where libs manually set
   // this flag - e.g. Pinia's testing module
-  if (sub._dirty) {
-    return true
-  }
-  return false
+  return !!sub._dirty
 }
 
 /**
@@ -388,7 +385,12 @@ export function refreshComputed(computed: ComputedRefImpl): undefined {
   ) {
     return
   }
-  // 设置为脏数据
+  /**
+   * 清空脏状态
+   * ~EffectFlags.DIRTY是按位取反 EffectFlags.DIRTY 00010000，按位取反后变成11101111
+   * &则是与运算，只有当两个位都为1时结果才为1
+   * 所以 computed.flags &= ~EffectFlags.DIRTY是将computed.flags中的DIRTY位清除
+   */
   computed.flags &= ~EffectFlags.DIRTY
 
   // Global version fast path when no reactive changes has happened since
@@ -405,9 +407,16 @@ export function refreshComputed(computed: ComputedRefImpl): undefined {
   // fast path above for caching.
   // #12337 if computed has no deps (does not rely on any reactive data) and evaluated,
   // there is no need to re-evaluate.
+  // 在 SSR 中不会有渲染效果，因此计算没有订阅者，因此没有跟踪 deps，因此我们不能依赖脏检查。
+  // 相反，computed 始终重新计算并依赖于上面的 globalVersion 快速路径进行缓存。
+  // #12337 如果计算没有 DEPS（不依赖于任何反应性数据）并已评估，则无需重新评估。
   if (
+    // 非SSR环境下
     !computed.isSSR &&
+    // 如果computed的flags中包含EVALUATED标志位
     computed.flags & EffectFlags.EVALUATED &&
+    // 如果computed的deps不存在或者computed的_dirty属性不存在， 或者isDirty执行结果为false
+    // _dirty目前我只发现在pinia的测试模块中使用 pinia/packages/testing/src/testing.ts
     ((!computed.deps && !(computed as any)._dirty) || !isDirty(computed))
   ) {
     return
