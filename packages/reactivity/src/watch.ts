@@ -93,6 +93,7 @@ export function getCurrentWatcher(): ReactiveEffect<any> | undefined {
  * Registers a cleanup callback on the current active effect. This
  * registered cleanup callback will be invoked right before the
  * associated effect re-runs.
+ * 为当前effect注册一个清理函数，这个注册的清理函数会在相关的effect重新运行之前调用
  *
  * @param cleanupFn - The callback function to attach to the effect's cleanup.
  * @param failSilently - if `true`, will not throw warning when called without
@@ -219,14 +220,18 @@ export function watch(
     getter = () => traverse(baseGetter(), depth)
   }
 
+  // 获取当前作用域
   const scope = getCurrentScope()
   const watchHandle: WatchHandle = () => {
+    // 暂停本effect执行和监听
     effect.stop()
+    // 如果当前作用域活跃中，将本effect在作用域中移除
     if (scope && scope.active) {
       remove(scope.effects, effect)
     }
   }
 
+  // 如果选项中带once参数，则将callback函数重新赋值，执行一次后移除响应的effect
   if (once && cb) {
     const _cb = cb
     cb = (...args) => {
@@ -240,7 +245,7 @@ export function watch(
     : INITIAL_WATCHER_VALUE
 
   const job = (immediateFirstRun?: boolean) => {
-    // 当前副作用函数未激活，或者副作用函数未脏且不是首次执行，则直接返回
+    // 当前effect函数未激活，或者effect函数未脏且不是首次执行，则直接返回
     if (
       !(effect.flags & EffectFlags.ACTIVE) ||
       (!effect.dirty && !immediateFirstRun)
@@ -248,7 +253,7 @@ export function watch(
       return
     }
     if (cb) {
-      // watch(source, cb)， 执行副作用函数得到新值
+      // watch(source, cb)， 执行effect函数得到新值
       const newValue = effect.run()
       if (
         deep ||
@@ -257,6 +262,7 @@ export function watch(
           ? (newValue as any[]).some((v, i) => hasChanged(v, oldValue[i]))
           : hasChanged(newValue, oldValue))
       ) {
+        // 深度监听或强制出发点或值发生变更，执行以下逻辑
         // cleanup before running cb again
         if (cleanup) {
           cleanup()
@@ -293,7 +299,7 @@ export function watch(
     augmentJob(job)
   }
 
-  // 创建一个副作用函数，监听getter中涉及的响应式数据变化时触发执行
+  // 创建一个effect函数，监听getter中涉及的响应式数据变化时触发执行
   effect = new ReactiveEffect(getter)
 
   // 设置调度器，在响应式数据变化时执行job函数

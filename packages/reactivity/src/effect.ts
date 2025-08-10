@@ -164,7 +164,7 @@ export class ReactiveEffect<T = any>
 
     // 设为执行状态
     this.flags |= EffectFlags.RUNNING
-    // 清除旧的副作用
+    // 清除旧的effect
     cleanupEffect(this)
     // 初始化依赖
     prepareDeps(this)
@@ -608,7 +608,7 @@ function cleanupEffect(e: ReactiveEffect) {
   // 如果存在清理函数
   if (cleanup) {
     // run cleanup without active effect
-    // 避免当前的副作用被清除
+    // 避免当前的effect被清除
     const prevSub = activeSub
     activeSub = undefined
     try {

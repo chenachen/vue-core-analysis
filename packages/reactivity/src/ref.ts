@@ -145,7 +145,7 @@ class RefImpl<T = any> {
       isShallow(newValue) ||
       isReadonly(newValue)
     newValue = useDirectValue ? newValue : toRaw(newValue)
-    // 判断两个值是否相等，相等则不做其他处理，不相等则赋值并触发副作用
+    // 判断两个值是否相等，相等则不做其他处理，不相等则赋值并触发effect
     if (hasChanged(newValue, oldValue)) {
       this._rawValue = newValue
       this._value = useDirectValue ? newValue : toReactive(newValue)

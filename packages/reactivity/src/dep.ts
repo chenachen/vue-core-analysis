@@ -267,7 +267,7 @@ export const ARRAY_ITERATE_KEY: unique symbol = Symbol(
  * @param key - Identifier of the reactive property to track.
  */
 export function track(target: object, type: TrackOpTypes, key: unknown): void {
-  // targetMap是个WeakMap，以原始对象为key，Map为值，而这个map则以target的key为key，存储Dep对象，Dep对象则是存储调用响应式对象的副作用函数
+  // targetMap是个WeakMap，以原始对象为key，Map为值，而这个map则以target的key为key，存储Dep对象，Dep对象则是存储调用响应式对象的effect函数
   if (shouldTrack && activeSub) {
     let depsMap = targetMap.get(target)
     if (!depsMap) {
