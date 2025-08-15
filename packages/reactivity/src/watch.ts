@@ -222,6 +222,12 @@ export function watch(
 
   // 获取当前作用域
   const scope = getCurrentScope()
+
+  /**
+   * 停止监听函数
+   * const unwatch = watch(source, cb)
+   * unwatch就是执行这个函数
+   */
   const watchHandle: WatchHandle = () => {
     // 暂停本effect执行和监听
     effect.stop()
@@ -262,14 +268,16 @@ export function watch(
           ? (newValue as any[]).some((v, i) => hasChanged(v, oldValue[i]))
           : hasChanged(newValue, oldValue))
       ) {
-        // 深度监听或强制出发点或值发生变更，执行以下逻辑
+        // 深度监听或强制触发或值发生变更，执行以下逻辑
         // cleanup before running cb again
         if (cleanup) {
           cleanup()
         }
+        // 设置当前effect为activeWatcher
         const currentWatcher = activeWatcher
         activeWatcher = effect
         try {
+          // 参数处理，用于执行callback函数
           const args = [
             newValue,
             // pass undefined as the old value when it's changed for the first time
@@ -280,12 +288,15 @@ export function watch(
                 : oldValue,
             boundCleanup,
           ]
+          // 缓存当前值为oldValue
           oldValue = newValue
+          // 执行callback函数
           call
             ? call(cb!, WatchErrorCodes.WATCH_CALLBACK, args)
             : // @ts-expect-error
               cb!(...args)
         } finally {
+          // 执行完毕回退状态
           activeWatcher = currentWatcher
         }
       }
@@ -295,6 +306,7 @@ export function watch(
     }
   }
 
+  // 目前仅发现apiWatch.ts中使用了augmentJob
   if (augmentJob) {
     augmentJob(job)
   }
@@ -307,8 +319,13 @@ export function watch(
     ? () => scheduler(job, false)
     : (job as EffectScheduler)
 
+  /**
+   * 绑定清理函数
+   * watch(source, (newValue, oldValue, onCleanup <- boundCleanup就是这个 ) => {})
+   */
   boundCleanup = fn => onWatcherCleanup(fn, false, effect)
 
+  // 设置effect的onStop钩子函数，在effect停止时执行
   cleanup = effect.onStop = () => {
     const cleanups = cleanupMap.get(effect)
     if (cleanups) {
@@ -327,6 +344,7 @@ export function watch(
   }
 
   // initial run
+  // 初始化执行
   if (cb) {
     if (immediate) {
       job(true)
@@ -339,6 +357,7 @@ export function watch(
     effect.run()
   }
 
+  // 绑定pause、resume和stop方法到watchHandle
   watchHandle.pause = effect.pause.bind(effect)
   watchHandle.resume = effect.resume.bind(effect)
   watchHandle.stop = watchHandle
@@ -351,35 +370,50 @@ export function traverse(
   depth: number = Infinity,
   seen?: Set<unknown>,
 ): unknown {
+  /**
+   * 递归终止条件：
+   * 1. depth小于等于0
+   * 2. value不是对象
+   * 3. value是ReactiveFlags.SKIP标记的对象
+   */
   if (depth <= 0 || !isObject(value) || (value as any)[ReactiveFlags.SKIP]) {
     return value
   }
 
+  // 为了避免循环引用导致的无限递归，函数使用 seen 集合记录已经遍历过的值：
   seen = seen || new Set()
   if (seen.has(value)) {
     return value
   }
+  // 将当前值添加到 seen 集合中，表示已经遍历过
   seen.add(value)
+  // 递归遍历深度减1
   depth--
+  // 如果是ref类型，递归遍历其value属性
   if (isRef(value)) {
     traverse(value.value, depth, seen)
   } else if (isArray(value)) {
+    // 如果是数组类型，递归遍历每个元素
     for (let i = 0; i < value.length; i++) {
       traverse(value[i], depth, seen)
     }
   } else if (isSet(value) || isMap(value)) {
+    // 如果是Set或Map类型，递归遍历其每个元素
     value.forEach((v: any) => {
       traverse(v, depth, seen)
     })
   } else if (isPlainObject(value)) {
+    // 如果是普通对象，递归遍历其每个属性
     for (const key in value) {
       traverse(value[key], depth, seen)
     }
     for (const key of Object.getOwnPropertySymbols(value)) {
+      // 确保遍历对象的Symbol属性
       if (Object.prototype.propertyIsEnumerable.call(value, key)) {
         traverse(value[key as any], depth, seen)
       }
     }
   }
+  // 返回遍历后的值
   return value
 }

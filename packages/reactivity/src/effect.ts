@@ -125,6 +125,7 @@ export class ReactiveEffect<T = any>
     this.flags |= EffectFlags.PAUSED
   }
 
+  // 恢复依赖收集
   resume(): void {
     if (this.flags & EffectFlags.PAUSED) {
       this.flags &= ~EffectFlags.PAUSED
