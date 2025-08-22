@@ -15,6 +15,8 @@ import {
  * Incremented every time a reactive change happens
  * This is used to give computed a fast path to avoid re-compute when nothing
  * has changed.
+ * 每次响应式发生更改时递增
+ * 这用于为computed提供快速路径，以避免在没有任何更改时重新计算。
  */
 export let globalVersion = 0
 
@@ -23,9 +25,16 @@ export let globalVersion = 0
  * Deps and subs have a many-to-many relationship - each link between a
  * dep and a sub is represented by a Link instance.
  *
+ * 表示源 （Dep） 和订阅者 （Effect 或 Computed） 之间的链接。
+ * deps 和 sub 具有多对多关系 - dep 和 sub 之间的每个链接都由一个 Link 实例表示。
+ *
  * A Link is also a node in two doubly-linked lists - one for the associated
  * sub to track all its deps, and one for the associated dep to track all its
  * subs.
+ *
+ * Link 也是两个双链表中的一个节点
+ * 一个用于关联的 sub 跟踪其所有 deps
+ * 另一个用于关联的 dep 跟踪其所有 subs。
  *
  * @internal
  */
@@ -35,6 +44,10 @@ export class Link {
    * - During the run, a link's version is synced with the source dep on access
    * - After the run, links with version -1 (that were never used) are cleaned
    *   up
+   *
+   *   在每次effect运行之前，所有以前的 dep 链接的版本都重置为 -1
+   *   在运行期间，Link的版本在访问时与源 dep 同步
+   *   运行后，将清理版本为 -1（从未使用过）的链接
    */
   version: number
 
@@ -120,6 +133,7 @@ export class Dep {
       if (!activeSub.deps) {
         activeSub.deps = activeSub.depsTail = link
       } else {
+        // 链表操作，将当前link放到已有的activeSub的尾部
         link.prevDep = activeSub.depsTail
         activeSub.depsTail!.nextDep = link
         activeSub.depsTail = link
@@ -155,6 +169,7 @@ export class Dep {
       }
     }
 
+    // 如果是开发环境，并且当前活跃的订阅者有onTrack钩子函数，则调用该函数
     if (__DEV__ && activeSub.onTrack) {
       activeSub.onTrack(
         extend(
@@ -197,6 +212,7 @@ export class Dep {
       }
       // 遍历订阅者，触发通知函数
       for (let link = this.subs; link; link = link.prevSub) {
+        // 执行结果为true意味着是computed，则继续执行ComputedRefImpl的notify方法
         if (link.sub.notify()) {
           // if notify() returns `true`, this is a computed. Also call notify
           // on its dep - it's called here instead of inside computed's notify
@@ -217,19 +233,24 @@ function addSub(link: Link) {
     const computed = link.dep.computed
     // computed getting its first subscriber
     // enable tracking + lazily subscribe to all its deps
+    // computed接受第一个订阅者
     if (computed && !link.dep.subs) {
+      // 将computed的状态置为TRACKING和DIRTY
       computed.flags |= EffectFlags.TRACKING | EffectFlags.DIRTY
+      // 递归computed的所有依赖，挂上订阅者
       for (let l = computed.deps; l; l = l.nextDep) {
         addSub(l)
       }
     }
 
+    // 将当前link加到当前dep的订阅者链表中
     const currentTail = link.dep.subs
     if (currentTail !== link) {
       link.prevSub = currentTail
       if (currentTail) currentTail.nextSub = link
     }
 
+    // 设置为当前dep的头节点，方便按序执行onTrigger钩子函数
     if (__DEV__ && link.dep.subsHead === undefined) {
       link.dep.subsHead = link
     }

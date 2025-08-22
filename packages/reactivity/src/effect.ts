@@ -201,6 +201,7 @@ export class ReactiveEffect<T = any>
         removeSub(link)
       }
 
+      // 清空依赖
       this.deps = this.depsTail = undefined
       cleanupEffect(this)
       this.onStop && this.onStop()
