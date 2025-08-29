@@ -49,7 +49,7 @@ export enum EffectFlags {
   DIRTY = 1 << 4, // 脏状态，需要重新执行
   ALLOW_RECURSE = 1 << 5, // 是否允许递归调用
   PAUSED = 1 << 6, // 是否暂停中
-  EVALUATED = 1 << 7,
+  EVALUATED = 1 << 7, // 已经评估
 }
 
 /**
@@ -58,25 +58,31 @@ export enum EffectFlags {
 export interface Subscriber extends DebuggerOptions {
   /**
    * Head of the doubly linked list representing the deps
+   * 依赖链表头部
    * @internal
    */
   deps?: Link
   /**
    * Tail of the same list
+   * 依赖链表尾部
    * @internal
    */
   depsTail?: Link
   /**
    * @internal
+   * 标记位
    */
   flags: EffectFlags
   /**
+   * 下一个订阅者
    * @internal
    */
   next?: Subscriber
   /**
    * returning `true` indicates it's a computed that needs to call notify
    * on its dep too
+   * 通知函数
+   * 如果该函数返回true的话意味这是一个computed，需要调用它的dep的notify
    * @internal
    */
   notify(): true | void
@@ -165,7 +171,7 @@ export class ReactiveEffect<T = any>
 
     // 设为执行状态
     this.flags |= EffectFlags.RUNNING
-    // 清除旧的effect
+    // 执行cleanup函数, cleanup函数在onEffectCleanup中注册
     cleanupEffect(this)
     // 初始化依赖
     prepareDeps(this)

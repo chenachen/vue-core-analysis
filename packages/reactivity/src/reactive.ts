@@ -95,6 +95,13 @@ export type Reactive<T> = UnwrapNestedRefs<T> &
 export function reactive<T extends object>(target: T): Reactive<T>
 export function reactive(target: object) {
   // if trying to observe a readonly proxy, return the readonly version.
+  /**
+   * 如果是只读的对象，就直接返回该对象
+   * 例如
+   * const readOnlyObject = readonly({})
+   * const reactiveObject = reactive(readOnlyObject)
+   * console.log(readOnlyObject === reactiveObject) => 输出 true
+   */
   if (isReadonly(target)) {
     return target
   }
