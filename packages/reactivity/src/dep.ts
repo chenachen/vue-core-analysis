@@ -54,6 +54,21 @@ export class Link {
   /**
    * Pointers for doubly-linked lists
    */
+  /**
+   * link为何链接dep和sub两个双向链表
+   * 因为一个dep可以对应多个sub，一个sub也可以对应多个dep
+   * 所以需要四个指针来表示前后节点
+   *
+   * const foo = reactive({ a: 1 })
+   * const computed1 = computed(() => foo.a + 1)
+   * const computed2 = computed(() => foo.a + 2)
+   * 一个dep（foo.a）对应两个sub（computed1, computed2）
+   *
+   * const bar = reactive({ b: 1 })
+   * const foo = reactive({ a: 2 })
+   * const computed1 = computed(() => foo.a + bar.b)
+   * 一个sub（computed1）对应两个dep（foo.a, bar.b）
+   */
   nextDep?: Link
   prevDep?: Link
   nextSub?: Link
@@ -86,23 +101,28 @@ export class Dep {
 
   /**
    * Doubly linked list representing the subscribing effects (tail)
+   * 订阅者双向链表（尾节点）
    */
   subs?: Link = undefined
 
   /**
    * Doubly linked list representing the subscribing effects (head)
    * DEV only, for invoking onTrigger hooks in correct order
+   * 订阅者双向链表（头节点）
+   * 仅限开发环境，用于按正确顺序调用 onTrigger 钩子
    */
   subsHead?: Link
 
   /**
    * For object property deps cleanup
+   * 当前dep所属的target对象的key到dep的映射
    */
   map?: KeyToDepMap = undefined
   key?: unknown = undefined
 
   /**
    * Subscriber counter
+   * 订阅者数量，如果为空需要清理依赖
    */
   sc: number = 0
 
@@ -119,6 +139,11 @@ export class Dep {
   }
 
   track(debugInfo?: DebuggerEventExtraInfo): Link | undefined {
+    /**
+     * 没有activeSub，也就是没有活跃的订阅者
+     * 或者不应该追踪（pauseTracking被执行）
+     * 或者活跃的订阅者就是当前dep的computed，避免computed内部读取自己的值时造成死循环
+     */
     if (!activeSub || !shouldTrack || activeSub === this.computed) {
       return
     }
@@ -130,6 +155,7 @@ export class Dep {
 
       // add the link to the activeEffect as a dep (as tail)
       // 将当前link连接到当前活跃的订阅者的deps的双向链表尾部
+      // 主要用于执行完依赖后清除已执行的依赖
       if (!activeSub.deps) {
         activeSub.deps = activeSub.depsTail = link
       } else {
@@ -139,6 +165,7 @@ export class Dep {
         activeSub.depsTail = link
       }
 
+      // 添加订阅者
       addSub(link)
     } else if (link.version === -1) {
       // reused from last run - already a sub, just sync version
@@ -147,6 +174,9 @@ export class Dep {
       // If this dep has a next, it means it's not at the tail - move it to the
       // tail. This ensures the effect's dep list is in the order they are
       // accessed during evaluation.
+      // 如果这个 dep 有 next，则表示它不在尾部
+      // 将其移动到尾部
+      // 这可确保effect的 dep 列表按照评估期间访问它们的顺序排列。
       if (link.nextDep) {
         // link的上下游链接在一起，相当于把当前link从链表中删除
         const next = link.nextDep
@@ -162,7 +192,7 @@ export class Dep {
         activeSub.depsTail = link
 
         // this was the head - point to the new head
-        // 如果link是首节点，则从新指向下一个节点
+        // 如果link是首节点，则重新指向下一个节点
         if (activeSub.deps === link) {
           activeSub.deps = next
         }
@@ -185,6 +215,7 @@ export class Dep {
   }
 
   trigger(debugInfo?: DebuggerEventExtraInfo): void {
+    // version+1，可以快速判断依赖是否变化，如无变化可以避免一些重复计算（主要是computed的）
     this.version++
     globalVersion++
     this.notify(debugInfo)
@@ -197,6 +228,8 @@ export class Dep {
         // subs are notified and batched in reverse-order and then invoked in
         // original order at the end of the batch, but onTrigger hooks should
         // be invoked in original order here.
+        // 触发通知函数是按照倒序，但是在批处理结束时按原始顺序调用，所以这里的 onTrigger 钩子函数应该按原始顺序调用。
+        // 具体可以看下effect的notify方法以及effect.ts里的batch startBatch和endBatch方法
         for (let head = this.subsHead; head; head = head.nextSub) {
           if (head.sub.onTrigger && !(head.sub.flags & EffectFlags.NOTIFIED)) {
             head.sub.onTrigger(
@@ -210,7 +243,7 @@ export class Dep {
           }
         }
       }
-      // 遍历订阅者，触发通知函数
+      // 倒序遍历订阅者，触发通知函数
       for (let link = this.subs; link; link = link.prevSub) {
         // 执行结果为true意味着是computed，则继续执行ComputedRefImpl的notify方法
         if (link.sub.notify()) {
@@ -228,6 +261,7 @@ export class Dep {
 }
 
 function addSub(link: Link) {
+  // 订阅者计数
   link.dep.sc++
   if (link.sub.flags & EffectFlags.TRACKING) {
     const computed = link.dep.computed
@@ -243,7 +277,7 @@ function addSub(link: Link) {
       }
     }
 
-    // 将当前link加到当前dep的订阅者链表中
+    // 将当前link加到当前dep的订阅者链表尾部
     const currentTail = link.dep.subs
     if (currentTail !== link) {
       link.prevSub = currentTail
@@ -255,6 +289,7 @@ function addSub(link: Link) {
       link.dep.subsHead = link
     }
 
+    // 将当前link设置为当前dep的尾节点
     link.dep.subs = link
   }
 }
@@ -288,14 +323,16 @@ export const ARRAY_ITERATE_KEY: unique symbol = Symbol(
  * @param key - Identifier of the reactive property to track.
  */
 export function track(target: object, type: TrackOpTypes, key: unknown): void {
-  // targetMap是个WeakMap，以原始对象为key，Map为值，而这个map则以target的key为key，存储Dep对象，Dep对象则是存储调用响应式对象的effect函数
+  // targetMap是个WeakMap，以原始对象为key，Map为值，而这个map则以target的key为key，存储Dep对象
   if (shouldTrack && activeSub) {
     let depsMap = targetMap.get(target)
+    // 初次追踪则创建Map
     if (!depsMap) {
       targetMap.set(target, (depsMap = new Map()))
     }
     let dep = depsMap.get(key)
     if (!dep) {
+      // 创建dep对象
       depsMap.set(key, (dep = new Dep()))
       dep.map = depsMap
       dep.key = key
@@ -316,6 +353,7 @@ export function track(target: object, type: TrackOpTypes, key: unknown): void {
 /**
  * Finds all deps associated with the target (or a specific property) and
  * triggers the effects stored within.
+ * 找出与目标（或特定属性）相关的所有依赖，并触发其中存储的效果。
  *
  * @param target - The reactive object.
  * @param type - Defines the type of the operation that needs to trigger effects.
@@ -339,6 +377,7 @@ export function trigger(
 
   const run = (dep: Dep | undefined) => {
     if (dep) {
+      // 调用dep对象的trigger方法
       if (__DEV__) {
         dep.trigger({
           target,
@@ -359,6 +398,7 @@ export function trigger(
   if (type === TriggerOpTypes.CLEAR) {
     // collection being cleared
     // trigger all effects for target
+    // 执行对象存储的所有依赖
     depsMap.forEach(run)
   } else {
     // 判断是否数组和key是否数组索引
@@ -381,6 +421,7 @@ export function trigger(
       })
     } else {
       // schedule runs for SET | ADD | DELETE
+      // add set delete可以 以undefined为key
       if (key !== void 0 || depsMap.has(void 0)) {
         run(depsMap.get(key))
       }
@@ -392,6 +433,7 @@ export function trigger(
       }
 
       // 根据对象的类型去获取需要触发的依赖
+      // 同时还要在ADD | DELETE | Map.SET等操作中执行iteration key的依赖
       // also run for iteration key on ADD | DELETE | Map.SET
       switch (type) {
         case TriggerOpTypes.ADD:
@@ -421,9 +463,9 @@ export function trigger(
       }
     }
   }
+
   // 需要触发的依赖获取完毕
   // 开始执行
-
   endBatch()
 }
 

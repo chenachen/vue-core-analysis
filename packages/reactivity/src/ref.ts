@@ -190,6 +190,7 @@ class RefImpl<T = any> {
  * @see {@link https://vuejs.org/api/reactivity-advanced.html#triggerref}
  */
 export function triggerRef(ref: Ref): void {
+  // 主动的触发依赖更新
   // ref may be an instance of ObjectRefImpl
   if ((ref as unknown as RefImpl).dep) {
     if (__DEV__) {

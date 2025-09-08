@@ -191,11 +191,12 @@ export class ReactiveEffect<T = any>
             'this is likely a Vue internal bug.',
         )
       }
-      // 清除已执行的
+      // 清除已执行的依赖
       cleanupDeps(this)
       // 状态回滚
       activeSub = prevEffect
       shouldTrack = prevShouldTrack
+      // 退出运行状态
       this.flags &= ~EffectFlags.RUNNING
     }
   }
@@ -211,6 +212,7 @@ export class ReactiveEffect<T = any>
       this.deps = this.depsTail = undefined
       cleanupEffect(this)
       this.onStop && this.onStop()
+      // 设为不活跃状态
       this.flags &= ~EffectFlags.ACTIVE
     }
   }
@@ -263,7 +265,15 @@ let batchedSub: Subscriber | undefined
 let batchedComputed: Subscriber | undefined
 
 export function batch(sub: Subscriber, isComputed = false): void {
+  // 标记为已通知
   sub.flags |= EffectFlags.NOTIFIED
+  /**
+   * 分别维护一个普通的订阅队列和一个computed的订阅队列
+   * computed的队列执行状态回滚到非NOTIFIED状态，computed的依赖已经在notify的时候放入到普通订阅队列了
+   *
+   * 因为批量处理时，是通过倒叙遍历链表来执行订阅的通知函数
+   * 所以这里得到的链表是反过来的，也就是回到了正序
+   */
   if (isComputed) {
     sub.next = batchedComputed
     batchedComputed = sub
@@ -277,6 +287,7 @@ export function batch(sub: Subscriber, isComputed = false): void {
  * @internal
  */
 export function startBatch(): void {
+  // 记录批处理的嵌套层级
   batchDepth++
 }
 
@@ -290,6 +301,7 @@ export function endBatch(): void {
   }
 
   if (batchedComputed) {
+    // 将computed的执行状态回滚到非NOTIFIED状态
     let e: Subscriber | undefined = batchedComputed
     batchedComputed = undefined
     while (e) {
@@ -304,12 +316,16 @@ export function endBatch(): void {
   while (batchedSub) {
     let e: Subscriber | undefined = batchedSub
     batchedSub = undefined
+    // 循环执行订阅的通知函数
     while (e) {
+      // 将已执行的订阅从batchedSub链表中移除
       const next: Subscriber | undefined = e.next
       e.next = undefined
+      // 重置NOTIFIED状态
       e.flags &= ~EffectFlags.NOTIFIED
       if (e.flags & EffectFlags.ACTIVE) {
         try {
+          // 执行依赖的trigger函数
           // ACTIVE flag is effect-only
           ;(e as ReactiveEffect).trigger()
         } catch (err) {
@@ -331,6 +347,7 @@ function prepareDeps(sub: Subscriber) {
     // 设置为-1，以便追踪运行后哪些订阅没有使用
     link.version = -1
     // store previous active sub if link was being used in another context
+    // link组成链表,应对嵌套的effect
     link.prevActiveLink = link.dep.activeLink
     link.dep.activeLink = link
   }
@@ -344,6 +361,7 @@ function cleanupDeps(sub: Subscriber) {
   while (link) {
     const prev = link.prevDep
     if (link.version === -1) {
+      // 如果未被执行,则移除相关订阅以及依赖
       if (link === tail) tail = prev
       // unused - remove it from the dep's subscribing effect list
       removeSub(link)
@@ -352,15 +370,18 @@ function cleanupDeps(sub: Subscriber) {
     } else {
       // The new head is the last node seen which wasn't removed
       // from the doubly-linked list
+      // 链头设置为最后一个未被移除的节点(因为是从尾部开始遍历的,所以从顺序上讲是更先的那个)
       head = link
     }
 
     // restore previous active link if any
+    // 回退link链表
     link.dep.activeLink = link.prevActiveLink
     link.prevActiveLink = undefined
     link = prev
   }
   // set the new head & tail
+  // 重新设置链表的头和尾
   sub.deps = head
   sub.depsTail = tail
 }
@@ -388,6 +409,7 @@ function isDirty(sub: Subscriber): boolean {
  */
 export function refreshComputed(computed: ComputedRefImpl): undefined {
   if (
+    // 正在依赖收集并且不是脏数据
     computed.flags & EffectFlags.TRACKING &&
     !(computed.flags & EffectFlags.DIRTY)
   ) {
@@ -404,6 +426,8 @@ export function refreshComputed(computed: ComputedRefImpl): undefined {
   // Global version fast path when no reactive changes has happened since
   // last refresh.
   // 上次更新后没有再变化
+  // 可以用于快速判断数据是否有过更新,如果相等则意味着自上次更新以后所有的依赖都没有更新过
+  // 用于节省性能
   if (computed.globalVersion === globalVersion) {
     return
   }
@@ -422,6 +446,7 @@ export function refreshComputed(computed: ComputedRefImpl): undefined {
     // 非SSR环境下
     !computed.isSSR &&
     // 如果computed的flags中包含EVALUATED标志位
+    // computed在首次执行后会添加该标志位,意味着已经执行过,用于优化一些非响应式数据依赖的computed
     computed.flags & EffectFlags.EVALUATED &&
     // 如果computed的deps不存在或者computed的_dirty属性不存在， 或者isDirty执行结果为false
     // _dirty目前我只发现在pinia的测试模块中使用 pinia/packages/testing/src/testing.ts
@@ -429,10 +454,11 @@ export function refreshComputed(computed: ComputedRefImpl): undefined {
   ) {
     return
   }
+  // 正在运行中
   computed.flags |= EffectFlags.RUNNING
 
   const dep = computed.dep
-  // 将当前活跃的订阅设置为本computed
+  // 将当前活跃的订阅设置为本computed,和ReactiveEffect的run方法类似
   const prevSub = activeSub
   const prevShouldTrack = shouldTrack
   activeSub = computed
@@ -441,6 +467,7 @@ export function refreshComputed(computed: ComputedRefImpl): undefined {
   try {
     // 将computed的一些状态重置
     prepareDeps(computed)
+    // 执行fn得到新值
     const value = computed.fn(computed._value)
     // 判断计算值是否变化
     if (dep.version === 0 || hasChanged(value, computed._value)) {
@@ -462,6 +489,7 @@ export function refreshComputed(computed: ComputedRefImpl): undefined {
 
 function removeSub(link: Link, soft = false) {
   const { dep, prevSub, nextSub } = link
+  // 链表操作,前后节点相连,则当前节点在链表中移除
   if (prevSub) {
     prevSub.nextSub = nextSub
     link.prevSub = undefined
@@ -470,19 +498,26 @@ function removeSub(link: Link, soft = false) {
     nextSub.prevSub = prevSub
     link.nextSub = undefined
   }
+
+  // 如果是开发环境并且当前link是dep的头节点,则用下一个节点作为新的头节点
   if (__DEV__ && dep.subsHead === link) {
     // was previous head, point new head to next
     dep.subsHead = nextSub
   }
 
+  // 如果当前link是dep的尾节点,则用上一个节点作为新的尾节点
   if (dep.subs === link) {
     // was previous tail, point new tail to prev
     dep.subs = prevSub
 
+    // 如果prevSub不存在(意味着这是唯一一个订阅者)并且dep有computed属性
     if (!prevSub && dep.computed) {
       // if computed, unsubscribe it from all its deps so this computed and its
       // value can be GCed
+      // 取消订阅其所有 deps，以便可以对computed及其值进行 GC 处理
+      // 将computed的flags中的TRACKING标志位清除
       dep.computed.flags &= ~EffectFlags.TRACKING
+      // 移除该computed对所有依赖的订阅
       for (let l = dep.computed.deps; l; l = l.nextDep) {
         // here we are only "soft" unsubscribing because the computed still keeps
         // referencing the deps and the dep should not decrease its sub count
@@ -491,6 +526,7 @@ function removeSub(link: Link, soft = false) {
     }
   }
 
+  // 如果不是软删除并且dep的订阅数减1后为0并且dep有map属性,则完全移除该key的依赖
   if (!soft && !--dep.sc && dep.map) {
     // #11979
     // property dep no longer has effect subscribers, delete it
@@ -501,6 +537,7 @@ function removeSub(link: Link, soft = false) {
 }
 
 function removeDep(link: Link) {
+  // 将当前link从链表中移除
   const { prevDep, nextDep } = link
   if (prevDep) {
     prevDep.nextDep = nextDep

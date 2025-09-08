@@ -9,9 +9,9 @@ import { isArray } from '@vue/shared'
  * - if input is reactive: a cloned raw array with reactive values
  * - if input is non-reactive or shallowReactive: the original raw array
  */
-// 判断是否响应式数组，如果是的话依赖收集，如果不是浅层监听，则将数组项继续深层遍历设置为reactive
 export function reactiveReadArray<T>(array: T[]): T[] {
   const raw = toRaw(array)
+  // 判断是否响应式数组，如果是的话依赖收集，如果不是浅层监听，则将数组项继续深层遍历设置为reactive
   if (raw === array) return raw
   track(raw, TrackOpTypes.ITERATE, ARRAY_ITERATE_KEY)
   return isShallow(array) ? raw : raw.map(toReactive)
@@ -25,10 +25,11 @@ export function shallowReadArray<T>(arr: T[]): T[] {
   return arr
 }
 
-// 映射数组原生方法的map
+// 代理劫持对象的数组方法
 export const arrayInstrumentations: Record<string | symbol, Function> = <any>{
   __proto__: null,
 
+  // 迭代器
   [Symbol.iterator]() {
     return iterator(this, Symbol.iterator, toReactive)
   },
@@ -213,6 +214,7 @@ function iterator(
   // 创建迭代器不会访问任何数组属性：只有在调用 .next（） 时，才会访问 length 和 indexs
   // 如果极端一点，可以在一个 Effect Scope 中创建迭代器，在另一个 Effect Scope 中部分迭代，然后在另一个 Effect Scope 中迭代更多
   // 鉴于 JS 迭代器只能读取一次，这似乎不是一个合理的用例，因此这种跟踪简化似乎还可以。
+
   // 浅层监听并获取源对象
   const arr = shallowReadArray(self)
   // 获取迭代器
@@ -268,6 +270,7 @@ function apply(
 
   let wrappedFn = fn
   if (arr !== self) {
+    // 如果需要深度监听，则将数组项继续深层遍历设置为reactive
     if (needsWrap) {
       wrappedFn = function (this: unknown, item, index) {
         return fn.call(this, toReactive(item), index, self)
@@ -320,7 +323,14 @@ function searchProxy(
   // we run the method using the original args first (which may be reactive)
   const res = arr[method](...args)
 
-  // if that didn't work, run it again using raw values.
+  /**
+   * 如果查不到数据，则用源对象再查找一次
+   * 例如：
+   * const obj = { a: 1 }
+   * const reactiveObj = reactive(obj)
+   * const arr = reactive([obj])
+   * arr.includes(reactiveObj) // true
+   */
   if ((res === -1 || res === false) && isProxy(args[0])) {
     args[0] = toRaw(args[0])
     return arr[method](...args)

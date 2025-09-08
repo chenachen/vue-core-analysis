@@ -293,15 +293,18 @@ function createReactiveObject(
     return target
   }
   // only specific value types can be observed.
+  // 获取当前对象的类型，如果时非法对象则直接返回该值
   const targetType = getTargetType(target)
   if (targetType === TargetType.INVALID) {
     return target
   }
   // target already has corresponding Proxy
+  // 如果已经被代理过了，则直接返回该代理对象
   const existingProxy = proxyMap.get(target)
   if (existingProxy) {
     return existingProxy
   }
+  // 创建代理对象，并基于源对象存储在proxyMap
   const proxy = new Proxy(
     target,
     targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers,
@@ -418,6 +421,7 @@ export type Raw<T> = T & { [RawSymbol]?: true }
  * @see {@link https://vuejs.org/api/reactivity-advanced.html#markraw}
  */
 export function markRaw<T extends object>(value: T): Raw<T> {
+  // 标记该对象，让该对象不会被代理
   if (!hasOwn(value, ReactiveFlags.SKIP) && Object.isExtensible(value)) {
     def(value, ReactiveFlags.SKIP, true)
   }
