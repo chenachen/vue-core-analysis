@@ -50,10 +50,12 @@ export class ComputedRefImpl<T = any> implements Subscriber {
    */
   _value: any = undefined
   /**
+   * 依赖于这个computed的依赖
    * @internal
    */
   readonly dep: Dep = new Dep(this)
   /**
+   * 用于isRef判断
    * @internal
    */
   readonly __v_isRef = true
@@ -65,26 +67,32 @@ export class ComputedRefImpl<T = any> implements Subscriber {
   // TODO isolatedDeclarations ReactiveFlags.IS_READONLY
   // A computed is also a subscriber that tracks other deps
   /**
+   * 用于关联这个computed和它所依赖的响应式数据之间的关系的link的链表头部
    * @internal
    */
   deps?: Link = undefined
   /**
+   * 用于关联这个computed和它所依赖的响应式数据之间的关系的link的链表尾部
    * @internal
    */
   depsTail?: Link = undefined
   /**
+   * 标记位
    * @internal
    */
   flags: EffectFlags = EffectFlags.DIRTY
   /**
+   * 记录这个computed触发时间点的全局版本号，用于判断依赖是否变化，优化性能
    * @internal
    */
   globalVersion: number = globalVersion - 1
   /**
+   * 服务端渲染标记
    * @internal
    */
   isSSR: boolean
   /**
+   * 详见effect.ts endBatch方法，总之是个链表的指针，用于批处理时标记位的回滚操作
    * @internal
    */
   next?: Subscriber = undefined
@@ -115,12 +123,16 @@ export class ComputedRefImpl<T = any> implements Subscriber {
    * @internal
    */
   notify(): true | void {
+    // 标记脏数据位
     this.flags |= EffectFlags.DIRTY
+    // 如果还未被通知过，并且不是自己触发自己
     if (
       !(this.flags & EffectFlags.NOTIFIED) &&
       // avoid infinite self recursion
+      // 避免无限循环
       activeSub !== this
     ) {
+      // 执行batch函数进行批处理
       batch(this, true)
       return true
     } else if (__DEV__) {
@@ -137,9 +149,10 @@ export class ComputedRefImpl<T = any> implements Subscriber {
           key: 'value',
         })
       : this.dep.track()
-    // 依赖收集
+    // 依赖更新
     refreshComputed(this)
     // sync version after evaluation
+    // 更新链接的版本号
     if (link) {
       link.version = this.dep.version
     }
@@ -147,6 +160,7 @@ export class ComputedRefImpl<T = any> implements Subscriber {
   }
 
   set value(newValue) {
+    // 如果存在setter函数，则执行
     if (this.setter) {
       this.setter(newValue)
     } else if (__DEV__) {

@@ -41,6 +41,7 @@ const builtInSymbols = new Set(
 
 function hasOwnProperty(this: object, key: unknown) {
   // #10455 hasOwnProperty may be called with non-string values
+  // 劫持hasOwnProperty方法
   if (!isSymbol(key)) key = String(key)
   const obj = toRaw(this)
   track(obj, TrackOpTypes.HAS, key)
@@ -79,9 +80,12 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
               ? shallowReactiveMap
               : reactiveMap
           ).get(target) ||
-        // receiver is not the reactive proxy, but has the same prototype
-        // this means the receiver is a user proxy of the reactive proxy
-        // 如果receiver和target有着相同的原型链，同样返回target
+        /**
+         * receiver is not the reactive proxy, but has the same prototype
+         * this means the receiver is a user proxy of the reactive proxy
+         * 如果receiver和target有着相同的原型链，同样返回target
+         * 测试用例：reactive.spect.ts -> toRaw on user Proxy wrapping reactive
+         */
         Object.getPrototypeOf(target) === Object.getPrototypeOf(receiver)
       ) {
         // 返回源对象
@@ -98,8 +102,10 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
       let fn: Function | undefined
       // 判断是否数组的原生方法
       if (targetIsArray && (fn = arrayInstrumentations[key])) {
+        // 是的话返回被劫持的原生方法，这些方法已经被重新定义过，所以无需继续往下走
         return fn
       }
+      // 劫持hasOwnProperty方法
       if (key === 'hasOwnProperty') {
         return hasOwnProperty
       }
@@ -109,13 +115,28 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
     const res = Reflect.get(
       target,
       key,
-      // if this is a proxy wrapping a ref, return methods using the raw ref
-      // as receiver so that we don't have to call `toRaw` on the ref in all
-      // its class methods
-      // 这个判断是针对reactive(ref(obj))这种情况的，这种情况下如果不做以下判断，在RefImpl和ComputedRefImpl中的this指向的是代理对象，而不是ref本身
-      // 会导致在RefImpl和ComputedRefImpl内部get value()方法中需要通过toRaw方法获取到原始对象
-      // 改动的commit在这https://github.com/vuejs/core/pull/10397/commits/1318017d111ded1977daed0db4e301f676a78628
-      // 本质在于this指向问题
+      /**
+       * 这个判断是针对reactive(ref(obj))这种情况的，这种情况下如果不做以下判断，在RefImpl和ComputedRefImpl中的this指向的是代理对象，而不是ref本身
+       * 会导致在RefImpl和ComputedRefImpl内部get value()方法中需要通过toRaw方法获取到原始对象，否则直接调用this会调用到代理对象上
+       * 改动的commit在这https://github.com/vuejs/core/pull/10397/commits/1318017d111ded1977daed0db4e301f676a78628
+       * 本质在于this指向问题
+       * 例子：
+       * const target = {
+       *     _name: 'Target',
+       *     get name() {
+       *         console.log(this === proxy, this === target) // 这里可以看到输出 true false
+       *         return this._name; // this 的值由 receiver 决定！
+       *     }
+       * };
+       *
+       * const proxy = new Proxy(target, {
+       *     get(target, prop, receiver) {
+       *         return Reflect.get(target, prop, receiver); // 传递 receiver
+       *     }
+       * });
+       *
+       * console.log(proxy.name);
+       */
       isRef(target) ? target : receiver,
     )
 
@@ -203,21 +224,17 @@ class MutableReactiveHandler extends BaseReactiveHandler {
     // don't trigger if target is something up in the prototype chain of original
     /**
      * 如果是修改原型链上的某些值则不触发
-     * 例子：
-     * const proxy = new Proxy({ a: 1, b: 2 }, {
-     *     get(target, key, receiver) {
-     *         console.log(receiver === target)
-     *
-     *         return Reflect.get(target, key, receiver);
-     *     },
-     *     set(target, key, value, receiver) {
-     *         console.log(receiver === target)
-     *         return Reflect.set(target, key, value, receiver);
-     *     }
-     * })
-     *
-     * console.log(proxy.__proto__) // get的log会输出false
-     * proxy.__proto__.c = 3 // set中的log输出false
+     * const observed = reactive({ foo: 1 })
+     * const original = Object.create(observed)
+     * let dummy
+     * effect(() => (dummy = original.foo))
+     * expect(dummy).toBe(1)
+     * observed.foo = 2
+     * expect(dummy).toBe(2)
+     * original.foo = 3
+     * expect(dummy).toBe(2)
+     * original.foo = 4
+     * expect(dummy).toBe(2)
      */
     if (target === toRaw(receiver)) {
       if (!hadKey) {

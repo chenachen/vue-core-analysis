@@ -135,12 +135,15 @@ export function watch(
   }
 
   const reactiveGetter = (source: object) => {
+    // 如果是deep，则直接返回源数据
     // traverse will happen in wrapped getter below
     if (deep) return source
     // for `deep: false | 0` or shallow reactive, only traverse root-level properties
+    // 只监听最浅一层对象数据
     if (isShallow(source) || deep === false || deep === 0)
       return traverse(source, 1)
     // for `deep: undefined` on a reactive object, deeply traverse all properties
+    // 深度递归所有属性
     return traverse(source)
   }
 

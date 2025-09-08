@@ -134,15 +134,22 @@ function createInstrumentations(
       }
     },
     get size() {
+      // 获取代理对象
       const target = (this as unknown as IterableCollections)[ReactiveFlags.RAW]
+      // 非只读的话执行追踪
       !readonly && track(toRaw(target), TrackOpTypes.ITERATE, ITERATE_KEY)
+      // 返回长度
       return Reflect.get(target, 'size', target)
     },
     has(this: CollectionTypes, key: unknown): boolean {
+      // 获取代理对象和代理对象的源对象
       const target = this[ReactiveFlags.RAW]
       const rawTarget = toRaw(target)
+      // 获取key的原始版本
       const rawKey = toRaw(key)
+      // 非只读的话执行追踪
       if (!readonly) {
+        // 其实是判断key是否也是代理对象而不是真的判断key是否有被改过
         if (hasChanged(key, rawKey)) {
           track(rawTarget, TrackOpTypes.HAS, key)
         }
@@ -154,14 +161,18 @@ function createInstrumentations(
     },
     forEach(this: IterableCollections, callback: Function, thisArg?: unknown) {
       const observed = this
+      // 获取代理对象和代理对象的源对象
       const target = observed[ReactiveFlags.RAW]
       const rawTarget = toRaw(target)
+      // 根据是否是只读和浅层监听来决定包装函数
       const wrap = shallow ? toShallow : readonly ? toReadonly : toReactive
+      // 非只读的话执行追踪
       !readonly && track(rawTarget, TrackOpTypes.ITERATE, ITERATE_KEY)
       return target.forEach((value: unknown, key: unknown) => {
         // important: make sure the callback is
         // 1. invoked with the reactive map as `this` and 3rd arg
         // 2. the value received should be a corresponding reactive/readonly.
+        // 确保callback函数的this指向是响应式对象，接收到的值应该是相应的反应性/只读。
         return callback.call(thisArg, wrap(value), wrap(key), observed)
       })
     },
@@ -182,10 +193,13 @@ function createInstrumentations(
             if (!shallow && !isShallow(value) && !isReadonly(value)) {
               value = toRaw(value)
             }
+            // 获取代理对象的原始版本
             const target = toRaw(this)
+            // 获取原型对象
             const proto = getProto(target)
-            const hadKey = proto.has.call(target, value)
+
             // 通过原始集合的 has 方法检查值是否已存在。如果值不存在，则将其添加到集合中，并触发依赖收集
+            const hadKey = proto.has.call(target, value)
             if (!hadKey) {
               target.add(value)
               trigger(target, TriggerOpTypes.ADD, value, value)
@@ -193,12 +207,15 @@ function createInstrumentations(
             return this
           },
           set(this: MapTypes, key: unknown, value: unknown) {
+            // 查值是否是浅层、只读或已经是响应式对象，如果不是，则将其转换为原始值
             if (!shallow && !isShallow(value) && !isReadonly(value)) {
               value = toRaw(value)
             }
+            // 获取代理对象的原始版本
             const target = toRaw(this)
             const { has, get } = getProto(target)
 
+            // 判断是否存在该key，不存在的话尝试获取key的原始版本再判断一次
             let hadKey = has.call(target, key)
             if (!hadKey) {
               key = toRaw(key)
@@ -207,8 +224,11 @@ function createInstrumentations(
               checkIdentityKeys(target, has, key)
             }
 
+            // 先获取旧值
             const oldValue = get.call(target, key)
+            // 再设置新值
             target.set(key, value)
+            // 最后根据是否存在该key和新旧值是否变化来触发依
             if (!hadKey) {
               trigger(target, TriggerOpTypes.ADD, key, value)
             } else if (hasChanged(value, oldValue)) {
@@ -217,8 +237,10 @@ function createInstrumentations(
             return this
           },
           delete(this: CollectionTypes, key: unknown) {
+            // 获取代理对象的原始版本
             const target = toRaw(this)
             const { has, get } = getProto(target)
+            // 判断是否存在该值，不存在的话尝试获取key的原始版本再判断一次
             let hadKey = has.call(target, key)
             if (!hadKey) {
               key = toRaw(key)
@@ -227,8 +249,10 @@ function createInstrumentations(
               checkIdentityKeys(target, has, key)
             }
 
+            // 先获取旧值
             const oldValue = get ? get.call(target, key) : undefined
             // forward the operation before queueing reactions
+            // 删除后，如果key是存在的再触发trigger
             const result = target.delete(key)
             if (hadKey) {
               trigger(target, TriggerOpTypes.DELETE, key, undefined, oldValue)
@@ -236,8 +260,12 @@ function createInstrumentations(
             return result
           },
           clear(this: IterableCollections) {
+            // 获取代理对象的原始版本
             const target = toRaw(this)
+            // 如果原始对象的size不为0则说明有值
             const hadItems = target.size !== 0
+            // 开发环境下重新拷贝一份原始数据
+            // 以便在trigger作为debuggerInfo传递过去
             const oldTarget = __DEV__
               ? isMap(target)
                 ? new Map(target)
@@ -259,6 +287,7 @@ function createInstrumentations(
         },
   )
 
+  // map set相对应的迭代器方法
   const iteratorMethods = [
     'keys',
     'values',
