@@ -75,7 +75,7 @@ export class EffectScope {
           this.scopes[i].pause()
         }
       }
-      //   将包含的effects全部设为暂停
+      // 将包含的effects全部设为暂停
       for (i = 0, l = this.effects.length; i < l; i++) {
         this.effects[i].pause()
       }
@@ -111,10 +111,12 @@ export class EffectScope {
     if (this._active) {
       const currentEffectScope = activeEffectScope
       try {
-        // 将
+        // 将当前活跃的作用域设为自己
         activeEffectScope = this
+        // 执行函数
         return fn()
       } finally {
+        // 回复之前的活跃作用域
         activeEffectScope = currentEffectScope
       }
     } else if (__DEV__) {
