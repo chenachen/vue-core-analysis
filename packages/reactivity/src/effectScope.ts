@@ -5,6 +5,7 @@ export let activeEffectScope: EffectScope | undefined
 
 export class EffectScope {
   /**
+   * 当前作用域是否活跃
    * @internal
    */
   private _active = true
@@ -13,6 +14,7 @@ export class EffectScope {
    */
   private _on = 0
   /**
+   * 存储的effect
    * @internal
    */
   effects: ReactiveEffect[] = []
@@ -21,28 +23,34 @@ export class EffectScope {
    */
   cleanups: (() => void)[] = []
 
+  // 是否暂停状态
   private _isPaused = false
 
   /**
    * only assigned by undetached scope
+   * 父作用域
    * @internal
    */
   parent: EffectScope | undefined
   /**
    * record undetached scopes
+   * 记录相关联的作用域
    * @internal
    */
   scopes: EffectScope[] | undefined
   /**
    * track a child scope's index in its parent's scopes array for optimized
    * removal
+   * 记录本作用域在父作用域的索引，方便优化移除操作
    * @internal
    */
   private index: number | undefined
 
   constructor(public detached = false) {
+    // 将当前活跃的作用域设置为父作用域
     this.parent = activeEffectScope
     if (!detached && activeEffectScope) {
+      // 记录当前作用域在父作用域中的索引
       this.index =
         (activeEffectScope.scopes || (activeEffectScope.scopes = [])).push(
           this,
@@ -51,18 +59,23 @@ export class EffectScope {
   }
 
   get active(): boolean {
+    // 是否活跃状态
     return this._active
   }
 
   pause(): void {
+    // 如果是活跃状态
     if (this._active) {
+      // 设为暂停状态
       this._isPaused = true
       let i, l
       if (this.scopes) {
+        // 遍历相关联的作用域，都设置为暂停状态
         for (i = 0, l = this.scopes.length; i < l; i++) {
           this.scopes[i].pause()
         }
       }
+      //   将包含的effects全部设为暂停
       for (i = 0, l = this.effects.length; i < l; i++) {
         this.effects[i].pause()
       }
@@ -73,15 +86,20 @@ export class EffectScope {
    * Resumes the effect scope, including all child scopes and effects.
    */
   resume(): void {
+    // 如果是活跃状态
     if (this._active) {
+      // 如果是暂停中
       if (this._isPaused) {
+        // 暂停状态设为false
         this._isPaused = false
         let i, l
         if (this.scopes) {
+          // 回复相关联的作用域
           for (i = 0, l = this.scopes.length; i < l; i++) {
             this.scopes[i].resume()
           }
         }
+        // 将包含的effects的状态也恢复
         for (i = 0, l = this.effects.length; i < l; i++) {
           this.effects[i].resume()
         }
@@ -93,6 +111,7 @@ export class EffectScope {
     if (this._active) {
       const currentEffectScope = activeEffectScope
       try {
+        // 将
         activeEffectScope = this
         return fn()
       } finally {
