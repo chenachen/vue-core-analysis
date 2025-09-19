@@ -190,8 +190,19 @@ export function watch(
         : (source as () => any)
     } else {
       // no cb -> simple effect
-      // TODO: 这是啥场景
+      // 没有cb则对应这种场景
+      // test('effect', () => {
+      //   let dummy: any
+      //   const source = ref(0)
+      //   watch(() => {
+      //     dummy = source.value
+      //   })
+      //   expect(dummy).toBe(0)
+      //   source.value++
+      //   expect(dummy).toBe(1)
+      // })
       getter = () => {
+        // 如果清理函数存在，则先暂停追踪，执行清理函数，最后重置追踪状态
         if (cleanup) {
           pauseTracking()
           try {
@@ -200,13 +211,16 @@ export function watch(
             resetTracking()
           }
         }
+        // 设置当前effect为activeWatcher
         const currentEffect = activeWatcher
         activeWatcher = effect
         try {
+          // 如果call存在则调用，否则直接执行source函数
           return call
             ? call(source, WatchErrorCodes.WATCH_CALLBACK, [boundCleanup])
             : source(boundCleanup)
         } finally {
+          // 回退状态
           activeWatcher = currentEffect
         }
       }
@@ -249,6 +263,7 @@ export function watch(
     }
   }
 
+  // 记录旧值
   let oldValue: any = isMultiSource
     ? new Array((source as []).length).fill(INITIAL_WATCHER_VALUE)
     : INITIAL_WATCHER_VALUE
@@ -273,6 +288,7 @@ export function watch(
       ) {
         // 深度监听或强制触发或值发生变更，执行以下逻辑
         // cleanup before running cb again
+        // 执行回调函数前先执行清理函数
         if (cleanup) {
           cleanup()
         }
@@ -284,6 +300,7 @@ export function watch(
           const args = [
             newValue,
             // pass undefined as the old value when it's changed for the first time
+            // 如果是第一次变更则传undefined，否则传oldValue
             oldValue === INITIAL_WATCHER_VALUE
               ? undefined
               : isMultiSource && oldValue[0] === INITIAL_WATCHER_VALUE

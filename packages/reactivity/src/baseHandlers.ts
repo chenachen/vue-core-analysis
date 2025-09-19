@@ -59,6 +59,33 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
 
     const isReadonly = this._isReadonly,
       isShallow = this._isShallow
+
+    /**
+     * @example
+     * const obj = reactive({ a: 1 })
+     * obj[ReactiveFlags.IS_REACTIVE] // true
+     * obj[ReactiveFlags.IS_READONLY] // false
+     * obj[ReactiveFlags.IS_SHALLOW] // false
+     * obj[ReactiveFlags.RAW] === obj // false
+     *
+     * const ro = readonly({ a: 1 })
+     * ro[ReactiveFlags.IS_REACTIVE] // false
+     * ro[ReactiveFlags.IS_READONLY] // true
+     * ro[ReactiveFlags.IS_SHALLOW] // false
+     * ro[ReactiveFlags.RAW] === ro // false
+     *
+     * const sr = shallowReadonly({ a: 1 })
+     * sr[ReactiveFlags.IS_REACTIVE] // false
+     * sr[ReactiveFlags.IS_READONLY] // true
+     * sr[ReactiveFlags.IS_SHALLOW] // true
+     * sr[ReactiveFlags.RAW] === sr // false
+     *
+     * const ss = shallowReactive({a:1})
+     * ss[ReactiveFlags.IS_REACTIVE] // true
+     * ss[ReactiveFlags.IS_READONLY] // false
+     * ss[ReactiveFlags.IS_SHALLOW] // true
+     * ss[ReactiveFlags.RAW] === ss // false
+     */
     // 返回特定值
     if (key === ReactiveFlags.IS_REACTIVE) {
       // 是否响应式对象
@@ -115,8 +142,11 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
     const res = Reflect.get(
       target,
       key,
+      // if this is a proxy wrapping a ref, return methods using the raw ref
+      // as receiver so that we don't have to call `toRaw` on the ref in all
+      // its class methods
       /**
-       * 这个判断是针对reactive(ref(obj))这种情况的，这种情况下如果不做以下判断，在RefImpl和ComputedRefImpl中的this指向的是代理对象，而不是ref本身
+       * 这个判断是针对readonly(computed)这种情况的，这种情况下如果不做以下判断，在RefImpl和ComputedRefImpl中的this指向的是代理对象，而不是ref本身
        * 会导致在RefImpl和ComputedRefImpl内部get value()方法中需要通过toRaw方法获取到原始对象，否则直接调用this会调用到代理对象上
        * 改动的commit在这https://github.com/vuejs/core/pull/10397/commits/1318017d111ded1977daed0db4e301f676a78628
        * 本质在于this指向问题
@@ -136,6 +166,20 @@ class BaseReactiveHandler implements ProxyHandler<Target> {
        * });
        *
        * console.log(proxy.name);
+       *
+       * 绝大部分场景其实都没有问题，把 isRef(target) ? target : receiver 改成 receiver，仅有一个测试用例会报错
+       * packages/reactivity/__tests__/readonly.spec.ts 'calling readonly on computed should allow computed to set its private properties'
+       *
+       * const r = ref<boolean>(false)
+       * const c = computed(() => r.value)
+       * const rC = readonly(c)
+       * r.value = true
+       * expect(rC.value).toBe(true)
+       *
+       * 在这个例子中，如果传递的是receiver，那么在computed的get函数中this指向的是代理对象，而不是ref本身
+       * r.value的变更会触发computed的重新计算，但是由于this指向错误，refreshComputed在执行computed._value = value时
+       * computed其实是readonly对象，所以setter不可用，从而导致computed的值不会更新
+       * 所以rC.value永远是undefined，这个测试用例就会报错
        */
       isRef(target) ? target : receiver,
     )

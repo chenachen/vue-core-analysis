@@ -8,6 +8,9 @@ import { isArray } from '@vue/shared'
  * Track array iteration and return:
  * - if input is reactive: a cloned raw array with reactive values
  * - if input is non-reactive or shallowReactive: the original raw array
+ * 依赖收集，并返回原始数组或者深度代理后的新数组
+ * - 如果输入的是响应式数组：返回一个克隆的原始数组，数组项是响应式的
+ * - 如果输入的是非响应式或者浅层响应式数组：返回原始数组
  */
 export function reactiveReadArray<T>(array: T[]): T[] {
   const raw = toRaw(array)
@@ -19,6 +22,7 @@ export function reactiveReadArray<T>(array: T[]): T[] {
 
 /**
  * Track array iteration and return raw array
+ * 依赖收集，并返回原始数组
  */
 export function shallowReadArray<T>(arr: T[]): T[] {
   track((arr = toRaw(arr)), TrackOpTypes.ITERATE, ARRAY_ITERATE_KEY)
@@ -26,6 +30,15 @@ export function shallowReadArray<T>(arr: T[]): T[] {
 }
 
 // 代理劫持对象的数组方法
+// 这些方法会被重新定义，以便在调用时进行依赖收集和触发更新
+// 这些方法分为三类：
+// 1. 迭代器方法，如 forEach、map、filter 等，这些方法会遍历数组并对每个元素进行操作
+// 2. 查找方法，如 includes、indexOf、lastIndexOf 等，这些方法会查找数组中的某个元素
+// 3. 变更数组长度的方法，如 push、pop、shift、unshift、splice 等，这些方法会改变数组的长度
+// 其中，变更数组长度的方法会暂停依赖收集，以避免触发不必要的更新
+// 其他方法会进行依赖收集，以便在数组发生变化时触发更新
+// 这些方法在调用时会先获取原始数组，然后根据需要进行深度代理或浅层代理，最后返回结果
+// 通过这种方式，可以确保对数组的操作能够正确地触发响应式更新
 export const arrayInstrumentations: Record<string | symbol, Function> = <any>{
   __proto__: null,
 
@@ -35,6 +48,7 @@ export const arrayInstrumentations: Record<string | symbol, Function> = <any>{
   },
 
   concat(...args: unknown[]) {
+    // 对原数组和拼接进来的数组都进行依赖收集
     return reactiveReadArray(this).concat(
       ...args.map(x => (isArray(x) ? reactiveReadArray(x) : x)),
     )
@@ -287,6 +301,7 @@ function apply(
 }
 
 // instrument reduce and reduceRight to take ARRAY_ITERATE dependency
+// reduce 和 reduceRight 方法的特殊处理
 function reduce(
   self: unknown[],
   method: keyof Array<any>,
@@ -341,6 +356,7 @@ function searchProxy(
 
 // instrument length-altering mutation methods to avoid length being tracked
 // which leads to infinite loops in some cases (#2137)
+// 变更数组长度的方法会暂停依赖收集，以避免触发不必要的更新
 function noTracking(
   self: unknown[],
   method: keyof Array<any>,
