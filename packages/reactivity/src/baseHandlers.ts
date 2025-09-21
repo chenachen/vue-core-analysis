@@ -239,6 +239,11 @@ class MutableReactiveHandler extends BaseReactiveHandler {
         value = toRaw(value)
       }
       // 判断旧值值是否是ref且新值不是ref，如果不是只读，那么对ref进行赋值，而不是直接替换
+      // 例子：
+      // const r = ref(1)
+      // const obj = reactive({ r })
+      // obj.r = 2
+      // console.log(r.value) // 2
       if (!isArray(target) && isRef(oldValue) && !isRef(value)) {
         if (isOldValueReadonly) {
           return false
@@ -260,9 +265,7 @@ class MutableReactiveHandler extends BaseReactiveHandler {
       target,
       key,
       value,
-      // 这个判断是针对reactive(ref(obj))这种情况的，这种情况下如果不做以下判断，在RefImpl和ComputedRefImpl中的this指向的是代理对象，而不是ref本身
-      // 会导致在RefImpl和ComputedRefImpl内部get value()方法中需要通过toRaw方法获取到原始对象
-      // 改动的commit在这https://github.com/vuejs/core/pull/10397/commits/1318017d111ded1977daed0db4e301f676a78628
+      // 理由同上
       isRef(target) ? target : receiver,
     )
     // don't trigger if target is something up in the prototype chain of original

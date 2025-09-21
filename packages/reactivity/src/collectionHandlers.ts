@@ -80,6 +80,7 @@ function createIterableMethod(
   }
 }
 
+// 只读集合的增删改方法
 function createReadonlyMethod(type: TriggerOpTypes): Function {
   return function (this: CollectionTypes, ...args: unknown[]) {
     if (__DEV__) {
@@ -107,14 +108,19 @@ function createInstrumentations(
     get(this: MapTypes, key: unknown) {
       // #1772: readonly(reactive(Map)) should return readonly + reactive version
       // of the value
-      const target = this[ReactiveFlags.RAW] // 被代理的对象
-      const rawTarget = toRaw(target) // 代理对象的原始版本，target和rawTarget不一致的场景在于readonly(reactive(Map))这种套娃的场景
-      const rawKey = toRaw(key) // key可以是对象，所以这里获取原始版本的key
+      // 被代理的对象
+      const target = this[ReactiveFlags.RAW]
+      // 代理对象的原始版本，target和rawTarget不一致的场景包含但应该不限于readonly(reactive(Map))这种套娃的场景
+      const rawTarget = toRaw(target)
+      // key可以是对象，所以这里获取原始版本的key
+      const rawKey = toRaw(key)
       if (!readonly) {
         // 其实是判断key是否也是代理对象而不是真的判断key是否有被改过
         if (hasChanged(key, rawKey)) {
+          // 对key执行追踪
           track(rawTarget, TrackOpTypes.GET, key)
         }
+        // 对原始key执行追踪
         track(rawTarget, TrackOpTypes.GET, rawKey)
       }
       const { has } = getProto(rawTarget)
@@ -328,6 +334,14 @@ function createInstrumentationGetter(isReadonly: boolean, shallow: boolean) {
     )
   }
 }
+
+// 可以看到，和baseHandlers的get函数一样，都是通过createInstrumentationGetter工厂函数创建的
+// 只不过baseHandlers是针对对象的，而collectionHandlers是针对集合类型的
+// 另外baseHandlers还区分了是否是数组，因为数组有一些特殊的方法需要处理
+// 而collectionHandlers则只代理了get方法
+// 因为map set都是通过方法来操作的，没有像对象那样通过.或者[]来访问属性
+// 另外，collectionHandlers还区分了是否是只读和是否是浅层监听
+// 这两个选项会影响到对值的包装方式，以及是否进行依赖追踪
 
 export const mutableCollectionHandlers: ProxyHandler<CollectionTypes> = {
   get: /*@__PURE__*/ createInstrumentationGetter(false, false),
