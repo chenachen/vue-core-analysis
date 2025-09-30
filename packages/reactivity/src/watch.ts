@@ -90,16 +90,12 @@ export function getCurrentWatcher(): ReactiveEffect<any> | undefined {
 }
 
 /**
- * Registers a cleanup callback on the current active effect. This
- * registered cleanup callback will be invoked right before the
- * associated effect re-runs.
- * 为当前effect注册一个清理函数，这个注册的清理函数会在相关的effect重新运行之前调用
+ * 为指定的响应式副作用（ReactiveEffect）注册一个清理函数。
+ * 该清理函数会在副作用重新执行前被调用，常用于 watch 监听器中做资源释放等操作。
  *
- * @param cleanupFn - The callback function to attach to the effect's cleanup.
- * @param failSilently - if `true`, will not throw warning when called without
- * an active effect.
- * @param owner - The effect that this cleanup function should be attached to.
- * By default, the current active effect.
+ * @param cleanupFn - 要注册的清理函数。
+ * @param failSilently - 如果为 true，则在没有活跃副作用时不会警告，默认为 false。
+ * @param owner - 要关联的副作用对象，默认是当前活跃的副作用（activeWatcher）。
  */
 export function onWatcherCleanup(
   cleanupFn: () => void,
@@ -144,26 +140,40 @@ export function watch(
       return traverse(source, 1)
     // for `deep: undefined` on a reactive object, deeply traverse all properties
     // 深度递归所有属性
+    // 这与vue2侦听对象时不太一致，如果传入的是响应式对象，默认就深度监听
+    // const obj = reactive({ a: 1, b: { c: 2 } })
+    // watch(obj, cb) // 默认深度监听
     return traverse(source)
   }
 
+  // 定义一个响应式副作用对象，用于管理依赖的响应式数据和副作用逻辑
   let effect: ReactiveEffect
+  // 定义一个函数，用于获取响应式数据的值或执行副作用逻辑
   let getter: () => any
+  // 定义一个可选的清理函数，用于在副作用重新执行前清理资源
   let cleanup: (() => void) | undefined
+  // 定义一个绑定的清理函数，用于注册清理逻辑到当前的响应式副作用
   let boundCleanup: typeof onWatcherCleanup
+  // 定义一个布尔值，指示是否强制触发副作用逻辑
   let forceTrigger = false
+  // 定义一个布尔值，指示是否有多个数据源
   let isMultiSource = false
 
   // 根据不同的 source 类型，设置 getter 函数
   if (isRef(source)) {
+    // 如果 source 是一个 ref，则设置 getter 为获取 ref 的值，并根据是否为浅层 ref 设置 forceTrigger
     getter = () => source.value
     forceTrigger = isShallow(source)
   } else if (isReactive(source)) {
+    // 如果 source 是一个响应式对象，则设置 getter 为获取响应式对象的值，并强制触发
     getter = () => reactiveGetter(source)
     forceTrigger = true
   } else if (isArray(source)) {
+    // 如果 source 是一个数组，则处理多个数据源
     isMultiSource = true
+    // 如果数组中有响应式对象或浅层 ref，则设置 forceTrigger 为 true
     forceTrigger = source.some(s => isReactive(s) || isShallow(s))
+    // 设置 getter 为遍历数组，获取每个数据源的值
     getter = () =>
       // 监听多个来源时，遍历每个来源，返回一个包含所有来源值的数组
       source.map(s => {
@@ -226,6 +236,7 @@ export function watch(
       }
     }
   } else {
+    // 如果 source 类型无效，则设置 getter 为 NOOP，并在开发环境下发出警告
     getter = NOOP
     __DEV__ && warnInvalidSource(source)
   }
