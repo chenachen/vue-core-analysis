@@ -154,7 +154,8 @@ export class ReactiveEffect<T = any>
     ) {
       return
     }
-    // 还没执行过通知
+    // 还未被通知过，则执行batch。batch会将本实例标记为已通知
+    // 所以这个判断就有去重的作用了，确保在同一次批处理中只会被通知一次
     if (!(this.flags & EffectFlags.NOTIFIED)) {
       batch(this)
     }
@@ -191,7 +192,7 @@ export class ReactiveEffect<T = any>
             'this is likely a Vue internal bug.',
         )
       }
-      // 清除已执行的依赖
+      // 清除未执行的依赖
       cleanupDeps(this)
       // 状态回滚
       activeSub = prevEffect
@@ -347,7 +348,7 @@ function prepareDeps(sub: Subscriber) {
     // 设置为-1，以便追踪运行后哪些订阅没有使用
     link.version = -1
     // store previous active sub if link was being used in another context
-    // link组成链表,应对嵌套的effect
+    // link组成链表,应对嵌套的effect？暂时没发现啥作用，注释掉用例也能通过
     link.prevActiveLink = link.dep.activeLink
     link.dep.activeLink = link
   }
@@ -370,7 +371,7 @@ function cleanupDeps(sub: Subscriber) {
     } else {
       // The new head is the last node seen which wasn't removed
       // from the doubly-linked list
-      // 链头设置为最后一个未被移除的节点(因为是从尾部开始遍历的,所以从顺序上讲是更先的那个)
+      // 链头设置为最后一个未被移除的节点(因为是从尾部开始遍历的,遍历到最后其实是链表的头部)
       head = link
     }
 

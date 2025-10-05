@@ -28,6 +28,14 @@ import { getCurrentScope } from './effectScope'
 // These errors were transferred from `packages/runtime-core/src/errorHandling.ts`
 // to @vue/reactivity to allow co-location with the moved base watch logic, hence
 // it is essential to keep these values unchanged.
+/**
+ * watch API 内部使用的错误码，用于区分不同类型的错误。
+ *
+ * @enum {number}
+ * @property {number} WATCH_GETTER - 在评估 watch 源/getter 时发生的错误。
+ * @property {number} WATCH_CALLBACK - 在 watch 回调函数中发生的错误。
+ * @property {number} WATCH_CLEANUP - 在 watch 清理阶段发生的错误。
+ */
 export enum WatchErrorCodes {
   WATCH_GETTER = 2,
   WATCH_CALLBACK,
@@ -46,6 +54,19 @@ export type WatchCallback<V = any, OV = any> = (
 
 export type OnCleanup = (cleanupFn: () => void) => void
 
+/**
+ * `WatchOptions` 接口用于配置 Vue 响应式系统中的侦听器（watcher）行为。
+ *
+ * @template Immediate - 控制 `immediate` 选项的类型，默认为 `boolean`。
+ *
+ * @property {Immediate} [immediate] 是否在侦听器创建时立即执行回调函数。
+ * @property {boolean | number} [deep] 是否深度侦听对象内部的属性变化，或指定递归深度。
+ * @property {boolean} [once] 是否只触发一次回调，触发后自动停止侦听。
+ * @property {WatchScheduler} [scheduler] 自定义调度函数，用于控制回调的执行时机。
+ * @property {(msg: string, ...args: any[]) => void} [onWarn] 自定义警告处理函数。
+ * @property {(job: (...args: any[]) => void) => void} [augmentJob] （内部使用）增强侦听任务的函数。
+ * @property {(fn: Function | Function[], type: WatchErrorCodes, args?: unknown[]) => void} [call] （内部使用）自定义回调调用方式。
+ */
 export interface WatchOptions<Immediate = boolean> extends DebuggerOptions {
   immediate?: Immediate
   deep?: boolean | number

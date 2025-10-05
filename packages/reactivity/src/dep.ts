@@ -393,6 +393,13 @@ export function trigger(
     }
   }
 
+  /**
+   * 开始批量执行
+   * 主要是为了合并多次变更，避免重复执行，并确保computed和副作用等按照正确的执行顺序执行
+   * 提升性能和一致性
+   * 具体场景包括但不限于下面的depsMap.forEach等
+   * 见effect.ts里的startBatch和endBatch方法
+   */
   startBatch()
 
   if (type === TriggerOpTypes.CLEAR) {
@@ -464,7 +471,7 @@ export function trigger(
     }
   }
 
-  // 需要触发的依赖获取完毕
+  // 需要触发的订阅者队列建立完毕
   // 开始执行
   endBatch()
 }
