@@ -255,16 +255,20 @@ export function createAppAPI<HostElement>(
   hydrate?: RootHydrateFunction,
 ): CreateAppFunction<HostElement> {
   return function createApp(rootComponent, rootProps = null) {
+    // 兼容createApp的rootComponent参数为options的情况
     if (!isFunction(rootComponent)) {
       rootComponent = extend({}, rootComponent)
     }
 
+    // 对rootProps进行校验
     if (rootProps != null && !isObject(rootProps)) {
       __DEV__ && warn(`root props passed to app.mount() must be an object.`)
       rootProps = null
     }
 
+    // 创建app上下文
     const context = createAppContext()
+    // 创建一个集合，存储插件
     const installedPlugins = new WeakSet()
     const pluginCleanupFns: Array<() => any> = []
 

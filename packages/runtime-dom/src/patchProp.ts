@@ -13,10 +13,15 @@ import {
 import type { RendererOptions } from '@vue/runtime-core'
 import type { VueElement } from './apiCustomElement'
 
+/**
+ * 判断给定的 key 是否为原生 DOM 事件监听器。
+ * 原生事件监听器的 key 以 "on" 开头，第三个字符为小写字母。
+ * 例如："onclick"、"onchange"。
+ */
 const isNativeOn = (key: string) =>
   key.charCodeAt(0) === 111 /* o */ &&
   key.charCodeAt(1) === 110 /* n */ &&
-  // lowercase letter
+  // 小写字母
   key.charCodeAt(2) > 96 &&
   key.charCodeAt(2) < 123
 

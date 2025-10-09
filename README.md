@@ -1,3 +1,7 @@
+# 目前基于 3.5.18版本
+# (✔)已完成`reactivity`模块的解读 [掘金-基于Vue3.5.18的响应式源码解析](https://juejin.cn/post/7557011983645294619)
+
+
 # vuejs/core [![npm](https://img.shields.io/npm/v/vue.svg)](https://www.npmjs.com/package/vue) [![build status](https://github.com/vuejs/core/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/vuejs/core/actions/workflows/ci.yml) [![Download](https://img.shields.io/npm/dm/vue)](https://www.npmjs.com/package/vue)
 
 ## Getting Started
