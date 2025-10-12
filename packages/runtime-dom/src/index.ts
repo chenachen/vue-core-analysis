@@ -67,6 +67,8 @@ const rendererOptions = /*@__PURE__*/ extend({ patchProp }, nodeOps)
 
 // lazy create the renderer - this makes core renderer logic tree-shakable
 // in case the user only imports reactivity utilities from Vue.
+// 延迟创建 renderer —— 这样可以让核心渲染逻辑支持按需 tree-shaking，
+// 以防用户只从 Vue 导入响应式相关的工具。
 let renderer: Renderer<Element | ShadowRoot> | HydrationRenderer
 
 let enabledHydration = false
@@ -96,6 +98,7 @@ export const hydrate = ((...args) => {
 }) as RootHydrateFunction
 
 export const createApp = ((...args) => {
+  // 懒加载 renderer，调用 createApp 时才创建
   const app = ensureRenderer().createApp(...args)
 
   if (__DEV__) {
@@ -225,6 +228,18 @@ function injectCompilerOptionsCheck(app: App) {
   }
 }
 
+/**
+ * 规范化容器参数，确保其为有效的 DOM 元素或 ShadowRoot。
+ *
+ * @param {Element | ShadowRoot | string} container - 需要规范化的容器，可以是 DOM 元素、ShadowRoot 或 CSS 选择器字符串。
+ * @returns {Element | ShadowRoot | null} - 返回解析后的 DOM 元素或 ShadowRoot。如果传入字符串但未找到匹配元素，则返回 null。
+ *
+ * @remarks
+ * - 如果 container 是字符串，则会尝试通过 document.querySelector 查询 DOM 元素。
+ * - 在开发模式（__DEV__）下：
+ *   - 如果选择器字符串未能解析为元素，会输出警告。
+ *   - 如果容器为关闭模式的 ShadowRoot，会输出警告，提示可能导致不可预期的 bug。
+ */
 function normalizeContainer(
   container: Element | ShadowRoot | string,
 ): Element | ShadowRoot | null {
