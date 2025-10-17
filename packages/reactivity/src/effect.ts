@@ -288,7 +288,7 @@ export function batch(sub: Subscriber, isComputed = false): void {
  * @internal
  */
 export function startBatch(): void {
-  // 记录批处理的嵌套层级
+  // 记录批处理的处理深度
   batchDepth++
 }
 

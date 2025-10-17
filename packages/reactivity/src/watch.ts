@@ -115,8 +115,8 @@ export function getCurrentWatcher(): ReactiveEffect<any> | undefined {
  * 该清理函数会在副作用重新执行前被调用，常用于 watch 监听器中做资源释放等操作。
  *
  * @param cleanupFn - 要注册的清理函数。
- * @param failSilently - 如果为 true，则在没有活跃副作用时不会警告，默认为 false。
- * @param owner - 要关联的副作用对象，默认是当前活跃的副作用（activeWatcher）。
+ * @param failSilently - 如果为 true，则在没有活跃的订阅者时不会警告，默认为 false。
+ * @param owner - 要关联的订阅者，默认是当前活跃的订阅者（activeWatcher）。
  */
 export function onWatcherCleanup(
   cleanupFn: () => void,

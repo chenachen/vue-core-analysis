@@ -164,10 +164,10 @@ export class Dep {
         activeSub.depsTail!.nextDep = link
         activeSub.depsTail = link
       }
-
       // 添加订阅者
       addSub(link)
     } else if (link.version === -1) {
+      // 也就是第二次及以后执行e.run的场景，上面这个if是第一次执行
       // reused from last run - already a sub, just sync version
       link.version = this.version
 
@@ -358,6 +358,9 @@ export function track(target: object, type: TrackOpTypes, key: unknown): void {
  * @param target - The reactive object.
  * @param type - Defines the type of the operation that needs to trigger effects.
  * @param key - Can be used to target a specific reactive property in the target object.
+ * @param newValue - 新的值
+ * @param oldValue - 旧的值
+ * @param oldTarget - 旧对象
  */
 export function trigger(
   target: object,
