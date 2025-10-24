@@ -355,18 +355,18 @@ function baseCreateRenderer(
   }
 
   const {
-    insert: hostInsert,
-    remove: hostRemove,
-    patchProp: hostPatchProp,
-    createElement: hostCreateElement,
-    createText: hostCreateText,
-    createComment: hostCreateComment,
-    setText: hostSetText,
-    setElementText: hostSetElementText,
-    parentNode: hostParentNode,
-    nextSibling: hostNextSibling,
-    setScopeId: hostSetScopeId = NOOP,
-    insertStaticContent: hostInsertStaticContent,
+    insert: hostInsert, // 插入节点
+    remove: hostRemove, // 移除节点
+    patchProp: hostPatchProp, // 更新属性
+    createElement: hostCreateElement, // 创建元素
+    createText: hostCreateText, // 创建文本节点
+    createComment: hostCreateComment, // 创建注释节点
+    setText: hostSetText, // 设置文本节点内容
+    setElementText: hostSetElementText, // 设置元素节点文本内容
+    parentNode: hostParentNode, // 获取父节点
+    nextSibling: hostNextSibling, // 获取下一个兄弟节点
+    setScopeId: hostSetScopeId = NOOP, // 设置作用域 ID
+    insertStaticContent: hostInsertStaticContent, // 插入静态内容
   } = options
 
   // Note: functions inside this closure should use `const xxx = () => {}`
@@ -382,6 +382,7 @@ function baseCreateRenderer(
     slotScopeIds = null,
     optimized = __DEV__ && isHmrUpdating ? false : !!n2.dynamicChildren,
   ) => {
+    // 同一个节点不需要更新
     if (n1 === n2) {
       return
     }
@@ -2388,13 +2389,16 @@ function baseCreateRenderer(
     return teleportEnd ? hostNextSibling(teleportEnd) : el
   }
 
+  //
   let isFlushing = false
   const render: RootRenderFunction = (vnode, container, namespace) => {
+    // 如果 vnode 为空，则卸载容器中的内容
     if (vnode == null) {
       if (container._vnode) {
         unmount(container._vnode, null, null, true)
       }
     } else {
+      // 否则，执行打补丁操作
       patch(
         container._vnode || null,
         vnode,
@@ -2405,6 +2409,7 @@ function baseCreateRenderer(
         namespace,
       )
     }
+    // 记录当前的 vnode 到容器上
     container._vnode = vnode
     if (!isFlushing) {
       isFlushing = true

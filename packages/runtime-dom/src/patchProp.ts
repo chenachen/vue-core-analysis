@@ -37,8 +37,10 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
 ) => {
   const isSVG = namespace === 'svg'
   if (key === 'class') {
+    // 处理class
     patchClass(el, nextValue, isSVG)
   } else if (key === 'style') {
+    // 处理style
     patchStyle(el, prevValue, nextValue)
   } else if (isOn(key)) {
     // ignore v-model listeners

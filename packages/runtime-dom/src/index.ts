@@ -102,26 +102,38 @@ export const createApp = ((...args) => {
   const app = ensureRenderer().createApp(...args)
 
   if (__DEV__) {
+    // 注入 native tag 检测, 在app.config中，有个isNativeTag的私有方法，用于检测是否原生标签
+    // 因为在开发模式下，Vue 会对组件名称进行验证，以确保用户没有尝试注册与原生 HTML 或 SVG 标签同名的组件。
+    // 放到runtime-dom中实现，是因为不同平台需要检测的原生标签不一样，而runtime-dom中则是检测与dom相关的标签
     injectNativeTagCheck(app)
+    // 注入自定义标签检测函数
     injectCompilerOptionsCheck(app)
   }
 
   const { mount } = app
   app.mount = (containerOrSelector: Element | ShadowRoot | string): any => {
+    // 获取挂载容器节点
     const container = normalizeContainer(containerOrSelector)
     if (!container) return
 
+    // 获取应用的根组件
     const component = app._component
+    // 如果组件不是函数且没有定义 render 或 template，则尝试从容器的 innerHTML 中提取模板
     if (!isFunction(component) && !component.render && !component.template) {
       // __UNSAFE__
       // Reason: potential execution of JS expressions in in-DOM template.
       // The user must make sure the in-DOM template is trusted. If it's
       // rendered by the server, the template should not contain any user data.
+      // 不安全
+      // 原因：可能会在 DOM 中的模板中执行 JS 表达式。
+      // 用户必须确保 DOM 中的模板是可信的。如果模板由服务器渲染，则不应包含任何用户数据。
       component.template = container.innerHTML
       // 2.x compat check
+      // 兼容 Vue 2.x 的检查逻辑
       if (__COMPAT__ && __DEV__ && container.nodeType === 1) {
         for (let i = 0; i < (container as Element).attributes.length; i++) {
           const attr = (container as Element).attributes[i]
+          // 如果属性名称不是 v-cloak 且以 v-、: 或 @ 开头，则发出弃用警告
           if (attr.name !== 'v-cloak' && /^(v-|:|@)/.test(attr.name)) {
             compatUtils.warnDeprecation(
               DeprecationTypes.GLOBAL_MOUNT_CONTAINER,
@@ -134,10 +146,13 @@ export const createApp = ((...args) => {
     }
 
     // clear content before mounting
+    // 挂载之前清空内容
     if (container.nodeType === 1) {
       container.textContent = ''
     }
+    // 执行挂载函数
     const proxy = mount(container, false, resolveRootNamespace(container))
+    // 如果容器是元素节点，则移除 v-cloak 属性并添加 data-v-app 属性
     if (container instanceof Element) {
       container.removeAttribute('v-cloak')
       container.setAttribute('data-v-app', '')

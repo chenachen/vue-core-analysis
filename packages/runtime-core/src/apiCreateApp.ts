@@ -270,24 +270,27 @@ export function createAppAPI<HostElement>(
     const context = createAppContext()
     // 创建一个集合，存储插件
     const installedPlugins = new WeakSet()
+    // 存储卸载时的回调函数
     const pluginCleanupFns: Array<() => any> = []
 
     let isMounted = false
 
     const app: App = (context.app = {
-      _uid: uid++,
-      _component: rootComponent as ConcreteComponent,
-      _props: rootProps,
-      _container: null,
-      _context: context,
-      _instance: null,
+      _uid: uid++, // 组件唯一标识符
+      _component: rootComponent as ConcreteComponent, // 组件实例
+      _props: rootProps, // 组件props
+      _container: null, // 挂载容器
+      _context: context, // app上下文
+      _instance: null, // 组件内部实例
 
-      version,
+      version, // vue版本号
 
+      // app配置对象
       get config() {
         return context.config
       },
 
+      // 禁止替换config属性
       set config(v) {
         if (__DEV__) {
           warn(
@@ -296,13 +299,17 @@ export function createAppAPI<HostElement>(
         }
       },
 
+      // use函数，用于注册插件
       use(plugin: Plugin, ...options: any[]) {
+        // 如果已经注册过该插件，则发出警告
         if (installedPlugins.has(plugin)) {
           __DEV__ && warn(`Plugin has already been applied to target app.`)
         } else if (plugin && isFunction(plugin.install)) {
+          // 如果plugin是对象并且有install方法，则调用install方法进行安装
           installedPlugins.add(plugin)
           plugin.install(app, ...options)
         } else if (isFunction(plugin)) {
+          // 如果plugin是函数，则直接调用该函数进行安装
           installedPlugins.add(plugin)
           plugin(app, ...options)
         } else if (__DEV__) {
@@ -315,8 +322,10 @@ export function createAppAPI<HostElement>(
       },
 
       mixin(mixin: ComponentOptions) {
+        // __FEATURE_OPTIONS_API__ ： 编译时标记，是否支持选项API
         if (__FEATURE_OPTIONS_API__) {
           if (!context.mixins.includes(mixin)) {
+            // 如果该mixin还未注册过，则添加到mixins数组中
             context.mixins.push(mixin)
           } else if (__DEV__) {
             warn(
@@ -330,21 +339,27 @@ export function createAppAPI<HostElement>(
         return app
       },
 
+      // 如果同时传递一个组件名字符串及其定义，则注册一个全局组件；如果只传递一个名字，则会返回用该名字注册的组件 (如果存在的话)。
       component(name: string, component?: Component): any {
         if (__DEV__) {
+          // 开发环境下对组件名进行校验，如果是内置标签或者原生标签则需要发出警告
           validateComponentName(name, context.config)
         }
+        // 如果没有传递组件定义，则返回已注册的组件
         if (!component) {
           return context.components[name]
         }
+        // 如果已存在同名已注册的组件，则警告
         if (__DEV__ && context.components[name]) {
           warn(`Component "${name}" has already been registered in target app.`)
         }
+        // 注册到全局组件上下文
         context.components[name] = component
         return app
       },
 
       directive(name: string, directive?: Directive) {
+        // 和注册组件类似
         if (__DEV__) {
           validateDirectiveName(name)
         }
@@ -423,6 +438,7 @@ export function createAppAPI<HostElement>(
       },
 
       onUnmount(cleanupFn: () => void) {
+        // 注册卸载时的回调函数
         if (__DEV__ && typeof cleanupFn !== 'function') {
           warn(
             `Expected function as first argument to app.onUnmount(), ` +
@@ -433,6 +449,7 @@ export function createAppAPI<HostElement>(
       },
 
       unmount() {
+        // 如果已经挂载，则进行卸载
         if (isMounted) {
           callWithAsyncErrorHandling(
             pluginCleanupFns,

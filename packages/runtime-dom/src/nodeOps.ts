@@ -41,6 +41,7 @@ const doc = (typeof document !== 'undefined' ? document : null) as Document
 
 const templateContainer = doc && /*@__PURE__*/ doc.createElement('template')
 
+// 封装一组操作 DOM 节点的方法，符合 Vue 渲染器所需的接口规范。
 export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
   insert: (child, parent, anchor) => {
     parent.insertBefore(child, anchor || null)

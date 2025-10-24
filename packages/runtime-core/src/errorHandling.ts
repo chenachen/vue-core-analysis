@@ -80,12 +80,27 @@ export function callWithErrorHandling(
   }
 }
 
+/**
+ * 使用异步错误处理调用函数或函数数组。
+ *
+ * - 当传入单个函数时：同步调用该函数；若返回值是 Promise，则附加 `.catch` 来捕获并通过 `handleError` 处理异步错误。
+ * - 当传入函数数组时：对数组内每个函数递归调用 `callWithAsyncErrorHandling` 并返回结果数组。
+ * - 在开发模式下，如果传入的 `fn` 既不是函数也不是数组，会发出警告。
+ *
+ * @param {Function | Function[]} fn - 要执行的函数或函数数组。
+ * @param {ComponentInternalInstance | null} instance - 与调用关联的组件内部实例（可为 `null`）。
+ * @param {ErrorTypes} type - 错误类型，用于错误上报和上下文信息。
+ * @param {unknown[]} [args] - 可选参数，会按顺序转发给被调用函数。
+ * @returns {any | any[]} 返回单个函数的执行结果，或当 `fn` 为数组时返回结果数组。
+ */
 export function callWithAsyncErrorHandling(
   fn: Function | Function[],
   instance: ComponentInternalInstance | null,
   type: ErrorTypes,
   args?: unknown[],
 ): any {
+  // 单个函数的处理：使用 callWithErrorHandling 保证同步错误被捕获，
+  // 若返回 Promise 则附加 catch 以处理异步错误。
   if (isFunction(fn)) {
     const res = callWithErrorHandling(fn, instance, type, args)
     if (res && isPromise(res)) {
@@ -96,6 +111,7 @@ export function callWithAsyncErrorHandling(
     return res
   }
 
+  // 数组的处理：递归调用以支持数组中既有同步也有异步函数
   if (isArray(fn)) {
     const values = []
     for (let i = 0; i < fn.length; i++) {
@@ -103,6 +119,7 @@ export function callWithAsyncErrorHandling(
     }
     return values
   } else if (__DEV__) {
+    // 开发模式下提示类型错误，帮助定位调用处传参问题
     warn(
       `Invalid value type passed to callWithAsyncErrorHandling(): ${typeof fn}`,
     )
@@ -116,6 +133,7 @@ export function handleError(
   throwInDev = true,
 ): void {
   const contextVNode = instance ? instance.vnode : null
+  // 获取注册在app.config的错误处理函数
   const { errorHandler, throwUnhandledErrorInProduction } =
     (instance && instance.appContext.config) || EMPTY_OBJ
   if (instance) {
