@@ -1710,6 +1710,26 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 对比并更新两个未带键的子节点数组。
+   *
+   * 说明：
+   * - 该函数用于对比旧的子节点数组（c1）和新的子节点数组（c2），
+   *   并根据差异更新 DOM。
+   * - 如果旧数组长度大于新数组，移除多余的旧节点。
+   * - 如果新数组长度大于旧数组，挂载新增的节点。
+   * - 对于两数组的公共部分，逐一调用 `patch` 函数进行更新。
+   *
+   * @param {VNode[]} c1 - 旧的子节点数组。
+   * @param {VNodeArrayChildren} c2 - 新的子节点数组。
+   * @param {RendererElement} container - 容器元素。
+   * @param {RendererNode | null} anchor - 插入的参考节点。
+   * @param {ComponentInternalInstance | null} parentComponent - 父组件实例。
+   * @param {SuspenseBoundary | null} parentSuspense - 父级的 Suspense 边界。
+   * @param {ElementNamespace} namespace - 命名空间。
+   * @param {string[] | null} slotScopeIds - 插槽作用域 ID。
+   * @param {boolean} optimized - 是否启用优化模式。
+   */
   const patchUnkeyedChildren = (
     c1: VNode[],
     c2: VNodeArrayChildren,
@@ -1744,7 +1764,7 @@ function baseCreateRenderer(
       )
     }
     if (oldLength > newLength) {
-      // remove old
+      // 移除多余的旧节点
       unmountChildren(
         c1,
         parentComponent,
@@ -1754,7 +1774,7 @@ function baseCreateRenderer(
         commonLength,
       )
     } else {
-      // mount new
+      // 挂载新增的节点
       mountChildren(
         c2,
         container,
@@ -2014,6 +2034,20 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 移动虚拟节点（VNode）到指定的容器中。
+   *
+   * 说明：
+   * - 根据虚拟节点的类型和特性，选择合适的方式移动节点。
+   * - 支持组件、Suspense、Teleport、Fragment 和静态节点的移动。
+   * - 对于具有过渡效果的节点，会在移动时处理过渡逻辑。
+   *
+   * @param {VNode} vnode - 要移动的虚拟节点。
+   * @param {RendererElement} container - 目标容器。
+   * @param {RendererNode | null} anchor - 插入的参考节点。
+   * @param {MoveType} moveType - 移动类型（进入、离开或重新排序）。
+   * @param {SuspenseBoundary | null} [parentSuspense=null] - 父级的 Suspense 边界（如果存在）。
+   */
   const move: MoveFn = (
     vnode,
     container,
@@ -2022,21 +2056,26 @@ function baseCreateRenderer(
     parentSuspense = null,
   ) => {
     const { el, type, transition, children, shapeFlag } = vnode
+
+    // 如果是组件，递归移动组件的子树
     if (shapeFlag & ShapeFlags.COMPONENT) {
       move(vnode.component!.subTree, container, anchor, moveType)
       return
     }
 
+    // 如果是 Suspense，调用其 move 方法
     if (__FEATURE_SUSPENSE__ && shapeFlag & ShapeFlags.SUSPENSE) {
       vnode.suspense!.move(container, anchor, moveType)
       return
     }
 
+    // 如果是 Teleport，调用其 move 方法
     if (shapeFlag & ShapeFlags.TELEPORT) {
       ;(type as typeof TeleportImpl).move(vnode, container, anchor, internals)
       return
     }
 
+    // 如果是 Fragment，移动其所有子节点
     if (type === Fragment) {
       hostInsert(el!, container, anchor)
       for (let i = 0; i < (children as VNode[]).length; i++) {
@@ -2046,22 +2085,26 @@ function baseCreateRenderer(
       return
     }
 
+    // 如果是静态节点，调用 moveStaticNode 方法
     if (type === Static) {
       moveStaticNode(vnode, container, anchor)
       return
     }
 
-    // single nodes
+    // 处理单个节点的移动逻辑
     const needTransition =
       moveType !== MoveType.REORDER &&
       shapeFlag & ShapeFlags.ELEMENT &&
       transition
+
     if (needTransition) {
       if (moveType === MoveType.ENTER) {
+        // 处理进入过渡
         transition!.beforeEnter(el!)
         hostInsert(el!, container, anchor)
         queuePostRenderEffect(() => transition!.enter(el!), parentSuspense)
       } else {
+        // 处理离开过渡
         const { leave, delayLeave, afterLeave } = transition!
         const remove = () => {
           if (vnode.ctx!.isUnmounted) {
@@ -2083,10 +2126,29 @@ function baseCreateRenderer(
         }
       }
     } else {
+      // 如果没有过渡效果，直接移动节点
       hostInsert(el!, container, anchor)
     }
   }
 
+  /**
+   * 卸载虚拟节点（VNode）。
+   *
+   * 说明：
+   * - 该函数根据虚拟节点的类型和特性，选择合适的方式卸载节点及其关联的资源。
+   * - 如果节点是组件，会调用 `unmountComponent` 卸载组件实例。
+   * - 如果节点是 Suspense，会调用其 `unmount` 方法。
+   * - 如果节点是 Teleport，会调用其 `remove` 方法。
+   * - 如果节点具有动态子节点或是 Fragment，会递归卸载其子节点。
+   * - 支持调用指令的生命周期钩子（如 `beforeUnmount` 和 `unmounted`）。
+   * - 支持清理引用（ref）和缓存。
+   *
+   * @param {VNode} vnode - 要卸载的虚拟节点。
+   * @param {ComponentInternalInstance | null} parentComponent - 父组件实例，用于传递上下文信息。
+   * @param {SuspenseBoundary | null} parentSuspense - 父级的 Suspense 边界，用于处理异步组件的卸载。
+   * @param {boolean} [doRemove=false] - 是否在卸载时移除对应的 DOM 节点。
+   * @param {boolean} [optimized=false] - 是否启用优化模式，避免不必要的操作。
+   */
   const unmount: UnmountFn = (
     vnode,
     parentComponent,
@@ -2110,18 +2172,19 @@ function baseCreateRenderer(
       optimized = false
     }
 
-    // unset ref
+    // 清理引用（ref）
     if (ref != null) {
       pauseTracking()
       setRef(ref, null, parentSuspense, vnode, true)
       resetTracking()
     }
 
-    // #6593 should clean memo cache when unmount
+    // 清理缓存
     if (cacheIndex != null) {
       parentComponent!.renderCache[cacheIndex] = undefined
     }
 
+    // 如果是 KeepAlive 组件，调用其 deactivate 方法
     if (shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
       ;(parentComponent!.ctx as KeepAliveContext).deactivate(vnode)
       return
@@ -2139,18 +2202,22 @@ function baseCreateRenderer(
     }
 
     if (shapeFlag & ShapeFlags.COMPONENT) {
+      // 卸载组件
       unmountComponent(vnode.component!, parentSuspense, doRemove)
     } else {
       if (__FEATURE_SUSPENSE__ && shapeFlag & ShapeFlags.SUSPENSE) {
+        // 卸载 Suspense
         vnode.suspense!.unmount(parentSuspense, doRemove)
         return
       }
 
       if (shouldInvokeDirs) {
+        // 调用指令的 beforeUnmount 钩子
         invokeDirectiveHook(vnode, null, parentComponent, 'beforeUnmount')
       }
 
       if (shapeFlag & ShapeFlags.TELEPORT) {
+        // 卸载 Teleport
         ;(vnode.type as typeof TeleportImpl).remove(
           vnode,
           parentComponent,
@@ -2165,12 +2232,12 @@ function baseCreateRenderer(
         // parent block with hasOnce: true
         // so that it doesn't take the fast path during unmount - otherwise
         // components nested in v-once are never unmounted.
+        // 快速路径：仅卸载动态子节点
         !dynamicChildren.hasOnce &&
         // #1153: fast path should not be taken for non-stable (v-for) fragments
         (type !== Fragment ||
           (patchFlag > 0 && patchFlag & PatchFlags.STABLE_FRAGMENT))
       ) {
-        // fast path for block nodes: only need to unmount dynamic children.
         unmountChildren(
           dynamicChildren,
           parentComponent,
@@ -2184,10 +2251,12 @@ function baseCreateRenderer(
             (PatchFlags.KEYED_FRAGMENT | PatchFlags.UNKEYED_FRAGMENT)) ||
         (!optimized && shapeFlag & ShapeFlags.ARRAY_CHILDREN)
       ) {
+        // 卸载子节点
         unmountChildren(children as VNode[], parentComponent, parentSuspense)
       }
 
       if (doRemove) {
+        // 移除节点
         remove(vnode)
       }
     }
@@ -2197,6 +2266,7 @@ function baseCreateRenderer(
         (vnodeHook = props && props.onVnodeUnmounted)) ||
       shouldInvokeDirs
     ) {
+      // 调用指令的 unmounted 钩子
       queuePostRenderEffect(() => {
         vnodeHook && invokeVNodeHook(vnodeHook, parentComponent, vnode)
         shouldInvokeDirs &&
@@ -2205,8 +2275,22 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 移除虚拟节点（VNode）及其关联的 DOM 节点。
+   *
+   * 说明：
+   * - 该函数根据虚拟节点的类型和特性，选择合适的方式移除对应的 DOM 节点。
+   * - 对于 Fragment 类型的节点，会递归移除其子节点或调用 `removeFragment`。
+   * - 对于 Static 类型的节点，调用 `removeStaticNode` 进行移除。
+   * - 如果节点具有过渡效果（transition），会在过渡完成后移除节点。
+   * - 如果没有过渡效果，直接移除节点。
+   *
+   * @param {VNode} vnode - 要移除的虚拟节点。
+   */
   const remove: RemoveFn = vnode => {
     const { type, el, anchor, transition } = vnode
+
+    // 处理 Fragment 类型的节点
     if (type === Fragment) {
       if (
         __DEV__ &&
@@ -2215,6 +2299,7 @@ function baseCreateRenderer(
         transition &&
         !transition.persisted
       ) {
+        // 如果是开发模式且包含过渡效果，递归移除子节点
         ;(vnode.children as VNode[]).forEach(child => {
           if (child.type === Comment) {
             hostRemove(child.el!)
@@ -2223,16 +2308,19 @@ function baseCreateRenderer(
           }
         })
       } else {
+        // 调用 `removeFragment` 移除片段
         removeFragment(el!, anchor!)
       }
       return
     }
 
+    // 处理 Static 类型的节点
     if (type === Static) {
       removeStaticNode(vnode)
       return
     }
 
+    // 定义移除操作
     const performRemove = () => {
       hostRemove(el!)
       if (transition && !transition.persisted && transition.afterLeave) {
@@ -2240,6 +2328,7 @@ function baseCreateRenderer(
       }
     }
 
+    // 如果节点具有过渡效果，处理过渡逻辑
     if (
       vnode.shapeFlag & ShapeFlags.ELEMENT &&
       transition &&
@@ -2253,57 +2342,84 @@ function baseCreateRenderer(
         performLeave()
       }
     } else {
+      // 如果没有过渡效果，直接移除节点
       performRemove()
     }
   }
 
+  /**
+   * 移除一个片段（Fragment）中的所有 DOM 节点。
+   *
+   * 说明：
+   * - 该函数用于从宿主环境中移除一个片段（Fragment）及其所有子节点。
+   * - 片段中的子节点不会包含过渡效果（transition），因此可以直接移除。
+   *
+   * @param {RendererNode} cur - 片段的起始节点。
+   * @param {RendererNode} end - 片段的结束节点。
+   */
   const removeFragment = (cur: RendererNode, end: RendererNode) => {
-    // For fragments, directly remove all contained DOM nodes.
-    // (fragment child nodes cannot have transition)
+    // 遍历片段中的所有节点，逐个移除
     let next
     while (cur !== end) {
-      next = hostNextSibling(cur)!
-      hostRemove(cur)
-      cur = next
+      next = hostNextSibling(cur)! // 获取当前节点的下一个兄弟节点
+      hostRemove(cur) // 移除当前节点
+      cur = next // 更新当前节点为下一个节点
     }
-    hostRemove(end)
+    hostRemove(end) // 最后移除片段的结束节点
   }
 
+  /**
+   * 卸载组件实例。
+   *
+   * 说明：
+   * - 该函数负责清理组件实例的所有资源，包括生命周期钩子、作用域、子树等。
+   * - 如果组件在异步 setup 未完成时被卸载，会正确处理相关的异步依赖。
+   * - 支持兼容模式下的生命周期钩子（如 `beforeDestroy` 和 `destroyed`）。
+   * - 如果组件处于 Suspense 边界内，会更新 Suspense 的依赖计数。
+   *
+   * @param {ComponentInternalInstance} instance - 要卸载的组件实例。
+   * @param {SuspenseBoundary | null} parentSuspense - 父级的 Suspense 边界（如果存在）。
+   * @param {boolean} [doRemove] - 是否移除组件对应的 DOM 节点。
+   */
   const unmountComponent = (
     instance: ComponentInternalInstance,
     parentSuspense: SuspenseBoundary | null,
     doRemove?: boolean,
   ) => {
+    // 如果处于开发模式且组件启用了 HMR，则取消注册 HMR。
     if (__DEV__ && instance.type.__hmrId) {
       unregisterHMR(instance)
     }
 
     const {
-      bum,
-      scope,
-      job,
-      subTree,
-      um,
-      m,
-      a,
-      parent,
-      slots: { __: slotCacheKeys },
+      bum, // beforeUnmount 钩子
+      scope, // 组件的作用域
+      job, // 组件的渲染任务
+      subTree, // 组件的子树
+      um, // unmounted 钩子
+      m, // mounted 钩子
+      a, // activated 钩子
+      parent, // 父组件实例
+      slots: { __: slotCacheKeys }, // 插槽缓存键
     } = instance
+
+    // 使 mounted 和 activated 钩子失效
     invalidateMount(m)
     invalidateMount(a)
 
-    // beforeUnmount hook
+    // 调用 beforeUnmount 钩子
     if (bum) {
       invokeArrayFns(bum)
     }
 
-    // remove slots content from parent renderCache
+    // 从父组件的渲染缓存中移除插槽内容
     if (parent && isArray(slotCacheKeys)) {
       slotCacheKeys.forEach(v => {
         parent.renderCache[v] = undefined
       })
     }
 
+    // 如果启用了兼容模式，触发 `beforeDestroy` 钩子
     if (
       __COMPAT__ &&
       isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -2311,20 +2427,21 @@ function baseCreateRenderer(
       instance.emit('hook:beforeDestroy')
     }
 
-    // stop effects in component scope
+    // 停止组件作用域中的所有副作用
     scope.stop()
 
-    // job may be null if a component is unmounted before its async
-    // setup has resolved.
+    // 如果组件的渲染任务存在，卸载子树并标记任务为已销毁
     if (job) {
-      // so that scheduler will no longer invoke it
       job.flags! |= SchedulerJobFlags.DISPOSED
       unmount(subTree, instance, parentSuspense, doRemove)
     }
-    // unmounted hook
+
+    // 调用 unmounted 钩子
     if (um) {
       queuePostRenderEffect(um, parentSuspense)
     }
+
+    // 如果启用了兼容模式，触发 `destroyed` 钩子
     if (
       __COMPAT__ &&
       isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -2334,10 +2451,13 @@ function baseCreateRenderer(
         parentSuspense,
       )
     }
+
+    // 标记组件为已卸载
     queuePostRenderEffect(() => {
       instance.isUnmounted = true
     }, parentSuspense)
 
+    // 如果组件在 Suspense 边界内且异步依赖未完成，更新 Suspense 的依赖计数
     // A component with async dep inside a pending suspense is unmounted before
     // its async dep resolves. This should remove the dep from the suspense, and
     // cause the suspense to resolve immediately if that was the last dep.
@@ -2356,11 +2476,26 @@ function baseCreateRenderer(
       }
     }
 
+    // 如果处于开发模式或启用了生产环境开发工具，通知开发工具组件已移除
     if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
       devtoolsComponentRemoved(instance)
     }
   }
 
+  /**
+   * 卸载一组虚拟节点（VNode）的子节点。
+   *
+   * 说明：
+   * - 该函数会遍历指定的子节点数组，从指定的起始索引开始，逐个调用 `unmount` 函数卸载每个子节点。
+   * - 卸载过程中会根据传入的参数决定是否移除 DOM 节点以及是否优化卸载操作。
+   *
+   * @param {VNode[]} children - 要卸载的子节点数组。
+   * @param {ComponentInternalInstance | null} parentComponent - 父组件实例，用于传递上下文信息。
+   * @param {SuspenseBoundary | null} parentSuspense - 父级的 Suspense 边界，用于处理异步组件的卸载。
+   * @param {boolean} [doRemove=false] - 是否在卸载时移除对应的 DOM 节点。
+   * @param {boolean} [optimized=false] - 是否启用优化模式，避免不必要的操作。
+   * @param {number} [start=0] - 开始卸载的索引，默认为 0。
+   */
   const unmountChildren: UnmountChildrenFn = (
     children,
     parentComponent,
@@ -2374,17 +2509,40 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 获取给定虚拟节点（VNode）在宿主环境中的“下一个”宿主节点（HostNode）。
+   *
+   * 说明：
+   * - 该函数用于在 patch/unmount/patch 的过程中定位一个 vnode 对应 DOM（或宿主节点）之后的下一个节点，
+   *   以便作为插入或查找的锚点。
+   * - 对于组件类型的 vnode，会递归进入其子树（subTree）继续查找组件内部的宿主节点。
+   * - 对于 Suspense（若启用），使用其边界提供的 `next()` 回调获取下一个可用宿主节点。
+   * - 在一般情况下，使用平台提供的 `hostNextSibling` 从 vnode 的 `anchor`（片段结束）或 `el`（元素）获取下一个兄弟节点。
+   * - 由于 Teleport（传送）会在宿主树中留下特殊标记（TeleportEndKey），需要跳过这些被传送内容的结束标记，
+   *   否则会干扰 nextSibling 的搜索；因此若发现 `el[TeleportEndKey]`，继续跳到该结束标记之后的下一个兄弟节点。
+   *
+   * @param {VNode} vnode - 要查找其后继宿主节点的虚拟节点
+   * @returns {RendererNode | null} 返回下一个宿主节点或 `null`（如果不存在）
+   */
   const getNextHostNode: NextFn = vnode => {
+    // 如果 vnode 是组件，递归查找组件子树中的下一个宿主节点
     if (vnode.shapeFlag & ShapeFlags.COMPONENT) {
       return getNextHostNode(vnode.component!.subTree)
     }
+
+    // 如果启用了 Suspense 且 vnode 是 Suspense 类型，使用 Suspense 提供的 next() 方法
     if (__FEATURE_SUSPENSE__ && vnode.shapeFlag & ShapeFlags.SUSPENSE) {
       return vnode.suspense!.next()
     }
+
+    // 否则通过宿主平台的 nextSibling API 获取 vnode.anchor（片段结束）或 vnode.el 的下一个兄弟节点
     const el = hostNextSibling((vnode.anchor || vnode.el)!)
+
     // #9071, #9313
     // teleported content can mess up nextSibling searches during patch so
     // we need to skip them during nextSibling search
+    // Teleport 的传送内容在宿主树中会以特殊结束标记表示（TeleportEndKey）。
+    // 在查找下一个节点时需要跳过这些结束标记，否则会得到被传送内容的结束标记而不是实际的后继节点。
     const teleportEnd = el && el[TeleportEndKey]
     return teleportEnd ? hostNextSibling(teleportEnd) : el
   }
