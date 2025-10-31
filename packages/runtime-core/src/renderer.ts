@@ -364,13 +364,26 @@ function baseCreateRenderer(
     setText: hostSetText, // 设置文本节点内容
     setElementText: hostSetElementText, // 设置元素节点文本内容
     parentNode: hostParentNode, // 获取父节点
-    nextSibling: hostNextSibling, // 获取下一个兄弟节点
+    nextSibling: hostNextSibling, // 获取下一个节点
     setScopeId: hostSetScopeId = NOOP, // 设置作用域 ID
     insertStaticContent: hostInsertStaticContent, // 插入静态内容
   } = options
 
   // Note: functions inside this closure should use `const xxx = () => {}`
   // style in order to prevent being inlined by minifiers.
+  /**
+   * 对虚拟节点（VNode）进行打补丁操作的函数。
+   *
+   * @param {VNode | null} n1 - 旧的虚拟节点，如果为 `null` 表示这是一个挂载操作。
+   * @param {VNode} n2 - 新的虚拟节点。
+   * @param {RendererElement} container - 容器元素，用于挂载或更新节点。
+   * @param {RendererNode | null} [anchor=null] - 插入的参考节点。
+   * @param {ComponentInternalInstance | null} [parentComponent=null] - 父组件实例。
+   * @param {SuspenseBoundary | null} [parentSuspense=null] - 父级的 Suspense 边界。
+   * @param {ElementNamespace | undefined} [namespace=undefined] - 命名空间，用于 SVG 或 MathML。
+   * @param {string[] | null} [slotScopeIds=null] - 插槽作用域 ID。
+   * @param {boolean} [optimized=false] - 是否启用优化模式。
+   */
   const patch: PatchFn = (
     n1,
     n2,
@@ -382,32 +395,39 @@ function baseCreateRenderer(
     slotScopeIds = null,
     optimized = __DEV__ && isHmrUpdating ? false : !!n2.dynamicChildren,
   ) => {
-    // 同一个节点不需要更新
+    // 如果新旧节点相同，则无需更新
     if (n1 === n2) {
       return
     }
 
-    // patching & not same type, unmount old tree
+    // 如果新旧节点类型不同，卸载旧节点
     if (n1 && !isSameVNodeType(n1, n2)) {
+      // 获取下一个节点作为锚点
       anchor = getNextHostNode(n1)
+      // 卸载旧节点
       unmount(n1, parentComponent, parentSuspense, true)
       n1 = null
     }
 
+    // 如果新节点的 patchFlag 为 BAIL，则禁用优化
     if (n2.patchFlag === PatchFlags.BAIL) {
       optimized = false
       n2.dynamicChildren = null
     }
 
     const { type, ref, shapeFlag } = n2
+    // 根据节点类型，选择不同的处理函数执行
     switch (type) {
       case Text:
+        // 处理文本节点
         processText(n1, n2, container, anchor)
         break
       case Comment:
+        // 处理注释节点
         processCommentNode(n1, n2, container, anchor)
         break
       case Static:
+        // 处理静态节点
         if (n1 == null) {
           mountStaticNode(n2, container, anchor, namespace)
         } else if (__DEV__) {
@@ -415,6 +435,7 @@ function baseCreateRenderer(
         }
         break
       case Fragment:
+        // 处理片段节点
         processFragment(
           n1,
           n2,
@@ -429,6 +450,7 @@ function baseCreateRenderer(
         break
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {
+          // 处理普通元素节点
           processElement(
             n1,
             n2,
@@ -441,6 +463,7 @@ function baseCreateRenderer(
             optimized,
           )
         } else if (shapeFlag & ShapeFlags.COMPONENT) {
+          // 处理组件节点
           processComponent(
             n1,
             n2,
@@ -453,6 +476,7 @@ function baseCreateRenderer(
             optimized,
           )
         } else if (shapeFlag & ShapeFlags.TELEPORT) {
+          // 处理 Teleport 节点
           ;(type as typeof TeleportImpl).process(
             n1 as TeleportVNode,
             n2 as TeleportVNode,
@@ -466,6 +490,7 @@ function baseCreateRenderer(
             internals,
           )
         } else if (__FEATURE_SUSPENSE__ && shapeFlag & ShapeFlags.SUSPENSE) {
+          // 处理 Suspense 节点
           ;(type as typeof SuspenseImpl).process(
             n1,
             n2,
@@ -479,11 +504,12 @@ function baseCreateRenderer(
             internals,
           )
         } else if (__DEV__) {
+          // 警告：无效的 VNode 类型
           warn('Invalid VNode type:', type, `(${typeof type})`)
         }
     }
 
-    // set ref
+    // 设置 ref
     if (ref != null && parentComponent) {
       setRef(ref, n1 && n1.ref, parentSuspense, n2 || n1, !n2)
     } else if (ref == null && n1 && n1.ref != null) {
@@ -493,12 +519,14 @@ function baseCreateRenderer(
 
   const processText: ProcessTextOrCommentFn = (n1, n2, container, anchor) => {
     if (n1 == null) {
+      // 如果旧节点为空，创建并插入新的文本节点
       hostInsert(
         (n2.el = hostCreateText(n2.children as string)),
         container,
         anchor,
       )
     } else {
+      // 如果旧节点存在，更新文本内容
       const el = (n2.el = n1.el!)
       if (n2.children !== n1.children) {
         hostSetText(el, n2.children as string)
@@ -512,6 +540,7 @@ function baseCreateRenderer(
     container,
     anchor,
   ) => {
+    // 如果旧节点为空，创建并插入新的注释节点
     if (n1 == null) {
       hostInsert(
         (n2.el = hostCreateComment((n2.children as string) || '')),
@@ -520,6 +549,7 @@ function baseCreateRenderer(
       )
     } else {
       // there's no support for dynamic comments
+      // 不支持动态注释
       n2.el = n1.el
     }
   }
@@ -532,6 +562,7 @@ function baseCreateRenderer(
   ) => {
     // static nodes are only present when used with compiler-dom/runtime-dom
     // which guarantees presence of hostInsertStaticContent.
+    // 挂载静态节点内容
     ;[n2.el, n2.anchor] = hostInsertStaticContent!(
       n2.children as string,
       container,
@@ -553,9 +584,12 @@ function baseCreateRenderer(
   ) => {
     // static nodes are only patched during dev for HMR
     if (n2.children !== n1.children) {
+      // 获取下一个节点作为锚点
       const anchor = hostNextSibling(n1.anchor!)
       // remove existing
+      // 移除旧节点
       removeStaticNode(n1)
+      // 挂载新节点
       // insert new
       ;[n2.el, n2.anchor] = hostInsertStaticContent!(
         n2.children as string,
@@ -1023,6 +1057,19 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 处理片段节点的函数。
+   *
+   * @param {VNode | null} n1 - 旧的虚拟节点，如果为 `null` 表示这是一个挂载操作。
+   * @param {VNode} n2 - 新的虚拟节点。
+   * @param {RendererElement} container - 容器元素，用于挂载或更新节点。
+   * @param {RendererNode | null} anchor - 插入的参考节点。
+   * @param {ComponentInternalInstance | null} parentComponent - 父组件实例。
+   * @param {SuspenseBoundary | null} parentSuspense - 父级的 Suspense 边界。
+   * @param {ElementNamespace} namespace - 命名空间，用于 SVG 或 MathML。
+   * @param {string[] | null} slotScopeIds - 插槽作用域 ID。
+   * @param {boolean} optimized - 是否启用优化模式。
+   */
   const processFragment = (
     n1: VNode | null,
     n2: VNode,
@@ -1034,23 +1081,23 @@ function baseCreateRenderer(
     slotScopeIds: string[] | null,
     optimized: boolean,
   ) => {
+    // 创建或复用片段的起始和结束锚点
     const fragmentStartAnchor = (n2.el = n1 ? n1.el : hostCreateText(''))!
     const fragmentEndAnchor = (n2.anchor = n1 ? n1.anchor : hostCreateText(''))!
 
     let { patchFlag, dynamicChildren, slotScopeIds: fragmentSlotScopeIds } = n2
 
+    // 开发模式下处理 HMR 更新或开发根片段
     if (
       __DEV__ &&
-      // #5523 dev root fragment may inherit directives
       (isHmrUpdating || patchFlag & PatchFlags.DEV_ROOT_FRAGMENT)
     ) {
-      // HMR updated / Dev root fragment (w/ comments), force full diff
       patchFlag = 0
       optimized = false
       dynamicChildren = null
     }
 
-    // check if this is a slot fragment with :slotted scope ids
+    // 检查是否为带有插槽作用域 ID 的片段
     if (fragmentSlotScopeIds) {
       slotScopeIds = slotScopeIds
         ? slotScopeIds.concat(fragmentSlotScopeIds)
@@ -1058,16 +1105,10 @@ function baseCreateRenderer(
     }
 
     if (n1 == null) {
+      // 挂载新片段
       hostInsert(fragmentStartAnchor, container, anchor)
       hostInsert(fragmentEndAnchor, container, anchor)
-      // a fragment can only have array children
-      // since they are either generated by the compiler, or implicitly created
-      // from arrays.
       mountChildren(
-        // #10007
-        // such fragment like `<></>` will be compiled into
-        // a fragment which doesn't have a children.
-        // In this case fallback to an empty array
         (n2.children || []) as VNodeArrayChildren,
         container,
         fragmentEndAnchor,
@@ -1080,14 +1121,12 @@ function baseCreateRenderer(
     } else {
       if (
         patchFlag > 0 &&
+        // 如果是稳定片段
         patchFlag & PatchFlags.STABLE_FRAGMENT &&
         dynamicChildren &&
-        // #2715 the previous fragment could've been a BAILed one as a result
-        // of renderSlot() with no valid children
         n1.dynamicChildren
       ) {
-        // a stable fragment (template root or <template v-for>) doesn't need to
-        // patch children order, but it may contain dynamicChildren.
+        // 稳定片段的优化路径
         patchBlockChildren(
           n1.dynamicChildren,
           dynamicChildren,
@@ -1098,23 +1137,15 @@ function baseCreateRenderer(
           slotScopeIds,
         )
         if (__DEV__) {
-          // necessary for HMR
           traverseStaticChildren(n1, n2)
         } else if (
-          // #2080 if the stable fragment has a key, it's a <template v-for> that may
-          //  get moved around. Make sure all root level vnodes inherit el.
-          // #2134 or if it's a component root, it may also get moved around
-          // as the component is being moved.
           n2.key != null ||
           (parentComponent && n2 === parentComponent.subTree)
         ) {
           traverseStaticChildren(n1, n2, true /* shallow */)
         }
       } else {
-        // keyed / unkeyed, or manual fragments.
-        // for keyed & unkeyed, since they are compiler generated from v-for,
-        // each child is guaranteed to be a block so the fragment will never
-        // have dynamicChildren.
+        // 全量对比路径
         patchChildren(
           n1,
           n2,
@@ -2361,7 +2392,7 @@ function baseCreateRenderer(
     // 遍历片段中的所有节点，逐个移除
     let next
     while (cur !== end) {
-      next = hostNextSibling(cur)! // 获取当前节点的下一个兄弟节点
+      next = hostNextSibling(cur)! // 获取当前节点的下一个节点
       hostRemove(cur) // 移除当前节点
       cur = next // 更新当前节点为下一个节点
     }
@@ -2517,9 +2548,9 @@ function baseCreateRenderer(
    *   以便作为插入或查找的锚点。
    * - 对于组件类型的 vnode，会递归进入其子树（subTree）继续查找组件内部的宿主节点。
    * - 对于 Suspense（若启用），使用其边界提供的 `next()` 回调获取下一个可用宿主节点。
-   * - 在一般情况下，使用平台提供的 `hostNextSibling` 从 vnode 的 `anchor`（片段结束）或 `el`（元素）获取下一个兄弟节点。
+   * - 在一般情况下，使用平台提供的 `hostNextSibling` 从 vnode 的 `anchor`（片段结束）或 `el`（元素）获取下一个节点。
    * - 由于 Teleport（传送）会在宿主树中留下特殊标记（TeleportEndKey），需要跳过这些被传送内容的结束标记，
-   *   否则会干扰 nextSibling 的搜索；因此若发现 `el[TeleportEndKey]`，继续跳到该结束标记之后的下一个兄弟节点。
+   *   否则会干扰 nextSibling 的搜索；因此若发现 `el[TeleportEndKey]`，继续跳到该结束标记之后的下一个节点。
    *
    * @param {VNode} vnode - 要查找其后继宿主节点的虚拟节点
    * @returns {RendererNode | null} 返回下一个宿主节点或 `null`（如果不存在）
@@ -2535,7 +2566,7 @@ function baseCreateRenderer(
       return vnode.suspense!.next()
     }
 
-    // 否则通过宿主平台的 nextSibling API 获取 vnode.anchor（片段结束）或 vnode.el 的下一个兄弟节点
+    // 否则通过宿主平台的 nextSibling API 获取 vnode.anchor（片段结束）或 vnode.el 的下一个节点
     const el = hostNextSibling((vnode.anchor || vnode.el)!)
 
     // #9071, #9313

@@ -388,15 +388,28 @@ export function isVNode(value: any): value is VNode {
   return value ? value.__v_isVNode === true : false
 }
 
+/**
+ * 检查两个虚拟节点（VNode）是否为相同类型的函数。
+ *
+ * @param {VNode} n1 - 第一个虚拟节点。
+ * @param {VNode} n2 - 第二个虚拟节点。
+ * @returns {boolean} 如果两个虚拟节点类型和键相同，则返回 `true`，否则返回 `false`。
+ *
+ * @remarks
+ * - 在开发模式下（`__DEV__` 为真），如果 `n2` 是组件类型且 `n1` 存在组件实例，
+ *   会检查热更新（HMR）是否导致组件需要重新加载。
+ * - 如果组件已被热更新，清除 `keep-alive` 标志并返回 `false`。
+ * - 否则，比较两个虚拟节点的 `type` 和 `key` 是否相同。
+ */
 export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
   if (__DEV__ && n2.shapeFlag & ShapeFlags.COMPONENT && n1.component) {
     const dirtyInstances = hmrDirtyComponents.get(n2.type as ConcreteComponent)
     if (dirtyInstances && dirtyInstances.has(n1.component)) {
-      // #7042, ensure the vnode being unmounted during HMR
-      // bitwise operations to remove keep alive flags
+      // #7042, 确保在 HMR 期间卸载虚拟节点
+      // 使用位操作移除 keep-alive 标志
       n1.shapeFlag &= ~ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE
       n2.shapeFlag &= ~ShapeFlags.COMPONENT_KEPT_ALIVE
-      // HMR only: if the component has been hot-updated, force a reload.
+      // HMR only: 如果组件已被热更新，强制重新加载
       return false
     }
   }
