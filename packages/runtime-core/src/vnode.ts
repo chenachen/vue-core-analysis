@@ -72,16 +72,16 @@ export const Static: unique symbol = Symbol.for('v-stc')
 
 export type VNodeTypes =
   | string
-  | VNode
-  | Component
-  | typeof Text
-  | typeof Static
-  | typeof Comment
-  | typeof Fragment
-  | typeof Teleport
-  | typeof TeleportImpl
-  | typeof Suspense
-  | typeof SuspenseImpl
+  | VNode // 也是虚拟节点
+  | Component // 组件
+  | typeof Text // 文本节点
+  | typeof Static // 静态节点
+  | typeof Comment // 注释节点
+  | typeof Fragment // 片段节点
+  | typeof Teleport // 传送节点
+  | typeof TeleportImpl // 传送节点实现
+  | typeof Suspense // Suspense节点
+  | typeof SuspenseImpl // Suspense节点实现
 
 export type VNodeRef =
   | string
@@ -172,15 +172,15 @@ export interface VNode<
    */
   [ReactiveFlags.SKIP]: true
 
-  type: VNodeTypes
-  props: (VNodeProps & ExtraProps) | null
-  key: PropertyKey | null
-  ref: VNodeNormalizedRef | null
+  type: VNodeTypes // 节点类型
+  props: (VNodeProps & ExtraProps) | null // 节点属性
+  key: PropertyKey | null // 节点的 key 值
+  ref: VNodeNormalizedRef | null // 节点的 ref 引用
   /**
    * SFC only. This is assigned on vnode creation using currentScopeId
    * which is set alongside currentRenderingInstance.
    */
-  scopeId: string | null
+  scopeId: string | null // 节点的作用域 ID，
   /**
    * SFC only. This is assigned to:
    * - Slot fragment vnodes with :slotted SFC styles.

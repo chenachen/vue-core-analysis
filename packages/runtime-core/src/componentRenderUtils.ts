@@ -302,6 +302,7 @@ const getChildRoot = (vnode: VNode): [VNode, SetRootFn] => {
   return [normalizeVNode(childRoot), setRoot]
 }
 
+//
 export function filterSingleRoot(
   children: VNodeArrayChildren,
   recurse = true,
@@ -312,6 +313,7 @@ export function filterSingleRoot(
     if (isVNode(child)) {
       // ignore user comment
       if (child.type !== Comment || child.children === 'v-if') {
+        // 如果存在多个非注释子节点，直接返回undefined
         if (singleRoot) {
           // has more than 1 non-comment child, return now
           return
@@ -319,6 +321,7 @@ export function filterSingleRoot(
           singleRoot = child
           if (
             __DEV__ &&
+            // 允许递归查找
             recurse &&
             singleRoot.patchFlag > 0 &&
             singleRoot.patchFlag & PatchFlags.DEV_ROOT_FRAGMENT
@@ -361,6 +364,25 @@ const isElementRoot = (vnode: VNode) => {
   )
 }
 
+/**
+ * 判断组件是否需要更新。
+ *
+ * 该函数通过以下条件判断组件是否需要更新：
+ * 1. **热更新 (HMR)**：如果父组件的渲染函数被热更新，强制子组件更新。
+ * 2. **运行时指令或过渡**：如果新虚拟节点上存在运行时指令或过渡，强制更新。
+ * 3. **优化路径**（当 `optimized` 为 true 且存在有效的 `patchFlag`）：
+ *    - `DYNAMIC_SLOTS`：动态插槽内容可能已更改，需要更新。
+ *    - `FULL_PROPS`：需要对比所有 props，调用 `hasPropsChanged` 判断。
+ *    - `PROPS`：仅检查动态 props，忽略声明为 emits 的事件监听器。
+ * 4. **非优化路径**（手写渲染函数）：
+ *    - 如果存在子节点且新子节点不稳定，则强制更新。
+ *    - 对 props 进行浅比较或调用 `hasPropsChanged` 判断。
+ *
+ * @param {VNode} prevVNode - 之前的虚拟节点（旧 vnode）。
+ * @param {VNode} nextVNode - 之后的虚拟节点（新 vnode）。
+ * @param {boolean} [optimized] - 是否走优化路径（例如模板编译时的 patch flags）。
+ * @returns {boolean} 如果组件需要更新则返回 `true`，否则返回 `false`。
+ */
 export function shouldUpdateComponent(
   prevVNode: VNode,
   nextVNode: VNode,
@@ -373,11 +395,13 @@ export function shouldUpdateComponent(
   // Parent component's render function was hot-updated. Since this may have
   // caused the child component's slots content to have changed, we need to
   // force the child to update as well.
+  // 父组件的渲染函数被热更新，强制子组件更新。
   if (__DEV__ && (prevChildren || nextChildren) && isHmrUpdating) {
     return true
   }
 
   // force child update for runtime directive or transition on component vnode.
+  // 如果新虚拟节点上存在运行时指令或过渡，强制更新。
   if (nextVNode.dirs || nextVNode.transition) {
     return true
   }
@@ -386,12 +410,14 @@ export function shouldUpdateComponent(
     if (patchFlag & PatchFlags.DYNAMIC_SLOTS) {
       // slot content that references values that might have changed,
       // e.g. in a v-for
+      // 动态插槽内容可能已更改，需要更新。
       return true
     }
     if (patchFlag & PatchFlags.FULL_PROPS) {
       if (!prevProps) {
         return !!nextProps
       }
+      // 对比所有 props。
       // presence of this flag indicates props are always non-null
       return hasPropsChanged(prevProps, nextProps!, emits)
     } else if (patchFlag & PatchFlags.PROPS) {

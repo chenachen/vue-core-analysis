@@ -603,6 +603,7 @@ function baseCreateRenderer(
     }
   }
 
+  // 移动静态节点
   const moveStaticNode = (
     { el, anchor }: VNode,
     container: RendererElement,
@@ -610,20 +611,25 @@ function baseCreateRenderer(
   ) => {
     let next
     while (el && el !== anchor) {
+      // 将传入的vnode对应的el到anchor之间的节点移动到新的位置
       next = hostNextSibling(el)
       hostInsert(el, container, nextSibling)
       el = next
     }
+    // 最后插入anchor节点本身
     hostInsert(anchor!, container, nextSibling)
   }
 
+  // 移除静态节点
   const removeStaticNode = ({ el, anchor }: VNode) => {
     let next
     while (el && el !== anchor) {
+      // 将传入的vnode对应的el到anchor之间的节点移除
       next = hostNextSibling(el)
       hostRemove(el)
       el = next
     }
+    // 最后移除anchor节点本身
     hostRemove(anchor!)
   }
 
@@ -644,6 +650,7 @@ function baseCreateRenderer(
       namespace = 'mathml'
     }
 
+    // 如果旧节点为空，则直接挂载新节点
     if (n1 == null) {
       mountElement(
         n2,
@@ -656,6 +663,7 @@ function baseCreateRenderer(
         optimized,
       )
     } else {
+      // 否则，更新节点
       patchElement(
         n1,
         n2,
@@ -682,6 +690,7 @@ function baseCreateRenderer(
     let vnodeHook: VNodeHook | undefined | null
     const { props, shapeFlag, transition, dirs } = vnode
 
+    // 创建实际的页面元素
     el = vnode.el = hostCreateElement(
       vnode.type as string,
       namespace,
@@ -692,8 +701,10 @@ function baseCreateRenderer(
     // mount children first, since some props may rely on child content
     // being already rendered, e.g. `<select value>`
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+      // 如果子节点是文本，设置元素的文本内容
       hostSetElementText(el, vnode.children as string)
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      // 挂载子节点
       mountChildren(
         vnode.children as VNodeArrayChildren,
         el,
@@ -706,15 +717,19 @@ function baseCreateRenderer(
       )
     }
 
+    // 如果存在指令，调用 指令的 created 钩子
     if (dirs) {
       invokeDirectiveHook(vnode, null, parentComponent, 'created')
     }
+    // 设置scope id
     // scopeId
     setScopeId(el, vnode, vnode.scopeId, slotScopeIds, parentComponent)
     // props
     if (props) {
       for (const key in props) {
+        // 跳过 value 属性和保留属性
         if (key !== 'value' && !isReservedProp(key)) {
+          // 更新属性
           hostPatchProp(el, key, null, props[key], namespace, parentComponent)
         }
       }
@@ -727,9 +742,17 @@ function baseCreateRenderer(
        * here to reduce the complexity. (Special casing it also should not
        * affect non-DOM renderers)
        */
+      /**
+       * 处理 value 属性的特殊情况：
+       * - 它可能对顺序敏感（例如，应在 min/max 之后设置，#2325，#4024）
+       * - 它需要被强制设置（#1471）
+       * #2353 提议添加另一个渲染器选项来配置此项，但受影响的属性非常有限，
+       * 因此值得在此处进行特殊处理以减少复杂性。（对非 DOM 渲染器进行特殊处理也不应产生影响）
+       */
       if ('value' in props) {
         hostPatchProp(el, 'value', null, props.value, namespace)
       }
+      // 调用 vnode 的 onVnodeBeforeMount 钩子
       if ((vnodeHook = props.onVnodeBeforeMount)) {
         invokeVNodeHook(vnodeHook, parentComponent, vnode)
       }
@@ -740,21 +763,25 @@ function baseCreateRenderer(
       def(el, '__vueParentComponent', parentComponent, true)
     }
 
+    // 调用 指令的 beforeMount 钩子
     if (dirs) {
       invokeDirectiveHook(vnode, null, parentComponent, 'beforeMount')
     }
     // #1583 For inside suspense + suspense not resolved case, enter hook should call when suspense resolved
     // #1689 For inside suspense + suspense resolved case, just call it
+    // 调用 Transition 的 beforeEnter 钩子
     const needCallTransitionHooks = needTransition(parentSuspense, transition)
     if (needCallTransitionHooks) {
       transition!.beforeEnter(el)
     }
+    // 插入元素到容器中
     hostInsert(el, container, anchor)
     if (
       (vnodeHook = props && props.onVnodeMounted) ||
       needCallTransitionHooks ||
       dirs
     ) {
+      // 使用队列在渲染后调用钩子函数
       queuePostRenderEffect(() => {
         vnodeHook && invokeVNodeHook(vnodeHook, parentComponent, vnode)
         needCallTransitionHooks && transition!.enter(el)
@@ -770,6 +797,7 @@ function baseCreateRenderer(
     slotScopeIds: string[] | null,
     parentComponent: ComponentInternalInstance | null,
   ) => {
+    // 设置作用域ID
     if (scopeId) {
       hostSetScopeId(el, scopeId)
     }
@@ -779,16 +807,19 @@ function baseCreateRenderer(
       }
     }
     if (parentComponent) {
+      // 获取父组件的子树
       let subTree = parentComponent.subTree
       if (
         __DEV__ &&
         subTree.patchFlag > 0 &&
         subTree.patchFlag & PatchFlags.DEV_ROOT_FRAGMENT
       ) {
+        // 尝试获取单一根节点
         subTree =
           filterSingleRoot(subTree.children as VNodeArrayChildren) || subTree
       }
       if (
+        // 如果当前节点是父组件的子树根节点，将父节点的scopeId也设置上
         vnode === subTree ||
         (isSuspense(subTree.type) &&
           (subTree.ssContent === vnode || subTree.ssFallback === vnode))
@@ -817,6 +848,7 @@ function baseCreateRenderer(
     start = 0,
   ) => {
     for (let i = start; i < children.length; i++) {
+      // 挂载每个子节点
       const child = (children[i] = optimized
         ? cloneIfMounted(children[i] as VNode)
         : normalizeVNode(children[i]))
@@ -856,13 +888,17 @@ function baseCreateRenderer(
     let vnodeHook: VNodeHook | undefined | null
 
     // disable recurse in beforeUpdate hooks
+    // 在 beforeUpdate 钩子中禁用递归
     parentComponent && toggleRecurse(parentComponent, false)
+    // 调用 vnode 的 onVnodeBeforeUpdate 钩子
     if ((vnodeHook = newProps.onVnodeBeforeUpdate)) {
       invokeVNodeHook(vnodeHook, parentComponent, n2, n1)
     }
+    // 调用 指令的 beforeUpdate 钩子
     if (dirs) {
       invokeDirectiveHook(n2, n1, parentComponent, 'beforeUpdate')
     }
+    // 恢复递归
     parentComponent && toggleRecurse(parentComponent, true)
 
     if (__DEV__ && isHmrUpdating) {
@@ -878,9 +914,11 @@ function baseCreateRenderer(
       (oldProps.innerHTML && newProps.innerHTML == null) ||
       (oldProps.textContent && newProps.textContent == null)
     ) {
+      // 如果旧属性中存在 innerHTML 或 textContent，但新属性中不存在，则清空元素内容
       hostSetElementText(el, '')
     }
 
+    // 如果存在动态子节点，则更新这些子节点
     if (dynamicChildren) {
       patchBlockChildren(
         n1.dynamicChildren!,
@@ -896,6 +934,7 @@ function baseCreateRenderer(
         traverseStaticChildren(n1, n2)
       }
     } else if (!optimized) {
+      // 如果没有动态子节点且优化标记位false，则进行全量diff
       // full diff
       patchChildren(
         n1,
@@ -915,13 +954,18 @@ function baseCreateRenderer(
       // generated by the compiler and can take the fast path.
       // in this path old node and new node are guaranteed to have the same shape
       // (i.e. at the exact same position in the source template)
+      // patchFlag 的存在意味着此元素的渲染代码是由编译器生成的，可以采用快速路径。
+      // 在此路径中，旧节点和新节点保证具有相同的形状（即在源模板中完全相同的位置）
       if (patchFlag & PatchFlags.FULL_PROPS) {
+        // 全量diff props
         // element props contain dynamic keys, full diff needed
         patchProps(el, oldProps, newProps, parentComponent, namespace)
       } else {
         // class
         // this flag is matched when the element has dynamic class bindings.
+        // 意味着元素具有动态类绑定
         if (patchFlag & PatchFlags.CLASS) {
+          // 新旧 class 不同，更新 class
           if (oldProps.class !== newProps.class) {
             hostPatchProp(el, 'class', null, newProps.class, namespace)
           }
@@ -929,7 +973,9 @@ function baseCreateRenderer(
 
         // style
         // this flag is matched when the element has dynamic style bindings
+        // 意味着元素具有动态样式绑定
         if (patchFlag & PatchFlags.STYLE) {
+          // 新旧 style 不同，更新 style
           hostPatchProp(el, 'style', oldProps.style, newProps.style, namespace)
         }
 
@@ -939,14 +985,19 @@ function baseCreateRenderer(
         // faster iteration.
         // Note dynamic keys like :[foo]="bar" will cause this optimization to
         // bail out and go through a full diff because we need to unset the old key
+        // 当元素具有类和样式以外的动态 prop/attr 绑定时，此标志将匹配。
+        // 动态 prop/attr 的键会被保存，以便更快地遍历。
+        // 请注意，像 ：[foo]=“bar” 这样的动态键将导致此优化退出并进行全量diff，因为我们需要取消设置旧键
         if (patchFlag & PatchFlags.PROPS) {
           // if the flag is present then dynamicProps must be non-null
           const propsToUpdate = n2.dynamicProps!
           for (let i = 0; i < propsToUpdate.length; i++) {
+            // 获取动态属性的键与新旧值
             const key = propsToUpdate[i]
             const prev = oldProps[key]
             const next = newProps[key]
             // #1471 force patch value
+            // value强制更新
             if (next !== prev || key === 'value') {
               hostPatchProp(el, key, prev, next, namespace, parentComponent)
             }
@@ -956,16 +1007,19 @@ function baseCreateRenderer(
 
       // text
       // This flag is matched when the element has only dynamic text children.
+      // 意味着该元素居有动态文本子节点
       if (patchFlag & PatchFlags.TEXT) {
         if (n1.children !== n2.children) {
           hostSetElementText(el, n2.children as string)
         }
       }
     } else if (!optimized && dynamicChildren == null) {
+      // 全量diff props
       // unoptimized, full diff
       patchProps(el, oldProps, newProps, parentComponent, namespace)
     }
 
+    // 调用 updated 钩子
     if ((vnodeHook = newProps.onVnodeUpdated) || dirs) {
       queuePostRenderEffect(() => {
         vnodeHook && invokeVNodeHook(vnodeHook, parentComponent, n2, n1)
@@ -985,9 +1039,16 @@ function baseCreateRenderer(
     slotScopeIds,
   ) => {
     for (let i = 0; i < newChildren.length; i++) {
+      // 获取对应的旧节点和新节点
       const oldVNode = oldChildren[i]
       const newVNode = newChildren[i]
       // Determine the container (parent element) for the patch.
+      // 根据不同情况确定补丁的容器（父元素）。
+      // 如果旧节点存在且满足以下任一条件，则使用旧节点的父节点作为容器：
+      // - 旧节点是一个片段（Fragment）。
+      // - 旧节点和新节点类型不同。
+      // - 旧节点是组件、传送（Teleport）或 Suspense。
+      // 否则，使用提供的回退容器。
       const container =
         // oldVNode may be an errored async setup() component inside Suspense
         // which will not have a mounted element
@@ -1005,6 +1066,7 @@ function baseCreateRenderer(
           : // In other cases, the parent container is not actually used so we
             // just pass the block element here to avoid a DOM parentNode call.
             fallbackContainer
+      // 执行新旧子节点的补丁
       patch(
         oldVNode,
         newVNode,
@@ -1026,8 +1088,10 @@ function baseCreateRenderer(
     parentComponent: ComponentInternalInstance | null,
     namespace: ElementNamespace,
   ) => {
+    // 新旧props不是同一个对象
     if (oldProps !== newProps) {
       if (oldProps !== EMPTY_OBJ) {
+        // 遍历旧props，移除在新props中不存在的属性
         for (const key in oldProps) {
           if (!isReservedProp(key) && !(key in newProps)) {
             hostPatchProp(
@@ -1041,16 +1105,19 @@ function baseCreateRenderer(
           }
         }
       }
+      // 遍历新props，更新有变化的属性
       for (const key in newProps) {
         // empty string is not valid prop
         if (isReservedProp(key)) continue
         const next = newProps[key]
         const prev = oldProps[key]
         // defer patching value
+        // 跳过 value 属性的更新
         if (next !== prev && key !== 'value') {
           hostPatchProp(el, key, prev, next, namespace, parentComponent)
         }
       }
+      // 最后处理 value 属性的更新
       if ('value' in newProps) {
         hostPatchProp(el, 'value', oldProps.value, newProps.value, namespace)
       }
@@ -1174,6 +1241,7 @@ function baseCreateRenderer(
   ) => {
     n2.slotScopeIds = slotScopeIds
     if (n1 == null) {
+      // 如果是 KeepAlive 组件，则激活它
       if (n2.shapeFlag & ShapeFlags.COMPONENT_KEPT_ALIVE) {
         ;(parentComponent!.ctx as KeepAliveContext).activate(
           n2,
@@ -1183,6 +1251,7 @@ function baseCreateRenderer(
           optimized,
         )
       } else {
+        // 否则，挂载组件
         mountComponent(
           n2,
           container,
@@ -1194,6 +1263,7 @@ function baseCreateRenderer(
         )
       }
     } else {
+      // 更新组件
       updateComponent(n1, n2, optimized)
     }
   }
@@ -1209,8 +1279,10 @@ function baseCreateRenderer(
   ) => {
     // 2.x compat may pre-create the component instance before actually
     // mounting
+    // 2.x 兼容性可能会在实际挂载之前预先创建组件实例
     const compatMountInstance =
       __COMPAT__ && initialVNode.isCompatRoot && initialVNode.component
+    // 创建组件实例
     const instance: ComponentInternalInstance =
       compatMountInstance ||
       (initialVNode.component = createComponentInstance(
@@ -1229,6 +1301,7 @@ function baseCreateRenderer(
     }
 
     // inject renderer internals for keepAlive
+    // 为 KeepAlive 注入渲染器内部方法
     if (isKeepAlive(initialVNode)) {
       ;(instance.ctx as KeepAliveContext).renderer = internals
     }
@@ -1238,6 +1311,7 @@ function baseCreateRenderer(
       if (__DEV__) {
         startMeasure(instance, `init`)
       }
+      // 设置组件，包括解析 props 和插槽等
       setupComponent(instance, false, optimized)
       if (__DEV__) {
         endMeasure(instance, `init`)
@@ -1250,6 +1324,7 @@ function baseCreateRenderer(
     // setup() is async. This component relies on async logic to be resolved
     // before proceeding
     if (__FEATURE_SUSPENSE__ && instance.asyncDep) {
+      // suspense组件处理
       parentSuspense &&
         parentSuspense.registerDep(instance, setupRenderEffect, optimized)
 
@@ -1261,6 +1336,7 @@ function baseCreateRenderer(
         initialVNode.placeholder = placeholder.el
       }
     } else {
+      // 设置渲染副作用函数（与响应式结合）
       setupRenderEffect(
         instance,
         initialVNode,
@@ -1280,6 +1356,7 @@ function baseCreateRenderer(
 
   const updateComponent = (n1: VNode, n2: VNode, optimized: boolean) => {
     const instance = (n2.component = n1.component)!
+    // 判断是否需要更新组件
     if (shouldUpdateComponent(n1, n2, optimized)) {
       if (
         __FEATURE_SUSPENSE__ &&
@@ -1303,6 +1380,7 @@ function baseCreateRenderer(
         instance.update()
       }
     } else {
+      // 没有更新，则更新 vnode 和 el
       // no update needed. just copy over properties
       n2.el = n1.el
       instance.vnode = n2
@@ -1319,18 +1397,23 @@ function baseCreateRenderer(
     optimized,
   ) => {
     const componentUpdateFn = () => {
+      // 如果组件未挂载，则进行挂载逻辑
       if (!instance.isMounted) {
         let vnodeHook: VNodeHook | null | undefined
         const { el, props } = initialVNode
+        // 提取组件实例的 生命周期、父节点、根节点等 属性
         const { bm, m, parent, root, type } = instance
+        // 判断是否为异步组件包装节点
         const isAsyncWrapperVNode = isAsyncWrapper(initialVNode)
 
+        // 设置组件为不可递归
         toggleRecurse(instance, false)
         // beforeMount hook
+        // 调用挂载前钩子
         if (bm) {
           invokeArrayFns(bm)
         }
-        // onVnodeBeforeMount
+        // 调用onVnodeBeforeMount
         if (
           !isAsyncWrapperVNode &&
           (vnodeHook = props && props.onVnodeBeforeMount)
@@ -1341,10 +1424,13 @@ function baseCreateRenderer(
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
         ) {
+          // 兼容模式下，调用vue2的hook 钩子
           instance.emit('hook:beforeMount')
         }
+        // 回滚至允许递归
         toggleRecurse(instance, true)
 
+        // hydrate模式
         if (el && hydrateNode) {
           // vnode has adopted host node - perform hydration instead of mount.
           const hydrateSubTree = () => {
@@ -1384,6 +1470,7 @@ function baseCreateRenderer(
           }
         } else {
           // custom element style injection
+          // 自定义元素注入style
           if (
             root.ce &&
             // @ts-expect-error _def is private
@@ -1395,6 +1482,7 @@ function baseCreateRenderer(
           if (__DEV__) {
             startMeasure(instance, `render`)
           }
+          // 生成本组件的根节点虚拟节点树
           const subTree = (instance.subTree = renderComponentRoot(instance))
           if (__DEV__) {
             endMeasure(instance, `render`)
@@ -1402,6 +1490,7 @@ function baseCreateRenderer(
           if (__DEV__) {
             startMeasure(instance, `patch`)
           }
+          // 渲染节点树
           patch(
             null,
             subTree,
@@ -1417,10 +1506,12 @@ function baseCreateRenderer(
           initialVNode.el = subTree.el
         }
         // mounted hook
+        // 触发mounted钩子
         if (m) {
           queuePostRenderEffect(m, parentSuspense)
         }
         // onVnodeMounted
+        // 触发onVnodeMounted钩子
         if (
           !isAsyncWrapperVNode &&
           (vnodeHook = props && props.onVnodeMounted)
@@ -1431,6 +1522,7 @@ function baseCreateRenderer(
             parentSuspense,
           )
         }
+        // 兼容模式下执行触发hook:mounted钩子
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1450,6 +1542,9 @@ function baseCreateRenderer(
             isAsyncWrapper(parent.vnode) &&
             parent.vnode.shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE)
         ) {
+          // 处理keep alive的场景
+
+          // 触发activated钩子
           instance.a && queuePostRenderEffect(instance.a, parentSuspense)
           if (
             __COMPAT__ &&
@@ -1461,6 +1556,7 @@ function baseCreateRenderer(
             )
           }
         }
+        // 设置isMounted标记为true
         instance.isMounted = true
 
         if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
@@ -1625,16 +1721,23 @@ function baseCreateRenderer(
     nextVNode: VNode,
     optimized: boolean,
   ) => {
+    // 更新vnode的component引用
     nextVNode.component = instance
+    // 获取旧的props
     const prevProps = instance.vnode.props
+    // 更新组件实例的vnode引用
     instance.vnode = nextVNode
+    // 清空组件实例的next引用
     instance.next = null
+    // 更新 props 和插槽
     updateProps(instance, nextVNode.props, prevProps, optimized)
     updateSlots(instance, nextVNode.children, optimized)
 
+    // 暂停响应式追踪，避免更新过程中触发不必要的依赖
     pauseTracking()
     // props update may have triggered pre-flush watchers.
     // flush them before the render update.
+    // 调用 flushPreFlushCbs 清空更新前的回调队列，确保在渲染更新前完成所有预处理操作
     flushPreFlushCbs(instance)
     resetTracking()
   }
@@ -2650,6 +2753,22 @@ function resolveChildrenNamespace(
     : currentNamespace
 }
 
+/**
+ * 切换组件实例中渲染副作用（effect）和调度任务（job）的递归允许标志。
+ *
+ * 说明：
+ * - 当 `allowed` 为 `true` 时，通过位或操作（`|=`）为 `effect.flags` 和 `job.flags` 添加
+ *   `EffectFlags.ALLOW_RECURSE` 与 `SchedulerJobFlags.ALLOW_RECURSE`，允许渲染过程内的递归更新。
+ * - 当 `allowed` 为 `false` 时，通过位与取反操作（`&= ~`）清除上述标志，禁止递归更新，
+ *   用于在调用生命周期钩子（如 `beforeUpdate`）期间临时防止重入或无限递归。
+ *
+ * 注意：
+ * - 使用位掩码可以在单个整型字段内高效记录多个布尔状态。
+ * - `job.flags!` 使用了 TypeScript 的非空断言，表明 `job.flags` 在此处应存在。
+ *
+ * @param {ComponentInternalInstance} param0 - 包含 `effect` 和 `job` 的组件实例。
+ * @param {boolean} allowed - 是否允许递归更新。
+ */
 function toggleRecurse(
   { effect, job }: ComponentInternalInstance,
   allowed: boolean,

@@ -19,11 +19,13 @@
 export enum PatchFlags {
   /**
    * Indicates an element with dynamic textContent (children fast path)
+   * 表示元素的 textContent 是动态的（子节点的快速更新路径）
    */
   TEXT = 1,
 
   /**
    * Indicates an element with dynamic class binding.
+   * 表示元素具有动态的 class 绑定
    */
   CLASS = 1 << 1,
 
@@ -37,6 +39,9 @@ export enum PatchFlags {
    * const style = { color: 'red' }
    * render() { return e('div', { style }) }
    * ```
+   *
+   * 表示元素具有动态样式
+   * 编译器会把静态字符串样式预编译为静态对象，并检测并提升内联的静态对象
    */
   STYLE = 1 << 2,
 
@@ -46,6 +51,10 @@ export enum PatchFlags {
    * class/style). when this flag is present, the vnode also has a dynamicProps
    * array that contains the keys of the props that may change so the runtime
    * can diff them faster (without having to worry about removed props)
+   * 表示元素具有非 class/style 的动态属性。
+   * 也可用于具有任意动态 props（包含 class/style）的组件。
+   * 当存在此标志时，vnode 会带有一个 dynamicProps 数组，
+   * 包含可能变化的 prop 键，运行时可据此更快地 diff（无需担心被移除的属性）
    */
   PROPS = 1 << 3,
 
@@ -53,6 +62,9 @@ export enum PatchFlags {
    * Indicates an element with props with dynamic keys. When keys change, a full
    * diff is always needed to remove the old key. This flag is mutually
    * exclusive with CLASS, STYLE and PROPS.
+   *
+   * 表示元素的 props 拥有动态键。键变化时总是需要完整的 diff 来移除旧键
+   * 该标志与 CLASS、STYLE 和 PROPS 互斥
    */
   FULL_PROPS = 1 << 4,
 
@@ -60,21 +72,27 @@ export enum PatchFlags {
    * Indicates an element that requires props hydration
    * (but not necessarily patching)
    * e.g. event listeners & v-bind with prop modifier
+   *
+   * 表示元素需要对 props 进行水合（但不一定需要打补丁）
+   * 例如事件监听器和带 prop 修饰符的 v-bind
    */
   NEED_HYDRATION = 1 << 5,
 
   /**
    * Indicates a fragment whose children order doesn't change.
+   * 表示片段的子节点顺序不会改变
    */
   STABLE_FRAGMENT = 1 << 6,
 
   /**
    * Indicates a fragment with keyed or partially keyed children
+   * 表示片段有 key 的或部分有 key 的子节点
    */
   KEYED_FRAGMENT = 1 << 7,
 
   /**
    * Indicates a fragment with unkeyed children.
+   * 表示片段没有 key 的子节点
    */
   UNKEYED_FRAGMENT = 1 << 8,
 
@@ -83,6 +101,9 @@ export enum PatchFlags {
    * directives (onVnodeXXX hooks). since every patched vnode checks for refs
    * and onVnodeXXX hooks, it simply marks the vnode so that a parent block
    * will track it.
+   *
+   * 表示元素只需要非 props 的修补，例如 ref 或 指令（onVnodeXXX 钩子）。
+   * 由于每个被修补的 vnode 都会检查 ref 和 onVnodeXXX 钩子，这里仅标记 vnode 以便父级 block 跟踪
    */
   NEED_PATCH = 1 << 9,
 
@@ -90,6 +111,8 @@ export enum PatchFlags {
    * Indicates a component with dynamic slots (e.g. slot that references a v-for
    * iterated value, or dynamic slot names).
    * Components with this flag are always force updated.
+   * 表示组件具有动态插槽（例如插槽引用 v-for 迭代值或动态插槽名）。
+   * 带有此标志的组件总是会被强制更新。
    */
   DYNAMIC_SLOTS = 1 << 10,
 
@@ -97,6 +120,9 @@ export enum PatchFlags {
    * Indicates a fragment that was created only because the user has placed
    * comments at the root level of a template. This is a dev-only flag since
    * comments are stripped in production.
+   *
+   * 表示仅因为用户在模板根级放置了注释而创建的片段。
+   * 这是仅用于开发的标志，因为生产环境会移除注释
    */
   DEV_ROOT_FRAGMENT = 1 << 11,
 
@@ -106,11 +132,18 @@ export enum PatchFlags {
    * bitwise operators (bitwise matching should only happen in branches where
    * patchFlag > 0), and are mutually exclusive. When checking for a special
    * flag, simply check patchFlag === FLAG.
+   *
+   * 特殊标志（SPECIAL FLAGS）-------------------------------------------------
+   * 特殊标志使用负整数。它们不应通过按位运算符匹配（按位匹配仅发生在 patchFlag > 0 的分支中），
+   * 并且彼此互斥。
+   * 检查特殊标志时，应直接使用 patchFlag === FLAG
    */
 
   /**
    * Indicates a cached static vnode. This is also a hint for hydration to skip
    * the entire sub tree since static content never needs to be updated.
+   *
+   * 表示缓存的静态 vnode。这也提示水合过程可以跳过整个子树，因为静态内容无需更新。
    */
   CACHED = -1,
   /**
@@ -119,6 +152,10 @@ export enum PatchFlags {
    * when encountering non-compiler generated slots (i.e. manually written
    * render functions, which should always be fully diffed)
    * OR manually cloneVNodes
+   *
+   * 表示 diff 算法应退出优化模式的特殊标志。
+   * 例如，当 renderSlot() 创建的 block 片段遇到非编译器生成的插槽（即手写的渲染函数，应始终进行完整 diff）
+   * 或手动 cloneVNodes 时会使用此标志
    */
   BAIL = -2,
 }
