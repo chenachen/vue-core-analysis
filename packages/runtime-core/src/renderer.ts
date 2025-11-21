@@ -1569,16 +1569,22 @@ function baseCreateRenderer(
         let { next, bu, u, parent, vnode } = instance
 
         if (__FEATURE_SUSPENSE__) {
+          // 判断是否存在未完成水合的异步组件
           const nonHydratedAsyncRoot = locateNonHydratedAsyncRoot(instance)
           // we are trying to update some async comp before hydration
           // this will cause crash because we don't know the root node yet
           if (nonHydratedAsyncRoot) {
             // only sync the properties and abort the rest of operations
+            // 如果存在 next 节点，则将其 el 属性设置为当前虚拟节点的 el，
+            // 并调用 updateComponentPreRender 方法更新组件的预渲染状态
             if (next) {
               next.el = vnode.el
               updateComponentPreRender(instance, next, optimized)
             }
             // and continue the rest of operations once the deps are resolved
+            // 代码会等待异步依赖（asyncDep）解析完成后再继续执行剩余的更新操作。
+            // 通过 then 方法注册回调函数，在依赖解析完成后检查组件实例是否已被卸载（isUnmounted）。
+            // 如果组件仍然存在，则调用 componentUpdateFn 继续更新流程
             nonHydratedAsyncRoot.asyncDep!.then(() => {
               // the instance may be destroyed during the time period
               if (!instance.isUnmounted) {
@@ -1599,6 +1605,7 @@ function baseCreateRenderer(
         }
 
         // Disallow component effect recursion during pre-lifecycle hooks.
+        // 在预生命周期钩子期间禁止组件效果递归。
         toggleRecurse(instance, false)
         if (next) {
           next.el = vnode.el
@@ -1608,35 +1615,42 @@ function baseCreateRenderer(
         }
 
         // beforeUpdate hook
+        // 调用更新前钩子
         if (bu) {
           invokeArrayFns(bu)
         }
         // onVnodeBeforeUpdate
+        // 调用 onVnodeBeforeUpdate 钩子
         if ((vnodeHook = next.props && next.props.onVnodeBeforeUpdate)) {
           invokeVNodeHook(vnodeHook, parent, next, vnode)
         }
+        // 兼容模式下调用 vue2 的 beforeUpdate 钩子
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
         ) {
           instance.emit('hook:beforeUpdate')
         }
+        // 允许递归
         toggleRecurse(instance, true)
 
         // render
         if (__DEV__) {
           startMeasure(instance, `render`)
         }
+        // 渲染组件的根节点
         const nextTree = renderComponentRoot(instance)
         if (__DEV__) {
           endMeasure(instance, `render`)
         }
+        // 获取旧的根节点树
         const prevTree = instance.subTree
         instance.subTree = nextTree
 
         if (__DEV__) {
           startMeasure(instance, `patch`)
         }
+        // 继续递归新旧节点树的补丁
         patch(
           prevTree,
           nextTree,
@@ -1659,16 +1673,19 @@ function baseCreateRenderer(
           updateHOCHostEl(instance, nextTree.el)
         }
         // updated hook
+        // 调用更新后钩子
         if (u) {
           queuePostRenderEffect(u, parentSuspense)
         }
         // onVnodeUpdated
+        // 调用onVnodeUpdated钩子
         if ((vnodeHook = next.props && next.props.onVnodeUpdated)) {
           queuePostRenderEffect(
             () => invokeVNodeHook(vnodeHook!, parent, next!, vnode),
             parentSuspense,
           )
         }
+        // 兼容模式下调用 vue2 的 hook:updated 钩子
         if (
           __COMPAT__ &&
           isCompatEnabled(DeprecationTypes.INSTANCE_EVENT_HOOKS, instance)
@@ -1690,18 +1707,23 @@ function baseCreateRenderer(
     }
 
     // create reactive effect for rendering
+    // 创建副作用 作用域
     instance.scope.on()
+    // 创建组件的响应式副作用对象
     const effect = (instance.effect = new ReactiveEffect(componentUpdateFn))
     instance.scope.off()
 
+    // 将effect对象的run方法作为本组件实例的更新方法
     const update = (instance.update = effect.run.bind(effect))
     const job: SchedulerJob = (instance.job = effect.runIfDirty.bind(effect))
     job.i = instance
     job.id = instance.uid
+    // 创建调度器函数
     effect.scheduler = () => queueJob(job)
 
     // allowRecurse
     // #1801, #2043 component render effects should allow recursive updates
+    // 允许递归
     toggleRecurse(instance, true)
 
     if (__DEV__) {
@@ -1713,6 +1735,7 @@ function baseCreateRenderer(
         : void 0
     }
 
+    // 执行更新
     update()
   }
 
@@ -1759,10 +1782,14 @@ function baseCreateRenderer(
 
     const { patchFlag, shapeFlag } = n2
     // fast path
+    // 带patchFlag的话走快速路径
     if (patchFlag > 0) {
       if (patchFlag & PatchFlags.KEYED_FRAGMENT) {
         // this could be either fully-keyed or mixed (some keyed some not)
         // presence of patchFlag means children are guaranteed to be arrays
+        // 对比更新带key的组件的快速路径
+        // 子节点保证是数组，但是不保证每个子节点都带key
+        // 可能全都带，可能部分带
         patchKeyedChildren(
           c1 as VNode[],
           c2 as VNodeArrayChildren,
@@ -1777,6 +1804,7 @@ function baseCreateRenderer(
         return
       } else if (patchFlag & PatchFlags.UNKEYED_FRAGMENT) {
         // unkeyed
+        // 对比更新不带key的组件的快速路径
         patchUnkeyedChildren(
           c1 as VNode[],
           c2 as VNodeArrayChildren,
@@ -1794,18 +1822,23 @@ function baseCreateRenderer(
 
     // children has 3 possibilities: text, array or no children.
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+      // 如果是文本节点
       // text children fast path
+      // 如果旧节点是数组节点，则卸载旧节点
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
         unmountChildren(c1 as VNode[], parentComponent, parentSuspense)
       }
+      // 如果新旧文本内容不同，则更新文本内容
       if (c2 !== c1) {
         hostSetElementText(container, c2 as string)
       }
     } else {
+      // 如果旧节点是数组节点
       if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
         // prev children was array
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
           // two arrays, cannot assume anything, do full diff
+          // 新节点也是数组节点，进行全量对比
           patchKeyedChildren(
             c1 as VNode[],
             c2 as VNodeArrayChildren,
@@ -1818,16 +1851,19 @@ function baseCreateRenderer(
             optimized,
           )
         } else {
+          // 新节点没有子节点，卸载旧节点即可
           // no new children, just unmount old
           unmountChildren(c1 as VNode[], parentComponent, parentSuspense, true)
         }
       } else {
         // prev children was text OR null
         // new children is array OR null
+        // 如果旧节点是文本节点，则清空文本内容
         if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
           hostSetElementText(container, '')
         }
         // mount new if array
+        // 如果是新节点是数组节点，则挂载新节点
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
           mountChildren(
             c2 as VNodeArrayChildren,
@@ -1882,6 +1918,7 @@ function baseCreateRenderer(
     const commonLength = Math.min(oldLength, newLength)
     let i
     for (i = 0; i < commonLength; i++) {
+      // 根据优化标记获取新子节点
       const nextChild = (c2[i] = optimized
         ? cloneIfMounted(c2[i] as VNode)
         : normalizeVNode(c2[i]))
@@ -1898,7 +1935,7 @@ function baseCreateRenderer(
       )
     }
     if (oldLength > newLength) {
-      // 移除多余的旧节点
+      // 移除多余的旧节点，传入start为commonLength，意味着从改索引开始移除
       unmountChildren(
         c1,
         parentComponent,
@@ -1908,7 +1945,7 @@ function baseCreateRenderer(
         commonLength,
       )
     } else {
-      // 挂载新增的节点
+      // 挂载新增的节点，传入start为commonLength，意味着从改索引开始挂载
       mountChildren(
         c2,
         container,
@@ -1936,10 +1973,11 @@ function baseCreateRenderer(
     optimized: boolean,
   ) => {
     let i = 0
-    const l2 = c2.length
-    let e1 = c1.length - 1 // prev ending index
-    let e2 = l2 - 1 // next ending index
+    const l2 = c2.length // 新节点的长度
+    let e1 = c1.length - 1 // prev ending index 旧节点的结束索引
+    let e2 = l2 - 1 // next ending index 新节点的结束索引
 
+    // 从头节点开始对比，直到不同节点类型就停下
     // 1. sync from start
     // (a b) c
     // (a b) d e
@@ -1966,6 +2004,7 @@ function baseCreateRenderer(
       i++
     }
 
+    // 从尾节点开始对比，直到不同节点类型就停下
     // 2. sync from end
     // a (b c)
     // d e (b c)
@@ -1993,6 +2032,11 @@ function baseCreateRenderer(
       e2--
     }
 
+    // 处理比较完完首尾两端后，i有三种需要处理的情况
+    // 1. i > e1，意味着旧节点已经处理完毕，那么只需要判断 i <= e2 ，如果为真则意味着新节点还有剩余，需要挂载剩余的新节点
+    // 2. i > e2，意味着新节点都已经处理完毕，那么只需要卸载旧节点中剩余的节点，即 i <= e1 的部分
+    // 3. 不满足上述两种情况，意味着新旧节点都有剩余节点需要处理，那么就需要进入更加复杂的第三种可能处理
+
     // 3. common sequence + mount
     // (a b)
     // (a b) c
@@ -2000,11 +2044,17 @@ function baseCreateRenderer(
     // (a b)
     // c (a b)
     // i = 0, e1 = -1, e2 = 0
+    // i 大于 e1，说明旧节点已经处理完毕
     if (i > e1) {
+      // i 小于等于 e2，说明新节点还有剩余，需要挂载剩余的新节点
       if (i <= e2) {
+        // 计算参考位置anchor，因为e2在尾端对比的时候有可能缩减了也可能没缩减
+        // 所以要判断新位置nextPos是否小于l2（也就是判断索引是否已经超出了新节点的索引长度）
+        // 没超出则使用，超出了则使用parentAnchor
         const nextPos = e2 + 1
         const anchor = nextPos < l2 ? (c2[nextPos] as VNode).el : parentAnchor
         while (i <= e2) {
+          // 挂载新节点
           patch(
             null,
             (c2[i] = optimized
@@ -2031,6 +2081,7 @@ function baseCreateRenderer(
     // (b c)
     // i = 0, e1 = 0, e2 = -1
     else if (i > e2) {
+      // i大于e2，意味新节点的处理完毕，旧节点还有剩余，需要卸载多余的旧节点
       while (i <= e1) {
         unmount(c1[i], parentComponent, parentSuspense, true)
         i++
@@ -2041,11 +2092,14 @@ function baseCreateRenderer(
     // [i ... e1 + 1]: a b [c d e] f g
     // [i ... e2 + 1]: a b [e d c h] f g
     // i = 2, e1 = 4, e2 = 5
+    // 第三种情况，新旧节点都有剩余节点需要处理
     else {
+      // 从i开始处理
       const s1 = i // prev starting index
       const s2 = i // next starting index
 
       // 5.1 build key:index map for newChildren
+      // 建立新子节点的 key 到 索引 的映射表
       const keyToNewIndexMap: Map<PropertyKey, number> = new Map()
       for (i = s2; i <= e2; i++) {
         const nextChild = (c2[i] = optimized
@@ -2884,14 +2938,24 @@ function getSequence(arr: number[]): number[] {
   return result
 }
 
+/**
+ * 递归定位未完成水合的异步根组件。
+ *
+ * @param {ComponentInternalInstance} instance - 当前组件实例。
+ * @returns {ComponentInternalInstance | undefined} - 返回未完成水合的异步根组件实例，
+ * 如果所有子组件均已完成水合，则返回 `undefined`。
+ */
 function locateNonHydratedAsyncRoot(
   instance: ComponentInternalInstance,
 ): ComponentInternalInstance | undefined {
+  // 获取当前组件的子树中的组件实例
   const subComponent = instance.subTree.component
   if (subComponent) {
+    // 如果子组件存在异步依赖且尚未解析，返回该子组件
     if (subComponent.asyncDep && !subComponent.asyncResolved) {
       return subComponent
     } else {
+      // 否则递归检查子组件的子树
       return locateNonHydratedAsyncRoot(subComponent)
     }
   }

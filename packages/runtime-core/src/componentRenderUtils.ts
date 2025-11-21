@@ -476,19 +476,32 @@ function hasPropsChanged(
   return false
 }
 
+/**
+ * 更新高阶组件（HOC）的宿主元素引用。
+ *
+ * 该函数用于在组件树中向上遍历父组件链，更新高阶组件的宿主元素引用。
+ * 如果当前组件或其父组件存在 `Suspense`，并且当前组件是 `Suspense` 的活动分支，
+ * 则会更新 `Suspense` 的根元素引用。
+ *
+ * @param {ComponentInternalInstance} instance - 当前组件实例，包含虚拟节点和父组件信息。
+ * @param {typeof vnode.el} el - 新的宿主元素引用。
+ */
 export function updateHOCHostEl(
   { vnode, parent }: ComponentInternalInstance,
   el: typeof vnode.el, // HostNode
 ): void {
   while (parent) {
     const root = parent.subTree
+    // 如果父组件是一个 Suspense 并且当前 vnode 是其活动分支，更新 Suspense 的根元素引用
     if (root.suspense && root.suspense.activeBranch === vnode) {
       root.el = vnode.el
     }
+    // 如果当前 vnode 是父组件的子树，更新父组件的 vnode.el 引用
     if (root === vnode) {
       ;(vnode = parent.vnode).el = el
       parent = parent.parent
     } else {
+      // 如果不满足上述条件，停止遍历
       break
     }
   }
