@@ -2107,6 +2107,7 @@ function baseCreateRenderer(
           : normalizeVNode(c2[i]))
         if (nextChild.key != null) {
           if (__DEV__ && keyToNewIndexMap.has(nextChild.key)) {
+            // 开发环境下警告重复的 key
             warn(
               `Duplicate keys found during update:`,
               JSON.stringify(nextChild.key),
@@ -2120,7 +2121,9 @@ function baseCreateRenderer(
       // 5.2 loop through old children left to be patched and try to patch
       // matching nodes & remove nodes that are no longer present
       let j
+      // 已处理的节点数量
       let patched = 0
+      // 需要处理的节点数量
       const toBePatched = e2 - s2 + 1
       let moved = false
       // used to track whether any node has moved
@@ -2130,11 +2133,13 @@ function baseCreateRenderer(
       // and oldIndex = 0 is a special value indicating the new node has
       // no corresponding old node.
       // used for determining longest stable subsequence
+      // const newIndexToOldIndexMap = new Array(toBePatched).fill(0)效果一致，这里猜测是为了兼容性
       const newIndexToOldIndexMap = new Array(toBePatched)
       for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0
 
       for (i = s1; i <= e1; i++) {
         const prevChild = c1[i]
+        // 当已处理的节点数量大于等于需要处理的节点数量时，说明剩余的旧节点都是多余的，需要卸载
         if (patched >= toBePatched) {
           // all new children have been patched so this can only be a removal
           unmount(prevChild, parentComponent, parentSuspense, true)
@@ -2142,9 +2147,11 @@ function baseCreateRenderer(
         }
         let newIndex
         if (prevChild.key != null) {
+          // 如果旧节点存在key，尝试根据key获取新节点对应的索引
           newIndex = keyToNewIndexMap.get(prevChild.key)
         } else {
           // key-less node, try to locate a key-less node of the same type
+          // 对于没有key的节点，尝试在新节点中找到相同类型且没有key的节点
           for (j = s2; j <= e2; j++) {
             if (
               newIndexToOldIndexMap[j - s2] === 0 &&
@@ -2155,10 +2162,13 @@ function baseCreateRenderer(
             }
           }
         }
+        // 如果没有找到对应的新节点，说明该旧节点是多余的，需要卸载
         if (newIndex === undefined) {
           unmount(prevChild, parentComponent, parentSuspense, true)
         } else {
+          // 找到了可以复用的节点，记录新索引到旧索引的映射
           newIndexToOldIndexMap[newIndex - s2] = i + 1
+          // 更新 maxNewIndexSoFar，用于判断节点是否移动过
           if (newIndex >= maxNewIndexSoFar) {
             maxNewIndexSoFar = newIndex
           } else {
