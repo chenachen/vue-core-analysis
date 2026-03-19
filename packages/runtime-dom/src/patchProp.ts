@@ -27,6 +27,12 @@ const isNativeOn = (key: string) =>
 
 type DOMRendererOptions = RendererOptions<Node, Element>
 
+/**
+ * DOM 平台的属性分发入口。
+ *
+ * runtime-core 只知道“某个 prop 需要更新了”，至于它应该走 class、style、事件、
+ * DOM property 还是普通 attribute，交给 runtime-dom 在这里按浏览器语义做分派。
+ */
 export const patchProp: DOMRendererOptions['patchProp'] = (
   el,
   key,
@@ -84,6 +90,12 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
   }
 }
 
+/**
+ * 决定当前 key 应该写入 DOM property 还是 attribute。
+ *
+ * 这一步封装了大量浏览器兼容性细节：SVG/MathML、枚举属性、只读属性，以及
+ * 原生内联事件字符串等场景都不能简单地使用 `el[key] = value`。
+ */
 function shouldSetAsProp(
   el: Element,
   key: string,

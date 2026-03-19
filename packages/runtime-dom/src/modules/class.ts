@@ -2,6 +2,12 @@ import { type ElementWithTransition, vtcKey } from '../components/Transition'
 
 // compiler should normalize class + :class bindings on the same element
 // into a single binding ['staticClass', dynamic]
+/**
+ * 更新元素的 class。
+ *
+ * 除了普通的静态/动态 class，这里还会把 Transition 暂存到元素上的过渡类名
+ * （通过 `vtcKey` 挂载）合并进去，避免组件更新时把 enter/leave 过程中的类覆盖掉。
+ */
 export function patchClass(
   el: Element,
   value: string | null,
@@ -10,7 +16,7 @@ export function patchClass(
   // directly setting className should be faster than setAttribute in theory
   // if this is an element during a transition, take the temporary transition
   // classes into account.
-  // 处理vue transition组件切换class时的过渡类名
+  // Transition 会把过渡期类名暂存到元素上，这里需要与最新 class 一并写回
   const transitionClasses = (el as ElementWithTransition)[vtcKey]
   if (transitionClasses) {
     value = (

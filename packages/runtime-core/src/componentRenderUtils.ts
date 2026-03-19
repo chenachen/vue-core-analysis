@@ -302,7 +302,13 @@ const getChildRoot = (vnode: VNode): [VNode, SetRootFn] => {
   return [normalizeVNode(childRoot), setRoot]
 }
 
-//
+/**
+ * 在开发环境的 Fragment 根节点中提取唯一的有效根节点。
+ *
+ * 模板根部的注释、`v-if` 生成的占位注释，都会让结果看起来像一个 Fragment。
+ * 这里会跳过普通注释，并在需要时递归钻取 DEV_ROOT_FRAGMENT，最终找到真正用于
+ * attrs 透传、scopeId 处理和指令/过渡校验的单一根节点。
+ */
 export function filterSingleRoot(
   children: VNodeArrayChildren,
   recurse = true,
@@ -313,7 +319,7 @@ export function filterSingleRoot(
     if (isVNode(child)) {
       // ignore user comment
       if (child.type !== Comment || child.children === 'v-if') {
-        // 如果存在多个非注释子节点，直接返回undefined
+        // 已经找到过一个有效根节点，再遇到新的有效根节点就说明不是单根
         if (singleRoot) {
           // has more than 1 non-comment child, return now
           return
@@ -321,7 +327,7 @@ export function filterSingleRoot(
           singleRoot = child
           if (
             __DEV__ &&
-            // 允许递归查找
+            // 继续向下钻取开发环境额外包裹出来的根 Fragment
             recurse &&
             singleRoot.patchFlag > 0 &&
             singleRoot.patchFlag & PatchFlags.DEV_ROOT_FRAGMENT

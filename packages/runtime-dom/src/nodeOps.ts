@@ -54,6 +54,8 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
     }
   },
 
+  // 根据命名空间和自定义内置元素配置创建真实元素节点。
+  // `props.multiple` 需要在 `<select>` 创建阶段尽早写入，避免后续 value 同步失效。
   createElement: (tag, namespace, is, props): Element => {
     const el =
       namespace === 'svg'
@@ -98,6 +100,7 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
   // Static content here can only come from compiled templates.
   // As long as the user only uses trusted templates, this is safe.
   insertStaticContent(content, parent, anchor, namespace, start, end) {
+    // 对静态提升节点优先走克隆缓存路径，只有首次插入时才会重新解析 HTML 字符串。
     // <parent> before | first ... last | anchor </parent>
     const before = anchor ? anchor.previousSibling : parent.lastChild
     // #5308 can only take cached path if:
@@ -121,7 +124,7 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
 
       const template = templateContainer.content
       if (namespace === 'svg' || namespace === 'mathml') {
-        // remove outer svg/math wrapper
+        // remove outer svg/math wrapper，保留真正的静态子节点
         const wrapper = template.firstChild!
         while (wrapper.firstChild) {
           template.appendChild(wrapper.firstChild)
