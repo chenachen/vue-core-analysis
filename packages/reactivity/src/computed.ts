@@ -123,9 +123,11 @@ export class ComputedRefImpl<T = any> implements Subscriber {
    * @internal
    */
   notify(): true | void {
-    // 标记脏数据位
+    // 依赖变化时先把 computed 标记为脏：
+    // 下次有人读取 value 时，refreshComputed 才会真正重新求值。
     this.flags |= EffectFlags.DIRTY
-    // 如果还未被通知过，并且不是自己触发自己
+    // NOTIFIED 用于批处理中去重，避免同一轮同步修改里重复把同一个 computed 放入队列。
+    // activeSub !== this 用来避免 computed 在求值过程中又同步触发自己，造成递归死循环。
     if (
       !(this.flags & EffectFlags.NOTIFIED) &&
       // avoid infinite self recursion
@@ -141,7 +143,8 @@ export class ComputedRefImpl<T = any> implements Subscriber {
   }
 
   get value(): T {
-    // 依赖收集
+    // 先把“当前正在读取这个 computed 的订阅者”记录到 computed.dep 上，
+    // 这样外层 effect/watch 才能在 computed 变更时收到通知。
     const link = __DEV__
       ? this.dep.track({
           target: this,
@@ -149,10 +152,11 @@ export class ComputedRefImpl<T = any> implements Subscriber {
           key: 'value',
         })
       : this.dep.track()
-    // 依赖更新
+    // 惰性求值：只有真正读取 value 时才检查 DIRTY / globalVersion，并按需重新执行 getter。
     refreshComputed(this)
     // sync version after evaluation
-    // 更新链接的版本号
+    // 如果本次读取建立了依赖链接，需要把 link.version 同步到最新 dep.version，
+    // 这样 effect/computed 下次就能通过版本差快速判断自己是否脏。
     if (link) {
       link.version = this.dep.version
     }

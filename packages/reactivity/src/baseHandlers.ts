@@ -312,7 +312,8 @@ class MutableReactiveHandler extends BaseReactiveHandler {
 
   has(target: Record<string | symbol, unknown>, key: string | symbol): boolean {
     const result = Reflect.has(target, key)
-    // 不是symbol或者不是Symbol对象的静态方法属性则触发追踪
+    // 只跳过 Symbol.iterator / Symbol.toStringTag 这类内置 Symbol 键；
+    // 其他 key（包括普通字符串、数字索引、自定义 Symbol）都应该参与 has 依赖追踪。
     if (!isSymbol(key) || !builtInSymbols.has(key)) {
       track(target, TrackOpTypes.HAS, key)
     }
