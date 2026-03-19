@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理 Vue 2 兼容模式下 attrs fallthrough 的特殊规则。
+ */
 import { isOn } from '@vue/shared'
 import type { ComponentInternalInstance } from '../component'
 import { DeprecationTypes, isCompatEnabled } from './compatConfig'

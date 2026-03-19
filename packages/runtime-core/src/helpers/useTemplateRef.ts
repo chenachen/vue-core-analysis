@@ -1,3 +1,6 @@
+/**
+ * 文件说明：提供访问模板引用的组合式 API，返回类型安全的只读 shallow ref。
+ */
 import { type ShallowRef, readonly, shallowRef } from '@vue/reactivity'
 import { getCurrentInstance } from '../component'
 import { warn } from '../warning'

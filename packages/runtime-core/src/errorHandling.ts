@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义错误代码和统一错误处理流程，支持同步与异步错误捕获。
+ */
 import { pauseTracking, resetTracking } from '@vue/reactivity'
 import type { VNode } from './vnode'
 import type { ComponentInternalInstance } from './component'

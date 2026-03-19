@@ -1,4 +1,7 @@
 /**
+ * 文件说明：定义自定义指令接口，并负责把指令绑定到 VNode 与对应生命周期钩子上。
+ */
+/**
 Runtime helper for applying directives to a vnode. Example usage:
 
 const comp = resolveComponent('comp')

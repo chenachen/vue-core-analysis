@@ -1,3 +1,6 @@
+/**
+ * 文件说明：管理当前渲染实例、作用域 ID 和渲染期间共享的上下文状态。
+ */
 import type { ComponentInternalInstance } from './component'
 import { devtoolsComponentUpdated } from './devtools'
 import { setBlockTracking } from './vnode'

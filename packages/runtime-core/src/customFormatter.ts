@@ -1,3 +1,6 @@
+/**
+ * 文件说明：为 Vue 对象提供 Chrome DevTools 自定义格式化器，提升调试可读性。
+ */
 import {
   type Ref,
   isReactive,

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 的 $children 属性访问。
+ */
 import { ShapeFlags } from '@vue/shared'
 import type { ComponentInternalInstance } from '../component'
 import type { ComponentPublicInstance } from '../componentPublicInstance'

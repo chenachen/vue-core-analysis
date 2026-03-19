@@ -1,3 +1,6 @@
+/**
+ * 文件说明：提供唯一 ID 生成和异步边界标记的组合式 API。
+ */
 import {
   type ComponentInternalInstance,
   getCurrentInstance,

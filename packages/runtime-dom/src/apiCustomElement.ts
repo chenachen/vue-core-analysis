@@ -1,3 +1,6 @@
+/**
+ * 文件说明：提供把 Vue 组件定义为自定义 HTML 元素的能力，支持跨框架使用和属性映射。
+ */
 import {
   type App,
   type Component,

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 的 v-model 语法和模型选项。
+ */
 import { ShapeFlags, extend } from '@vue/shared'
 import type { ComponentInternalInstance, ComponentOptions } from '../component'
 import { ErrorCodes, callWithErrorHandling } from '../errorHandling'

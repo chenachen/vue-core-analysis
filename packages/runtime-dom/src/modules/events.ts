@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理事件监听的 patch 模块，负责监听器的绑定、更新和移除。
+ */
 import { NOOP, hyphenate, isArray, isFunction } from '@vue/shared'
 import {
   type ComponentInternalInstance,

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：提供 setup 相关的运行时辅助能力和配套类型定义。
+ */
 import {
   type IfAny,
   type LooseRequired,

@@ -2,6 +2,8 @@
 
 > 目标：把 `packages/runtime-core` 与 `packages/runtime-dom` 这两层如何协作讲清楚，帮助你把“编译产物 → VNode → patch → DOM 更新 → 生命周期/指令/调度”的闭环完整串起来。
 
+> 本轮补充说明：`packages/runtime-core/src` 下 65 个 `.ts` 文件、`packages/runtime-dom/src` 下 17 个 `.ts` 文件，都已补上文件级说明注释。阅读时可以先看每个文件顶部的“文件说明”，再顺着本文梳理主链路。
+
 ## 1. 先给结论：Vue 渲染器到底在做什么
 
 Vue 运行时渲染器本质上做三件事：

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 KeepAlive 内置组件，负责缓存和复用动态切换的组件实例。
+ */
 import {
   type ComponentInternalInstance,
   type ComponentOptions,

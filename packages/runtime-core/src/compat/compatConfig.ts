@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义兼容性类型、开关和检查函数，管理 Vue 2 到 Vue 3 的兼容行为。
+ */
 import { extend, hasOwn, isArray, isFunction } from '@vue/shared'
 import {
   type Component,

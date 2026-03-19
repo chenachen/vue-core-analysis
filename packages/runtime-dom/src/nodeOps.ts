@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 DOM 节点操作接口，为渲染器提供创建、插入、删除和遍历等基础 DOM 能力。
+ */
 import { warn } from '@vue/runtime-core'
 import type { RendererOptions } from '@vue/runtime-core'
 import type {

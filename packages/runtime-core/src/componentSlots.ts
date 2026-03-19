@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理组件插槽的规范化、初始化和更新，统一 slots 在运行时的消费方式。
+ */
 import { type ComponentInternalInstance, currentInstance } from './component'
 import {
   type VNode,

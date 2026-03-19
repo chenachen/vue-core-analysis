@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理 DOM properties 的 patch 模块，覆盖 value、innerHTML 等特殊属性。
+ */
 import { DeprecationTypes, compatUtils, warn } from '@vue/runtime-core'
 import { includeBooleanAttr } from '@vue/shared'
 import { unsafeToTrustedHTML } from '../nodeOps'

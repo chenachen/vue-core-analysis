@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理 Vue 2 全局配置选项在兼容模式下的读取和警告。
+ */
 import type { AppConfig } from '../apiCreateApp'
 import {
   DeprecationTypes,

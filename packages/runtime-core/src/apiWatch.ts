@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 watch 和 watchEffect 等响应式侦听 API，支持多种监听源和调度选项。
+ */
 import {
   type WatchOptions as BaseWatchOptions,
   type DebuggerOptions,

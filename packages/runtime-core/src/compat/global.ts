@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 的全局 API 和原型属性。
+ */
 import {
   TrackOpTypes,
   TriggerOpTypes,

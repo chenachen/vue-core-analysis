@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 的 $listeners 属性访问。
+ */
 import { isOn } from '@vue/shared'
 import type { ComponentInternalInstance } from '../component'
 import { DeprecationTypes, assertCompatEnabled } from './compatConfig'

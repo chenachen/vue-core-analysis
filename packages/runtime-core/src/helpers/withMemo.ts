@@ -1,3 +1,6 @@
+/**
+ * 文件说明：为 render 函数提供备忘录缓存优化，服务于编译器生成的 v-memo 逻辑。
+ */
 import { hasChanged } from '@vue/shared'
 import { type VNode, currentBlock, isBlockTreeEnabled } from '../vnode'
 

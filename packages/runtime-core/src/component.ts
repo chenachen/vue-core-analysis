@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义组件内部实例、组件选项和组件创建更新的核心逻辑，是组件系统的主入口之一。
+ */
 import { type VNode, type VNodeChild, isVNode } from './vnode'
 import {
   EffectScope,

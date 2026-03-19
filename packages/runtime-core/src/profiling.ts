@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现性能测量和分析能力，给开发工具和调试场景提供打点支持。
+ */
 /* eslint-disable no-restricted-globals */
 import {
   type ComponentInternalInstance,

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理内联样式的 patch 模块，支持对象和字符串两种样式格式。
+ */
 import { capitalize, hyphenate, isArray, isString } from '@vue/shared'
 import { camelize, warn } from '@vue/runtime-core'
 import {

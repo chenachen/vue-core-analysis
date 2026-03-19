@@ -1,3 +1,6 @@
+/**
+ * 文件说明：编译器运行时助手，用于渲染插槽内容和 fallback 分支。
+ */
 import type { Data } from '../component'
 import type { RawSlots, Slots } from '../componentSlots'
 import {

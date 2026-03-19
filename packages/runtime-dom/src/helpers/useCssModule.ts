@@ -1,3 +1,6 @@
+/**
+ * 文件说明：提供访问组件 CSS Modules 的组合式 API。
+ */
 import { getCurrentInstance, warn } from '@vue/runtime-core'
 import { EMPTY_OBJ } from '@vue/shared'
 

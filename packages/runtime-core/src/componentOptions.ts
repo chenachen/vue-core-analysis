@@ -1,3 +1,6 @@
+/**
+ * 文件说明：规范化和合并组件选项，处理 data、methods、computed、watch 等 Options API 能力。
+ */
 import {
   type Component,
   type ComponentInternalInstance,

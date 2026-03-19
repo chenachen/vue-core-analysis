@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现开发环境下的警告和错误追踪系统，输出组件级调用链信息。
+ */
 import type { VNode } from './vnode'
 import {
   type ComponentInternalInstance,

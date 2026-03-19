@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理模板引用的设置与管理，兼顾组件、元素和异步边界场景。
+ */
 import type { SuspenseBoundary } from './components/Suspense'
 import type { VNode, VNodeNormalizedRef, VNodeNormalizedRefAtom } from './vnode'
 import {

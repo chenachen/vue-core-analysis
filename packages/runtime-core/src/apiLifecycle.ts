@@ -1,3 +1,6 @@
+/**
+ * 文件说明：注册组合式 API 生命周期钩子，并把它们挂到组件内部实例上。
+ */
 import {
   type ComponentInternalInstance,
   currentInstance,

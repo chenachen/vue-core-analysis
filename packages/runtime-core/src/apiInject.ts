@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现依赖注入机制，提供 provide 和 inject 的运行时行为。
+ */
 import { isFunction } from '@vue/shared'
 import { currentInstance, getCurrentInstance } from './component'
 import { currentApp } from './apiCreateApp'

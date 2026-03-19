@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义异步组件的创建函数和选项接口，支持加载、错误和超时处理。
+ */
 import {
   type Component,
   type ComponentInternalInstance,

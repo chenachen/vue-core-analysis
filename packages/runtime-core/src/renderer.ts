@@ -1,3 +1,6 @@
+/**
+ * 文件说明：核心渲染器实现，包含 patch、mount、update、move、unmount 等关键渲染算法。
+ */
 import {
   Comment,
   Fragment,

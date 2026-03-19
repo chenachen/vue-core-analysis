@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 Teleport 组件，把子树渲染到当前 DOM 树之外的目标容器。
+ */
 import type { ComponentInternalInstance } from '../component'
 import type { SuspenseBoundary } from './Suspense'
 import {

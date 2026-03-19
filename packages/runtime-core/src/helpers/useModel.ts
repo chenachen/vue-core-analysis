@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 v-model 双向绑定的组合式 API。
+ */
 import { type Ref, customRef, ref } from '@vue/reactivity'
 import { EMPTY_OBJ, camelize, hasChanged, hyphenate } from '@vue/shared'
 import type { DefineModelOptions, ModelRef } from '../apiSetupHelpers'

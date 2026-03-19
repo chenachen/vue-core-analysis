@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现任务调度器，管理批量更新、异步任务队列和前后置渲染效果。
+ */
 import { ErrorCodes, callWithErrorHandling, handleError } from './errorHandling'
 import { NOOP, isArray } from '@vue/shared'
 import { type ComponentInternalInstance, getComponentName } from './component'

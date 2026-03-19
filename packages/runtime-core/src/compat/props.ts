@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 props 默认值工厂函数的 this 上下文行为。
+ */
 import { isArray } from '@vue/shared'
 import { inject } from '../apiInject'
 import type { ComponentInternalInstance, Data } from '../component'

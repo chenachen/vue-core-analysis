@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 异步组件格式，并把它们转换到 Vue 3 的异步组件实现。
+ */
 import { isArray, isObject, isPromise } from '@vue/shared'
 import { defineAsyncComponent } from '../apiAsyncComponent'
 import type { Component } from '../component'

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 render 函数语法，对 h 等能力做包装。
+ */
 import {
   ShapeFlags,
   extend,

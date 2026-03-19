@@ -1,3 +1,6 @@
+/**
+ * 文件说明：运行时资源解析函数，用于动态查找组件、指令等已注册资源。
+ */
 import {
   type ComponentOptions,
   type ConcreteComponent,

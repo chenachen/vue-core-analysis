@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 v-model 指令在 DOM 平台上的运行时逻辑，覆盖多种表单元素的双向绑定。
+ */
 import {
   type DirectiveBinding,
   type DirectiveHook,

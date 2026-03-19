@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理元素 class 的 patch 模块，合并过渡类名与动态类名。
+ */
 import { type ElementWithTransition, vtcKey } from '../components/Transition'
 
 // compiler should normalize class + :class bindings on the same element

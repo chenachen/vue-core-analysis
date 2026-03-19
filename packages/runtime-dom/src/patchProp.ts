@@ -1,3 +1,6 @@
+/**
+ * 文件说明：作为 DOM 属性分发总入口，根据属性类型把更新路由到 class、style、事件、attr 或 prop 模块。
+ */
 import { patchClass } from './modules/class'
 import { patchStyle } from './modules/style'
 import { patchAttr } from './modules/attrs'

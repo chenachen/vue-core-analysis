@@ -1,3 +1,6 @@
+/**
+ * 文件说明：提供组件渲染辅助逻辑，如根节点筛选、attrs 透传和 HOC 宿主元素更新。
+ */
 import {
   type ComponentInternalInstance,
   type Data,

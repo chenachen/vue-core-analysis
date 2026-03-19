@@ -1,3 +1,6 @@
+/**
+ * 文件说明：提供获取服务端渲染上下文的组合式 API。
+ */
 import { inject } from '../apiInject'
 import { warn } from '../warning'
 

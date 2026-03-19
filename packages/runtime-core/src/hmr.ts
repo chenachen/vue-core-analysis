@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现热模块替换运行时接口，支持开发环境下的组件热更新。
+ */
 /* eslint-disable no-restricted-globals */
 import {
   type ClassComponent,

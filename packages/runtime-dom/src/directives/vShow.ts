@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 v-show 指令，通过切换 display 样式来控制元素显隐，并支持过渡。
+ */
 import type { ObjectDirective } from '@vue/runtime-core'
 
 export const vShowOriginalDisplay: unique symbol = Symbol('_vod')

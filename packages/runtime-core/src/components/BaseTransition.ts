@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现基础过渡组件，为进入和离开阶段提供统一的动画钩子编排。
+ */
 import {
   type ComponentInternalInstance,
   type ComponentOptions,

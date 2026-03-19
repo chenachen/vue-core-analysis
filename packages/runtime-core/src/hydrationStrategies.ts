@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义异步组件的水合触发策略，如 idle 和 visible 两类延迟激活方案。
+ */
 import { getGlobalThis, isString } from '@vue/shared'
 import { DOMNodeTypes, isComment } from './hydration'
 

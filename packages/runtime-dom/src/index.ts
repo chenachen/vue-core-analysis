@@ -1,3 +1,6 @@
+/**
+ * 文件说明：runtime-dom 主入口，创建 DOM 渲染器并导出应用创建接口、内置指令和组件。
+ */
 import {
   type App,
   type CreateAppFunction,

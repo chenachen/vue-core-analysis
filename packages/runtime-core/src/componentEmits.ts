@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理组件事件发射和验证，支持事件类型检查与 emit 函数创建。
+ */
 import {
   EMPTY_OBJ,
   type OverloadParameters,

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：初始化 Vue 功能特性标志，配合构建时特性开关实现更好的 Tree-Shaking。
+ */
 import { getGlobalThis } from '@vue/shared'
 
 /**

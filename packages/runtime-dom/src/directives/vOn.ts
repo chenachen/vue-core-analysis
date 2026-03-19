@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 v-on 指令的运行时处理，包括事件修饰符和按键修饰符解析。
+ */
 import {
   type ComponentInternalInstance,
   DeprecationTypes,

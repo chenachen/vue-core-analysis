@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 Suspense 组件，协调异步依赖、主分支和 fallback 分支的切换。
+ */
 import {
   Comment,
   type VNode,

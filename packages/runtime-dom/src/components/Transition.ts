@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 DOM 平台的 Transition 组件，处理 CSS 过渡/动画以及相关类名切换。
+ */
 import {
   BaseTransition,
   type BaseTransitionProps,

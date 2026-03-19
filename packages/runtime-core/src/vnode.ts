@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义虚拟节点 VNode 结构及其创建、规范化、克隆等核心操作。
+ */
 import {
   EMPTY_ARR,
   PatchFlags,

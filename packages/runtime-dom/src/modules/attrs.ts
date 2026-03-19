@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理元素 attributes 的 patch 模块，覆盖布尔属性、命名空间属性等场景。
+ */
 import {
   NOOP,
   includeBooleanAttr,

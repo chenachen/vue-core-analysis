@@ -1,3 +1,6 @@
+/**
+ * 文件说明：解析和规范化组件 props，负责类型检查、默认值和 attrs fallthrough 的边界划分。
+ */
 import {
   TriggerOpTypes,
   shallowReactive,

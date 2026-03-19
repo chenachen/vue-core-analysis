@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 函数式组件写法，包装成 Vue 3 可运行的形式。
+ */
 import {
   type ComponentOptions,
   type FunctionalComponent,

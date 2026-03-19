@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 Vue 应用实例的创建和配置，包括全局注册、插件安装和挂载卸载流程。
+ */
 import {
   type Component,
   type ComponentInternalInstance,

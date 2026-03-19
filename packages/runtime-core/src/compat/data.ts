@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 data 选项的深度合并逻辑。
+ */
 import { isPlainObject } from '@vue/shared'
 import { DeprecationTypes, warnDeprecation } from './compatConfig'
 

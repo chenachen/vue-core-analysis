@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义组件公开实例代理，让模板和用户代码按统一规则访问公开属性。
+ */
 import {
   type Component,
   type ComponentInternalInstance,

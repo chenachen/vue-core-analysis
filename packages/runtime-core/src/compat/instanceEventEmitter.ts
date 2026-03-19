@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 的 $on、$off、$once 事件 API。
+ */
 import { isArray } from '@vue/shared'
 import type { ComponentInternalInstance } from '../component'
 import { ErrorCodes, callWithAsyncErrorHandling } from '../errorHandling'

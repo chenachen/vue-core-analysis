@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 TransitionGroup 组件，为列表中的元素应用过渡和移动动画效果。
+ */
 import {
   type ElementWithTransition,
   type TransitionProps,

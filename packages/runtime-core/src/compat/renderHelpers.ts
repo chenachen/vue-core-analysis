@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 render 助手函数，如绑定 props、listeners 等旧式辅助逻辑。
+ */
 import {
   camelize,
   extend,

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 Vue DevTools 集成接口和钩子管理。
+ */
 /* eslint-disable no-restricted-globals */
 import type { App } from './apiCreateApp'
 import { Comment, Fragment, Static, Text } from './vnode'
