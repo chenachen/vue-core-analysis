@@ -45,13 +45,15 @@ function targetTypeMap(rawType: string) {
   switch (rawType) {
     case 'Object':
     case 'Array':
-      // 普通对象和数组是一种处理
+      // 普通对象和数组都走 baseHandlers：
+      // 核心是对属性访问 / 设置 / ownKeys / has 这些对象语义做拦截。
       return TargetType.COMMON
     case 'Map':
     case 'Set':
     case 'WeakMap':
     case 'WeakSet':
-      // map set 对象又是另外一种处理方式
+      // Collection 类型不能只靠 get/set/deleteProperty 这些对象 trap，
+      // 还要额外劫持 get / set / add / delete / clear / forEach / 迭代器 等原型方法。
       return TargetType.COLLECTION
     default:
       return TargetType.INVALID
@@ -60,6 +62,8 @@ function targetTypeMap(rawType: string) {
 
 // 获取对象的类型
 function getTargetType(value: Target) {
+  // 被 markRaw 标记，或者对象已经不可扩展时，都直接跳过代理：
+  // 这类对象要么显式声明保持原样，要么继续定义隐藏属性/缓存代理的收益很低且风险更高。
   return value[ReactiveFlags.SKIP] || !Object.isExtensible(value)
     ? TargetType.INVALID
     : targetTypeMap(toRawType(value))
@@ -272,7 +276,7 @@ function createReactiveObject(
   collectionHandlers: ProxyHandler<any>,
   proxyMap: WeakMap<Target, any>,
 ) {
-  // reactive需要传入一个对象
+  // reactive/readonly 只能代理对象；基本类型保持原值返回。
   if (!isObject(target)) {
     if (__DEV__) {
       warn(
@@ -283,28 +287,30 @@ function createReactiveObject(
     }
     return target
   }
-  // target is already a Proxy, return it.
-  // exception: calling readonly() on a reactive object
-  // 如果已经被代理，并且不是尝试用readonly()传入一个响应式对象 例子 readonly(reactive({}))
+  // target 已经是某种 Vue Proxy 时通常直接复用。
+  // 唯一例外是 readonly(reactive(obj))：
+  // 这里不能直接返回 reactive proxy，而是要再包一层 readonly proxy，
+  // 否则调用者拿到的仍然是可写代理。
   if (
     target[ReactiveFlags.RAW] &&
     !(isReadonly && target[ReactiveFlags.IS_REACTIVE])
   ) {
     return target
   }
-  // only specific value types can be observed.
-  // 获取当前对象的类型，如果时非法对象则直接返回该值
+  // 只有 Object / Array / Map / Set / WeakMap / WeakSet 才会真正建立响应式代理。
+  // 其余类型（例如 Date / RegExp / Promise / 不可扩展对象）直接原样返回。
   const targetType = getTargetType(target)
   if (targetType === TargetType.INVALID) {
     return target
   }
-  // target already has corresponding Proxy
-  // 如果已经被代理过了，则直接返回该代理对象
+  // 同一个原对象在同一种代理模式下只创建一次，保证：
+  // 1. reactive(obj) === reactive(obj)
+  // 2. 依赖收集/触发始终围绕同一个 proxy 进行
   const existingProxy = proxyMap.get(target)
   if (existingProxy) {
     return existingProxy
   }
-  // 创建代理对象，并基于源对象存储在proxyMap
+  // 普通对象和集合类型走不同的一组 handlers，但都会把“原对象 -> 代理对象”缓存起来。
   const proxy = new Proxy(
     target,
     targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers,

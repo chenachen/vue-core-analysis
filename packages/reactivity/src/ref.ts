@@ -96,7 +96,7 @@ export function shallowRef(value?: unknown) {
 }
 
 function createRef(rawValue: unknown, shallow: boolean) {
-  // 如果已经是ref了，直接返回
+  // ref/shallowRef 都是幂等的：再次包裹已有 ref 时直接复用，避免出现 ref(ref(x)) 这种多层壳。
   if (isRef(rawValue)) {
     return rawValue
   }
@@ -117,8 +117,10 @@ class RefImpl<T = any> {
   public readonly [ReactiveFlags.IS_SHALLOW]: boolean = false
 
   constructor(value: T, isShallow: boolean) {
+    // _rawValue 用来做“值是否变化”的比较，尽量基于原始值而不是代理值比较，
+    // 避免传入 reactive 对象时因为代理身份不同而误判。
     this._rawValue = isShallow ? value : toRaw(value)
-    // 如果不是浅监听，则使用reactive进行深度监听
+    // _value 才是对外暴露的值：深 ref 会把对象递归转成 reactive，浅 ref 则完全保留原值。
     this._value = isShallow ? value : toReactive(value)
     this[ReactiveFlags.IS_SHALLOW] = isShallow
   }
@@ -139,7 +141,8 @@ class RefImpl<T = any> {
 
   set value(newValue) {
     const oldValue = this._rawValue
-    // 判断是否直接使用传入的值
+    // shallowRef / shallowReactive / readonly 值都不再继续深度转换，
+    // 否则普通对象会在这里被解成 raw 后重新包成 reactive。
     const useDirectValue =
       this[ReactiveFlags.IS_SHALLOW] ||
       isShallow(newValue) ||
@@ -255,7 +258,8 @@ export function toValue<T>(source: MaybeRefOrGetter<T>): T {
   return isFunction(source) ? source() : unref(source)
 }
 
-// 浅层代理
+// proxyRefs 只做一层 ref 解包：
+// 读取时把顶层 ref 自动变成 .value，写入时如果旧值是 ref 且新值不是 ref，则改写 oldRef.value。
 const shallowUnwrapHandlers: ProxyHandler<any> = {
   get: (target, key, receiver) =>
     key === ReactiveFlags.RAW
@@ -308,17 +312,20 @@ class CustomRefImpl<T> {
 
   constructor(factory: CustomRefFactory<T>) {
     const dep = (this.dep = new Dep())
-    // 传入工厂函数，自定义如何进行依赖收集和触发
+    // customRef 把 track/trigger 两个底层能力交给用户，
+    // 用户可以自行决定何时收集依赖、何时触发更新（例如防抖/节流）。
     const { get, set } = factory(dep.track.bind(dep), dep.trigger.bind(dep))
     this._get = get
     this._set = set
   }
 
   get value() {
+    // 实际依赖收集逻辑由 factory 内部何时调用 track() 决定。
     return (this._value = this._get())
   }
 
   set value(newVal) {
+    // 实际触发逻辑也交由 factory 决定，因此这里仅透传。
     this._set(newVal)
   }
 }
@@ -358,7 +365,8 @@ export function toRefs<T extends object>(object: T): ToRefs<T> {
   return ret
 }
 
-// 一个包含value属性的对象的封装
+// 把 reactive 对象上的某个属性包装成 Ref 视图：
+// 读写仍然落回原对象本身，所以 source[key] 和 toRef(source, key).value 永远保持同步。
 class ObjectRefImpl<T extends object, K extends keyof T> {
   public readonly [ReactiveFlags.IS_REF] = true
   public _value: T[K] = undefined!
@@ -379,6 +387,8 @@ class ObjectRefImpl<T extends object, K extends keyof T> {
   }
 
   get dep(): Dep | undefined {
+    // 只有当 _object 本身是 reactive，并且这个 key 曾经被追踪过时，才会拿到已有 dep。
+    // 这个 getter 主要给 triggerRef / 调试场景复用，不会为了 toRef 单独创建新依赖。
     return getDepFromReactive(toRaw(this._object), this._key)
   }
 }
@@ -390,6 +400,7 @@ class GetterRefImpl<T> {
 
   constructor(private readonly _getter: () => T) {}
   get value() {
+    // getter 型 toRef 是只读的，每次访问都实时执行 getter，不做缓存。
     return (this._value = this._getter())
   }
 }
@@ -467,7 +478,7 @@ export function toRef(
     // 如果是一个函数，则返回一个包装.value的对象
     return new GetterRefImpl(source) as any
   } else if (isObject(source) && arguments.length > 1) {
-    // 如果是对象，则根据属性去返回
+    // toRef(obj, key) 不会复制值，而是建立一个和源属性双向同步的 Ref 外观。
     return propertyToRef(source, key!, defaultValue)
   } else {
     // 如果都不是以上情景，则直接返回一个ref对象
@@ -481,6 +492,7 @@ function propertyToRef(
   defaultValue?: unknown,
 ) {
   const val = source[key]
+  // 如果源属性本来就是 ref，直接返回，避免额外套一层 ObjectRefImpl。
   return isRef(val)
     ? val
     : (new ObjectRefImpl(source, key, defaultValue) as any)

@@ -186,6 +186,8 @@ export class ReactiveEffect<T = any>
       // 运行函数
       return this.fn()
     } finally {
+      // run() 结束时 activeSub 理论上必须回到当前 effect；
+      // 如果中途被错误改写，后续依赖收集就会串到别的订阅者上，所以这里会在开发环境报警。
       if (__DEV__ && activeSub !== this) {
         warn(
           'Active effect was not restored correctly - ' +
@@ -347,8 +349,9 @@ function prepareDeps(sub: Subscriber) {
     // which ones are unused after the run
     // 设置为-1，以便追踪运行后哪些订阅没有使用
     link.version = -1
-    // store previous active sub if link was being used in another context
-    // link组成链表,应对嵌套的effect？暂时没发现啥作用，注释掉用例也能通过
+    // 记录 dep.activeLink 的旧值。
+    // 同一个 dep 可能在嵌套 effect / computed 求值过程中被不同订阅者暂时占用，
+    // 这里先保存现场，cleanupDeps 时再恢复，避免内层求值覆盖外层上下文。
     link.prevActiveLink = link.dep.activeLink
     link.dep.activeLink = link
   }

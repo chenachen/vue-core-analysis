@@ -220,8 +220,9 @@ export function watch(
         ? () => call(source, WatchErrorCodes.WATCH_GETTER)
         : (source as () => any)
     } else {
-      // no cb -> simple effect
-      // 没有cb则对应这种场景
+      // no cb -> watchEffect
+      // 没有 cb 时对应 watchEffect 风格：
+      // source 自己就是副作用函数，执行过程中读取到的响应式数据会自动成为依赖。
       // test('effect', () => {
       //   let dummy: any
       //   const source = ref(0)
@@ -309,7 +310,8 @@ export function watch(
       return
     }
     if (cb) {
-      // watch(source, cb)， 执行effect函数得到新值
+      // watch(source, cb) 的 effect.run() 只负责重新求出“新值”，
+      // 真正是否调用用户回调，要结合 deep / forceTrigger / hasChanged 一起判断。
       const newValue = effect.run()
       if (
         deep ||
@@ -318,7 +320,7 @@ export function watch(
           ? (newValue as any[]).some((v, i) => hasChanged(v, oldValue[i]))
           : hasChanged(newValue, oldValue))
       ) {
-        // 深度监听或强制触发或值发生变更，执行以下逻辑
+        // 深度监听、强制触发，或者前后值确实变化时，才真正触发用户回调。
         // cleanup before running cb again
         // 执行回调函数前先执行清理函数
         if (cleanup) {
