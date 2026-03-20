@@ -1,3 +1,6 @@
+/**
+ * `<script setup>` 顶层 `await` 改写辅助。
+ */
 import type { AwaitExpression } from '@babel/types'
 import type { ScriptCompileContext } from './context'
 

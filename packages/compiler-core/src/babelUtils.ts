@@ -1,3 +1,9 @@
+/**
+ * Babel AST 辅助工具。
+ *
+ * `transformExpression`、`compiler-sfc` 等模块都会借助这里提供的遍历与识别能力，
+ * 在不引入 Babel runtime 依赖的前提下分析标识符引用、作用域和 TS 包装节点。
+ */
 // should only use types from @babel/types
 // do not import runtime methods
 import type {
@@ -14,7 +20,7 @@ import type {
 import { walk } from 'estree-walker'
 
 /**
- * Return value indicates whether the AST walked can be a constant
+ * 深度遍历一段 Babel AST，并把遇到的标识符交给回调处理。
  */
 export function walkIdentifiers(
   root: Node,
@@ -104,6 +110,9 @@ export function walkIdentifiers(
   })
 }
 
+/**
+ * 判断一个标识符在当前 Babel AST 语境中是否属于“被引用”而不是“被声明”。
+ */
 export function isReferencedIdentifier(
   id: Identifier,
   parent: Node | null,
@@ -141,6 +150,9 @@ export function isReferencedIdentifier(
   return false
 }
 
+/**
+ * 判断当前节点是否位于解构赋值语句内部。
+ */
 export function isInDestructureAssignment(
   parent: Node,
   parentStack: Node[],
@@ -162,6 +174,9 @@ export function isInDestructureAssignment(
   return false
 }
 
+/**
+ * 判断当前 parent 栈是否处于 `new Foo()` 表达式内部。
+ */
 export function isInNewExpression(parentStack: Node[]): boolean {
   let i = parentStack.length
   while (i--) {
@@ -175,6 +190,9 @@ export function isInNewExpression(parentStack: Node[]): boolean {
   return false
 }
 
+/**
+ * 遍历函数参数列表，提取其中声明出来的所有标识符。
+ */
 export function walkFunctionParams(
   node: Function,
   onIdent: (id: Identifier) => void,
@@ -186,6 +204,9 @@ export function walkFunctionParams(
   }
 }
 
+/**
+ * 遍历块级语句，把其中引入的新局部变量统一交给回调处理。
+ */
 export function walkBlockDeclarations(
   block: BlockStatement | Program,
   onIdent: (node: Identifier) => void,
@@ -210,6 +231,9 @@ export function walkBlockDeclarations(
   }
 }
 
+/**
+ * 判断节点是否属于 `for` / `for...in` / `for...of` 语句。
+ */
 function isForStatement(
   stmt: Node,
 ): stmt is ForStatement | ForOfStatement | ForInStatement {
@@ -220,6 +244,9 @@ function isForStatement(
   )
 }
 
+/**
+ * 抽取 for 语句中会引入局部绑定的声明部分。
+ */
 function walkForStatement(
   stmt: ForStatement | ForOfStatement | ForInStatement,
   isVar: boolean,
@@ -239,6 +266,9 @@ function walkForStatement(
   }
 }
 
+/**
+ * 从任意参数 / 模式节点里提取所有实际声明的标识符。
+ */
 export function extractIdentifiers(
   param: Node,
   nodes: Identifier[] = [],
@@ -284,6 +314,9 @@ export function extractIdentifiers(
   return nodes
 }
 
+/**
+ * 为当前作用域里的已知标识符增加一次引用计数。
+ */
 function markKnownIds(name: string, knownIds: Record<string, number>) {
   if (name in knownIds) {
     knownIds[name]++
@@ -292,6 +325,9 @@ function markKnownIds(name: string, knownIds: Record<string, number>) {
   }
 }
 
+/**
+ * 把一个标识符登记到指定作用域节点的 `scopeIds` 集合中。
+ */
 function markScopeIdentifier(
   node: Node & { scopeIds?: Set<string> },
   child: Identifier,
@@ -305,6 +341,9 @@ function markScopeIdentifier(
   ;(node.scopeIds || (node.scopeIds = new Set())).add(name)
 }
 
+/**
+ * 判断节点是否属于函数 / 方法类节点。
+ */
 export const isFunctionType = (node: Node): node is Function => {
   return /Function(?:Expression|Declaration)$|Method$/.test(node.type)
 }
@@ -325,6 +364,9 @@ export const isStaticPropertyKey = (node: Node, parent: Node): boolean =>
  *
  * https://github.com/babel/babel/blob/main/LICENSE
  *
+ */
+/**
+ * 结合父节点与祖父节点语义，判断一个 AST 节点是否是“被引用的值”。
  */
 function isReferenced(node: Node, parent: Node, grandparent?: Node): boolean {
   switch (parent.type) {
@@ -504,6 +546,9 @@ export const TS_NODE_TYPES: string[] = [
   'TSSatisfiesExpression', // foo satisfies T
 ]
 
+/**
+ * 去掉 TS 专用包装节点，拿到真正有语义价值的内部节点。
+ */
 export function unwrapTSNode(node: Node): Node {
   if (TS_NODE_TYPES.includes(node.type)) {
     return unwrapTSNode((node as any).expression)

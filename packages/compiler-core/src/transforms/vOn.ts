@@ -1,3 +1,12 @@
+/**
+ * `v-on` transform。
+ *
+ * 它会把事件名转成最终的 handler key，并按需处理：
+ * - 行内语句包装成函数
+ * - 作用域引用分析
+ * - handler 缓存
+ * - 组件与原生元素在事件名大小写上的差异
+ */
 import type { DirectiveTransform, DirectiveTransformResult } from '../transform'
 import {
   type DirectiveNode,
@@ -26,6 +35,9 @@ export interface VOnDirectiveNode extends DirectiveNode {
   exp: SimpleExpressionNode | undefined
 }
 
+/**
+ * 把 `v-on:click="handler"` 这类写法改写成形如 `onClick: handler` 的 props。
+ */
 export const transformOn: DirectiveTransform = (
   dir,
   node,

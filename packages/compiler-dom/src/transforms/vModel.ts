@@ -1,3 +1,9 @@
+/**
+ * DOM 版 `v-model` transform。
+ *
+ * 它在复用 core `v-model` 处理结果的基础上，再按原生元素类型选择
+ * 对应的运行时指令实现，例如 text / checkbox / radio / select。
+ */
 import {
   type DirectiveTransform,
   ElementTypes,
@@ -17,6 +23,9 @@ import {
   V_MODEL_TEXT,
 } from '../runtimeHelpers'
 
+/**
+ * 为原生表单元素选择合适的 DOM `v-model` 运行时 helper。
+ */
 export const transformModel: DirectiveTransform = (dir, node, context) => {
   const baseResult = baseTransform(dir, node, context)
   // base transform has errors OR component v-model (only need props)
@@ -33,6 +42,9 @@ export const transformModel: DirectiveTransform = (dir, node, context) => {
     )
   }
 
+  /**
+   * 检查元素上是否额外声明了会与 `v-model` 冲突的 `value` 绑定。
+   */
   function checkDuplicatedValue() {
     const value = findDir(node, 'bind')
     if (value && isStaticArgOf(value.arg, 'value')) {

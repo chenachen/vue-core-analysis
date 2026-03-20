@@ -1,3 +1,6 @@
+/**
+ * 模板中普通资源 URL 的编译期改写。
+ */
 import path from 'path'
 import {
   ConstantTypes,
@@ -147,6 +150,9 @@ export const transformAssetUrl: NodeTransform = (
   }
 }
 
+/**
+ * 为单个资源路径创建导入表达式，必要时复用已有 import / hoist。
+ */
 function getImportsExpressionExp(
   path: string | null,
   hash: string | null,

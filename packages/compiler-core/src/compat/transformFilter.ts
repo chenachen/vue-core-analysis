@@ -1,3 +1,9 @@
+/**
+ * Vue 2 filters 兼容 transform。
+ *
+ * Vue 3 已移除 filters，这里只在 compat 模式下把 `a | b` 这种旧语法
+ * 改写成运行时 filter 调用表达式，并给出相应弃用提示。
+ */
 import { RESOLVE_FILTER } from '../runtimeHelpers'
 import {
   type AttributeNode,
@@ -16,6 +22,9 @@ import { toValidAssetId } from '../utils'
 
 const validDivisionCharRE = /[\w).+\-_$\]]/
 
+/**
+ * 在 compat 模式下扫描插值和指令表达式，把 filters 语法改写成函数调用。
+ */
 export const transformFilter: NodeTransform = (node, context) => {
   if (!isCompatEnabled(CompilerDeprecationTypes.COMPILER_FILTERS, context)) {
     return
@@ -38,6 +47,9 @@ export const transformFilter: NodeTransform = (node, context) => {
   }
 }
 
+/**
+ * 递归重写一个表达式节点里的 filter 片段。
+ */
 function rewriteFilter(node: ExpressionNode, context: TransformContext) {
   if (node.type === NodeTypes.SIMPLE_EXPRESSION) {
     parseFilter(node, context)
@@ -56,6 +68,9 @@ function rewriteFilter(node: ExpressionNode, context: TransformContext) {
   }
 }
 
+/**
+ * 在线性扫描表达式字符串时拆出 `| filter` 语法片段。
+ */
 function parseFilter(node: SimpleExpressionNode, context: TransformContext) {
   const exp = node.content
   let inSingle = false
@@ -150,6 +165,9 @@ function parseFilter(node: SimpleExpressionNode, context: TransformContext) {
     pushFilter()
   }
 
+  /**
+   * 记录当前扫描到的一个 filter 片段，并推进游标。
+   */
   function pushFilter() {
     filters.push(exp.slice(lastFilterIndex, i).trim())
     lastFilterIndex = i + 1
@@ -171,6 +189,9 @@ function parseFilter(node: SimpleExpressionNode, context: TransformContext) {
   }
 }
 
+/**
+ * 把单个 filter 片段包成真正的函数调用表达式字符串。
+ */
 function wrapFilter(
   exp: string,
   filter: string,

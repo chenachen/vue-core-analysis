@@ -1,3 +1,12 @@
+/**
+ * SFC `<template>` 编译入口。
+ *
+ * 这一层负责把 SFC block 里的模板源码接到真正的模板编译器上，并补齐：
+ * - 预处理语言（pug 等）
+ * - 资源 URL 改写
+ * - scopeId / slotted / CSS vars 注入
+ * - 与 parse 阶段 source map 的二次对齐
+ */
 import {
   type CodegenResult,
   type CompilerError,
@@ -80,6 +89,12 @@ interface PreProcessor {
   ): void
 }
 
+/**
+ * 同步执行模板预处理器。
+ *
+ * `consolidate` 提供的是回调风格 API，但这里要兼容 Jest 等同步编译场景，
+ * 所以会在确认预处理器同步返回的前提下把它包成同步结果。
+ */
 function preprocess(
   { source, filename, preprocessOptions }: SFCTemplateCompileOptions,
   preprocessor: PreProcessor,
@@ -104,6 +119,12 @@ function preprocess(
   return res
 }
 
+/**
+ * 编译 SFC `<template>` block。
+ *
+ * 如果声明了模板预处理语言，会先经过预处理；否则直接进入 `doCompileTemplate`
+ * 调用 `compiler-dom` / `compiler-ssr` 的真正编译入口。
+ */
 export function compileTemplate(
   options: SFCTemplateCompileOptions,
 ): SFCTemplateCompileResults {
@@ -159,6 +180,12 @@ export function compileTemplate(
   }
 }
 
+/**
+ * 执行真正的模板编译。
+ *
+ * 这一层负责选择默认编译器、拼接 node transforms、处理 AST 复用策略，
+ * 并把 SFC 维度的 `scopeId` / `cssVars` / source map 信息注入到模板编译流程中。
+ */
 function doCompileTemplate({
   filename,
   id,
@@ -274,6 +301,9 @@ function doCompileTemplate({
   return { code, ast, preamble, source, errors, tips, map }
 }
 
+/**
+ * 把模板编译产出的 source map 再映射回整份 `.vue` 文件。
+ */
 function mapLines(oldMap: RawSourceMap, newMap: RawSourceMap): RawSourceMap {
   if (!oldMap) return newMap
   if (!newMap) return oldMap
@@ -327,6 +357,9 @@ function mapLines(oldMap: RawSourceMap, newMap: RawSourceMap): RawSourceMap {
   return generator.toJSON()
 }
 
+/**
+ * 把模板编译错误的位置回补为 SFC 原始源码中的位置。
+ */
 function patchErrors(
   errors: CompilerError[],
   source: string,

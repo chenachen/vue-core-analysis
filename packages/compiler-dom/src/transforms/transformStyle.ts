@@ -1,3 +1,9 @@
+/**
+ * 静态 style 属性 transform。
+ *
+ * 它会把 `style="color:red"` 这样的静态内联样式，
+ * 预先改写成等价的动态 `:style="{ color: 'red' }"` 表达式节点。
+ */
 import {
   ConstantTypes,
   type NodeTransform,
@@ -14,6 +20,9 @@ import { parseStringStyle } from '@vue/shared'
 // style="color: red" -> :style='{ "color": "red" }'
 // It is then processed by `transformElement` and included in the generated
 // props.
+/**
+ * 把静态 `style` 属性转换成动态 style 绑定表达式。
+ */
 export const transformStyle: NodeTransform = node => {
   if (node.type === NodeTypes.ELEMENT) {
     node.props.forEach((p, i) => {
@@ -32,6 +41,9 @@ export const transformStyle: NodeTransform = node => {
   }
 }
 
+/**
+ * 把 CSS 文本解析成对象并包成可字符串化的简单表达式。
+ */
 const parseInlineCSS = (
   cssText: string,
   loc: SourceLocation,

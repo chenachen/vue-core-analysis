@@ -1,3 +1,6 @@
+/**
+ * 模板中 `srcset` 资源的编译期改写。
+ */
 import path from 'path'
 import {
   ConstantTypes,
@@ -69,6 +72,9 @@ export const transformSrcset: NodeTransform = (
             }
           }
 
+          /**
+           * 判断某个 srcset URL 是否需要进入资源改写流程。
+           */
           const shouldProcessUrl = (url: string) => {
             return (
               url &&

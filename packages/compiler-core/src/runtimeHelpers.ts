@@ -1,3 +1,9 @@
+/**
+ * 编译器与运行时之间的 helper 协议表。
+ *
+ * 编译阶段不会直接 import 运行时函数，而是先通过 symbol 标记出需要的 helper，
+ * 再在 codegen 阶段根据 `helperNameMap` 生成对应 import / 解构语句。
+ */
 export const FRAGMENT: unique symbol = Symbol(__DEV__ ? `Fragment` : ``)
 export const TELEPORT: unique symbol = Symbol(__DEV__ ? `Teleport` : ``)
 export const SUSPENSE: unique symbol = Symbol(__DEV__ ? `Suspense` : ``)
@@ -125,6 +131,9 @@ export const helperNameMap: Record<symbol, string> = {
   [IS_MEMO_SAME]: `isMemoSame`,
 }
 
+/**
+ * 让上层编译器为已有 helperNameMap 追加新的 helper 映射。
+ */
 export function registerRuntimeHelpers(helpers: Record<symbol, string>): void {
   Object.getOwnPropertySymbols(helpers).forEach(s => {
     helperNameMap[s] = helpers[s]

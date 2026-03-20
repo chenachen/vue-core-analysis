@@ -1,3 +1,11 @@
+/**
+ * 元素/组件 codegen transform。
+ *
+ * 它会在所有子节点和指令都处理完成后，为元素节点统一生成 VNodeCall：
+ * - 解析 tag 是原生元素、组件还是动态组件
+ * - 组装 props / children / directives
+ * - 推导 patchFlag、dynamicProps 与是否需要 block
+ */
 import type { NodeTransform, TransformContext } from '../transform'
 import {
   type ArrayExpression,
@@ -70,6 +78,9 @@ import { processExpression } from './transformExpression'
 const directiveImportMap = new WeakMap<DirectiveNode, symbol>()
 
 // generate a JavaScript AST for this element's codegen
+/**
+ * 在退出阶段为元素或组件节点生成最终的 `VNodeCall`。
+ */
 export const transformElement: NodeTransform = (node, context) => {
   // perform the work on exit, after all child expressions have been
   // processed and merged.
@@ -224,6 +235,9 @@ export const transformElement: NodeTransform = (node, context) => {
   }
 }
 
+/**
+ * 解析组件节点最终应该使用的 tag 表达式。
+ */
 export function resolveComponentType(
   node: ComponentNode,
   context: TransformContext,
@@ -319,6 +333,9 @@ export function resolveComponentType(
   return toValidAssetId(tag, `component`)
 }
 
+/**
+ * 在 `<script setup>` 绑定元信息中解析组件名对应的可访问表达式。
+ */
 function resolveSetupReference(name: string, context: TransformContext) {
   const bindings = context.bindingMetadata
   if (!bindings || bindings.__isScriptSetup === false) {
@@ -327,6 +344,9 @@ function resolveSetupReference(name: string, context: TransformContext) {
 
   const camelName = camelize(name)
   const PascalName = capitalize(camelName)
+  /**
+   * 按原名 / camelCase / PascalCase 三种形式在 script setup 绑定里查找匹配项。
+   */
   const checkType = (type: BindingTypes) => {
     if (bindings[name] === type) {
       return name
@@ -371,6 +391,9 @@ function resolveSetupReference(name: string, context: TransformContext) {
 
 export type PropsExpression = ObjectExpression | CallExpression | ExpressionNode
 
+/**
+ * 把元素上的属性与指令统一编译成 props 表达式、运行时指令列表与 patchFlag。
+ */
 export function buildProps(
   node: ElementNode,
   context: TransformContext,
@@ -402,6 +425,9 @@ export function buildProps(
   let hasVnodeHook = false
   const dynamicPropNames: string[] = []
 
+  /**
+   * 把当前已收集的静态 props 刷入 merge 参数列表。
+   */
   const pushMergeArg = (arg?: PropsExpression) => {
     if (properties.length) {
       mergeArgs.push(
@@ -413,6 +439,9 @@ export function buildProps(
   }
 
   // mark template ref on v-for
+  /**
+   * 在 `v-for` 场景下为 template ref 打上 `ref_for` 标记。
+   */
   const pushRefVForMarker = () => {
     if (context.scopes.vFor > 0) {
       properties.push(
@@ -424,6 +453,9 @@ export function buildProps(
     }
   }
 
+  /**
+   * 扫描单个 prop 对 patchFlag、dynamicProps、hydration 标记的影响。
+   */
   const analyzePatchFlag = ({ key, value }: Property) => {
     if (isStaticExp(key)) {
       const name = key.content
@@ -836,6 +868,9 @@ export function buildProps(
 // modifiers. We also need to merge static and dynamic class / style attributes.
 // - onXXX handlers / style: merge into array
 // - class: merge into single expression with concatenation
+/**
+ * 对对象字面量中的 props 去重，并合并 class/style/onXxx 这类可叠加属性。
+ */
 function dedupeProperties(properties: Property[]): Property[] {
   const knownProps: Map<string, Property> = new Map()
   const deduped: Property[] = []
@@ -861,6 +896,9 @@ function dedupeProperties(properties: Property[]): Property[] {
   return deduped
 }
 
+/**
+ * 把重复属性值合并成数组表达式。
+ */
 function mergeAsArray(existing: Property, incoming: Property) {
   if (existing.value.type === NodeTypes.JS_ARRAY_EXPRESSION) {
     existing.value.elements.push(incoming.value)
@@ -872,6 +910,9 @@ function mergeAsArray(existing: Property, incoming: Property) {
   }
 }
 
+/**
+ * 为运行时指令调用构建参数数组。
+ */
 export function buildDirectiveArgs(
   dir: DirectiveNode,
   context: TransformContext,
@@ -923,6 +964,9 @@ export function buildDirectiveArgs(
   return createArrayExpression(dirArgs, dir.loc)
 }
 
+/**
+ * 把动态 props 名列表序列化成代码里的字符串数组字面量。
+ */
 function stringifyDynamicPropNames(props: string[]): string {
   let propsNamesString = `[`
   for (let i = 0, l = props.length; i < l; i++) {
@@ -932,6 +976,9 @@ function stringifyDynamicPropNames(props: string[]): string {
   return propsNamesString + `]`
 }
 
+/**
+ * 判断标签是否是显式动态组件占位符 `<component>`。
+ */
 function isComponentTag(tag: string) {
   return tag === 'component' || tag === 'Component'
 }

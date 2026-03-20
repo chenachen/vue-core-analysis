@@ -1,3 +1,9 @@
+/**
+ * `v-if / v-else-if / v-else` transform。
+ *
+ * 它会把线性的模板节点重组为 `IF` / `IF_BRANCH` AST 结构，
+ * 再在退出阶段生成条件表达式或分支 block 的 codegen 节点。
+ */
 import {
   type NodeTransform,
   type TransformContext,
@@ -35,6 +41,9 @@ import { CREATE_COMMENT, FRAGMENT } from '../runtimeHelpers'
 import { findDir, findProp, getMemoedVNodeCall, injectProp } from '../utils'
 import { PatchFlags } from '@vue/shared'
 
+/**
+ * 结构型 `v-if` transform 入口。
+ */
 export const transformIf: NodeTransform = createStructuralDirectiveTransform(
   /^(if|else|else-if)$/,
   (node, dir, context) => {
@@ -76,6 +85,9 @@ export const transformIf: NodeTransform = createStructuralDirectiveTransform(
 )
 
 // target-agnostic transform used for both Client and SSR
+/**
+ * 把单个 `v-if` 系列指令归并到对应的 `IfNode`/`IfBranchNode` 结构中。
+ */
 export function processIf(
   node: ElementNode,
   dir: DirectiveNode,
@@ -205,6 +217,9 @@ export function processIf(
   }
 }
 
+/**
+ * 为当前分支构造 `IfBranchNode`。
+ */
 function createIfBranch(node: ElementNode, dir: DirectiveNode): IfBranchNode {
   const isTemplateIf = node.tagType === ElementTypes.TEMPLATE
   return {
@@ -217,6 +232,9 @@ function createIfBranch(node: ElementNode, dir: DirectiveNode): IfBranchNode {
   }
 }
 
+/**
+ * 为某个分支生成 codegen 入口：有条件则生成条件表达式，否则直接输出子节点。
+ */
 function createCodegenNodeForBranch(
   branch: IfBranchNode,
   keyIndex: number,
@@ -238,6 +256,9 @@ function createCodegenNodeForBranch(
   }
 }
 
+/**
+ * 为某个 `v-if` / `v-else-if` / `v-else` 分支生成最终的子树 codegen 入口。
+ */
 function createChildrenCodegenNode(
   branch: IfBranchNode,
   keyIndex: number,
@@ -304,6 +325,9 @@ function createChildrenCodegenNode(
   }
 }
 
+/**
+ * 判断相邻条件分支上的 key 是否语义等价。
+ */
 function isSameKey(
   a: AttributeNode | DirectiveNode | undefined,
   b: AttributeNode | DirectiveNode,
@@ -333,6 +357,9 @@ function isSameKey(
   return true
 }
 
+/**
+ * 取出一串嵌套条件表达式里最末尾、可继续挂接 alternate 的父条件节点。
+ */
 function getParentCondition(
   node: IfConditionalExpression | CacheExpression,
 ): IfConditionalExpression {

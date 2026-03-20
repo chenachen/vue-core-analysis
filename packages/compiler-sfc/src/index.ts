@@ -1,6 +1,13 @@
+/**
+ * SFC 编译入口。
+ *
+ * `compiler-sfc` 负责把 `.vue` 文件拆成 template / script / style / custom block，
+ * 再分别调用 `compiler-dom` 与 `compiler-core` 提供的能力完成编译。
+ * 它是“单文件组件外壳”，而不是新的模板编译内核。
+ */
 export const version: string = __VERSION__
 
-// API
+// 对外暴露的主入口：先 parse，再按 block 分别 compile。
 export { parse } from './parse'
 export { compileTemplate } from './compileTemplate'
 export { compileStyle, compileStyleAsync } from './compileStyle'
@@ -44,7 +51,7 @@ export { invalidateTypeCache, registerTS } from './script/resolveType'
 export { extractRuntimeProps } from './script/defineProps'
 export { extractRuntimeEmits } from './script/defineEmits'
 
-// Types
+// 对外公开的描述符与编译结果类型。
 export type {
   SFCParseOptions,
   SFCParseResult,

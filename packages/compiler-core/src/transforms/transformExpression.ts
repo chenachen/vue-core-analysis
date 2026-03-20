@@ -1,3 +1,10 @@
+/**
+ * 表达式 transform。
+ *
+ * 它负责把模板中的简单 JS 表达式升级成更适合 codegen 的结构，
+ * 同时在 `prefixIdentifiers` 模式下把裸标识符改写成 `_ctx.xxx`、`$setup.xxx`
+ * 等更精确的访问形式。
+ */
 // - Parse expressions in templates into compound expressions so that each
 //   identifier gets more accurate source-map locations.
 //
@@ -46,6 +53,9 @@ import { BindingTypes } from '../options'
 
 const isLiteralWhitelisted = /*@__PURE__*/ makeMap('true,false,null,this')
 
+/**
+ * 处理插值、动态参数和指令表达式中的标识符改写。
+ */
 export const transformExpression: NodeTransform = (node, context) => {
   if (node.type === NodeTypes.INTERPOLATION) {
     node.content = processExpression(
@@ -101,6 +111,9 @@ interface PrefixMeta {
 // Important: since this function uses Node.js only dependencies, it should
 // always be used with a leading !__BROWSER__ check so that it can be
 // tree-shaken from the browser build.
+/**
+ * 把一个简单表达式改写成带上下文前缀的表达式节点。
+ */
 export function processExpression(
   node: SimpleExpressionNode,
   context: TransformContext,
@@ -141,6 +154,9 @@ export function processExpression(
       const isDestructureAssignment =
         parent && isInDestructureAssignment(parent, parentStack)
       const isNewExpression = parent && isInNewExpression(parentStack)
+      /**
+       * 在需要时为 setup 绑定包上 `unref()`，并兼容 `new` 表达式语境。
+       */
       const wrapWithUnref = (raw: string) => {
         const wrapped = `${context.helperString(UNREF)}(${raw})`
         return isNewExpression ? `(${wrapped})` : wrapped
@@ -389,6 +405,9 @@ export function processExpression(
   return ret
 }
 
+/**
+ * 判断一个标识符在当前上下文下是否允许被自动加前缀。
+ */
 function canPrefix(id: Identifier) {
   // skip whitelisted globals
   if (isGloballyAllowed(id.name)) {
@@ -401,6 +420,9 @@ function canPrefix(id: Identifier) {
   return true
 }
 
+/**
+ * 把表达式节点重新序列化回字符串。
+ */
 export function stringifyExpression(exp: ExpressionNode | string): string {
   if (isString(exp)) {
     return exp
@@ -413,6 +435,9 @@ export function stringifyExpression(exp: ExpressionNode | string): string {
   }
 }
 
+/**
+ * 判断某个 binding 类型是否可视为常量。
+ */
 function isConst(type: unknown) {
   return (
     type === BindingTypes.SETUP_CONST || type === BindingTypes.LITERAL_CONST

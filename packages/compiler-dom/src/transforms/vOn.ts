@@ -1,3 +1,11 @@
+/**
+ * DOM 版 `v-on` transform。
+ *
+ * 相比 core 只负责基础事件 key/handler 生成，这里额外处理：
+ * - `.stop` / `.prevent` 等运行时修饰符
+ * - `.once` / `.capture` / `.passive` 等事件选项修饰符
+ * - `.left` / `.right` / 键盘修饰符等 DOM 事件语义
+ */
 import {
   CompilerDeprecationTypes,
   type DirectiveTransform,
@@ -30,6 +38,9 @@ const isNonKeyModifier = /*@__PURE__*/ makeMap(
 const maybeKeyModifier = /*@__PURE__*/ makeMap('left,right')
 const isKeyboardEvent = /*@__PURE__*/ makeMap(`onkeyup,onkeydown,onkeypress`)
 
+/**
+ * 把一组修饰符拆分成键盘修饰符、非键盘修饰符和事件选项修饰符三类。
+ */
 const resolveModifiers = (
   key: ExpressionNode,
   modifiers: SimpleExpressionNode[],
@@ -89,6 +100,9 @@ const resolveModifiers = (
   }
 }
 
+/**
+ * 把 `click.right` / `click.middle` 这类修饰符改写成真实会触发的事件名。
+ */
 const transformClick = (key: ExpressionNode, event: string) => {
   const isStaticClick =
     isStaticExp(key) && key.content.toLowerCase() === 'onclick'
@@ -105,6 +119,9 @@ const transformClick = (key: ExpressionNode, event: string) => {
       : key
 }
 
+/**
+ * 在 core `v-on` 结果上继续叠加 DOM 事件修饰符包装。
+ */
 export const transformOn: DirectiveTransform = (dir, node, context) => {
   return baseTransform(dir, node, context, baseResult => {
     const { modifiers } = dir

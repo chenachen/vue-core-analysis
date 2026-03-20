@@ -1,3 +1,6 @@
+/**
+ * 处理 `<script setup>` 中的 `defineEmits` 宏。
+ */
 import type {
   ArrayPattern,
   Identifier,
@@ -16,6 +19,9 @@ import {
 
 export const DEFINE_EMITS = 'defineEmits'
 
+/**
+ * 识别并登记 `defineEmits()` 调用。
+ */
 export function processDefineEmits(
   ctx: ScriptCompileContext,
   node: Node,
@@ -45,6 +51,9 @@ export function processDefineEmits(
   return true
 }
 
+/**
+ * 生成运行时 `emits` 选项代码，并在存在 `defineModel` 时合并 model update 事件。
+ */
 export function genRuntimeEmits(ctx: ScriptCompileContext): string | undefined {
   let emitsDecl = ''
   if (ctx.emitsRuntimeDecl) {
@@ -70,6 +79,9 @@ export function genRuntimeEmits(ctx: ScriptCompileContext): string | undefined {
   return emitsDecl
 }
 
+/**
+ * 从类型声明形式的 `defineEmits` 中提取运行时事件名集合。
+ */
 export function extractRuntimeEmits(ctx: TypeResolveContext): Set<string> {
   const emits = new Set<string>()
   const node = ctx.emitsTypeDecl!
@@ -102,6 +114,9 @@ export function extractRuntimeEmits(ctx: TypeResolveContext): Set<string> {
   return emits
 }
 
+/**
+ * 从函数参数的字符串字面量联合类型中提取事件名。
+ */
 function extractEventNames(
   ctx: TypeResolveContext,
   eventName: ArrayPattern | Identifier | ObjectPattern | RestElement,

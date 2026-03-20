@@ -1,3 +1,12 @@
+/**
+ * render 函数代码生成器。
+ *
+ * transform 阶段已经把模板 AST 改写成更接近运行时代码的数据结构，
+ * 这里负责把这些结构稳定地串成 JS 源码字符串与 source map：
+ * - 先生成 import / helper / hoist 等前导代码
+ * - 再输出 `render` / `ssrRender` 函数壳子
+ * - 最后递归生成 VNode、表达式、条件分支、缓存表达式等具体代码片段
+ */
 import type { CodegenOptions } from './options'
 import {
   type ArrayExpression,
@@ -101,6 +110,9 @@ interface MappingItem {
 
 const PURE_ANNOTATION = `/*@__PURE__*/`
 
+/**
+ * 把 helper symbol 转成解构别名片段，如 `openBlock: _openBlock`。
+ */
 const aliasHelper = (s: symbol) => `${helperNameMap[s]}: _${helperNameMap[s]}`
 
 type CodegenNode = TemplateChildNode | JSChildNode | SSRCodegenNode
@@ -136,6 +148,12 @@ export interface CodegenContext
   newline(): void
 }
 
+/**
+ * 创建本次 codegen 共用的上下文对象。
+ *
+ * 它维护输出中的光标位置、缩进层级、helpers 别名、source map 写入能力，
+ * 所有 `genXxx` 函数都会围绕它协作，把 AST 渐进式写入 `context.code`。
+ */
 function createCodegenContext(
   ast: RootNode,
   {
@@ -247,10 +265,16 @@ function createCodegenContext(
     },
   }
 
+  /**
+   * 按当前缩进层级输出换行与缩进空格。
+   */
   function newline(n: number) {
     context.push('\n' + `  `.repeat(n), NewlineType.Start)
   }
 
+  /**
+   * 向 source map 追加一条当前位置与源码位置之间的映射。
+   */
   function addMapping(loc: Position, name: string | null = null) {
     // we use the private property to directly add the mapping
     // because the addMapping() implementation in source-map-js has a bunch of
@@ -278,6 +302,12 @@ function createCodegenContext(
   return context
 }
 
+/**
+ * 代码生成总入口。
+ *
+ * 它会先准备 preamble，再包裹出完整的 render 函数签名，
+ * 接着按根节点上的 `codegenNode` 递归输出最终的 JS 代码字符串。
+ */
 export function generate(
   ast: RootNode,
   options: CodegenOptions & {
@@ -403,6 +433,12 @@ export function generate(
   }
 }
 
+/**
+ * 生成函数模式下的前导代码。
+ *
+ * 函数模式通常用于浏览器 runtime compiler，helpers 会从全局 `Vue`
+ * 或 CommonJS `require()` 拿到，再在 render 函数作用域里使用。
+ */
 function genFunctionPreamble(ast: RootNode, context: CodegenContext) {
   const {
     ssr,
@@ -465,6 +501,12 @@ function genFunctionPreamble(ast: RootNode, context: CodegenContext) {
   push(`return `)
 }
 
+/**
+ * 生成模块模式下的前导代码。
+ *
+ * 模块模式面向打包器，直接输出 `import` / `export`，让生成的 render
+ * 函数可以被 tree-shaking、scopeId 注入与 bundler 优化正常处理。
+ */
 function genModulePreamble(
   ast: RootNode,
   context: CodegenContext,
@@ -532,6 +574,12 @@ function genModulePreamble(
   }
 }
 
+/**
+ * 生成组件 / 指令 / filter 的解析语句。
+ *
+ * 模板里引用的组件与指令并不是直接内联值，而是先被解析成局部常量，
+ * 后续真正创建 VNode 时只需要引用这些常量即可。
+ */
 function genAssets(
   assets: string[],
   type: 'component' | 'directive' | 'filter',
@@ -562,6 +610,9 @@ function genAssets(
   }
 }
 
+/**
+ * 输出 transform 阶段收集到的静态提升常量。
+ */
 function genHoists(hoists: (JSChildNode | null)[], context: CodegenContext) {
   if (!hoists.length) {
     return
@@ -582,6 +633,9 @@ function genHoists(hoists: (JSChildNode | null)[], context: CodegenContext) {
   context.pure = false
 }
 
+/**
+ * 生成额外的 import 语句。
+ */
 function genImports(importsOptions: ImportItem[], context: CodegenContext) {
   if (!importsOptions.length) {
     return
@@ -594,6 +648,9 @@ function genImports(importsOptions: ImportItem[], context: CodegenContext) {
   })
 }
 
+/**
+ * 判断一项内容是否属于可直接内联输出的“文本型”节点。
+ */
 function isText(n: string | CodegenNode) {
   return (
     isString(n) ||
@@ -604,6 +661,9 @@ function isText(n: string | CodegenNode) {
   )
 }
 
+/**
+ * 把一组节点按数组字面量形式输出。
+ */
 function genNodeListAsArray(
   nodes: (string | CodegenNode | TemplateChildNode[])[],
   context: CodegenContext,
@@ -618,6 +678,12 @@ function genNodeListAsArray(
   context.push(`]`)
 }
 
+/**
+ * 按顺序输出一组 codegen 参数。
+ *
+ * 它是许多 `genXxx` 的基础能力，负责处理字符串、节点、节点数组以及逗号、
+ * 换行策略，让上层生成器能更专注于表达式语义而不是排版细节。
+ */
 function genNodeList(
   nodes: (string | symbol | CodegenNode | TemplateChildNode[])[],
   context: CodegenContext,
@@ -645,6 +711,12 @@ function genNodeList(
   }
 }
 
+/**
+ * 根据节点类型分派到不同的 `genXxx` 生成器。
+ *
+ * 可以把它看作 codegen 阶段的总路由：transform 产出的各种 codegen node
+ * 最终都会在这里进入各自的输出分支。
+ */
 function genNode(node: CodegenNode | symbol | string, context: CodegenContext) {
   if (isString(node)) {
     context.push(node, NewlineType.Unknown)
@@ -742,6 +814,9 @@ function genNode(node: CodegenNode | symbol | string, context: CodegenContext) {
   }
 }
 
+/**
+ * 生成简单文本节点。
+ */
 function genText(
   node: TextNode | SimpleExpressionNode,
   context: CodegenContext,
@@ -749,6 +824,9 @@ function genText(
   context.push(JSON.stringify(node.content), NewlineType.Unknown, node)
 }
 
+/**
+ * 生成简单表达式节点。
+ */
 function genExpression(node: SimpleExpressionNode, context: CodegenContext) {
   const { content, isStatic } = node
   context.push(
@@ -758,6 +836,9 @@ function genExpression(node: SimpleExpressionNode, context: CodegenContext) {
   )
 }
 
+/**
+ * 生成插值表达式，会包裹 `toDisplayString()`。
+ */
 function genInterpolation(node: InterpolationNode, context: CodegenContext) {
   const { push, helper, pure } = context
   if (pure) push(PURE_ANNOTATION)
@@ -766,6 +847,9 @@ function genInterpolation(node: InterpolationNode, context: CodegenContext) {
   push(`)`)
 }
 
+/**
+ * 顺序输出复合表达式的各个子片段。
+ */
 function genCompoundExpression(
   node: CompoundExpressionNode,
   context: CodegenContext,
@@ -780,6 +864,9 @@ function genCompoundExpression(
   }
 }
 
+/**
+ * 生成对象属性 key，对静态 key、动态 key 和复合 key 做不同处理。
+ */
 function genExpressionAsPropertyKey(
   node: ExpressionNode,
   context: CodegenContext,
@@ -800,6 +887,9 @@ function genExpressionAsPropertyKey(
   }
 }
 
+/**
+ * 生成注释 VNode 调用。
+ */
 function genComment(node: CommentNode, context: CodegenContext) {
   const { push, helper, pure } = context
   if (pure) {
@@ -812,6 +902,14 @@ function genComment(node: CommentNode, context: CodegenContext) {
   )
 }
 
+/**
+ * 生成 VNode 创建调用。
+ *
+ * 这是模板生成阶段最核心的代码输出点之一：
+ * - 根据是否为 block 选择不同 helper
+ * - 拼接 tag / props / children / patchFlag / dynamicProps
+ * - 必要时再包上 directives 与 block tracking
+ */
 function genVNodeCall(node: VNodeCall, context: CodegenContext) {
   const { push, helper, pure } = context
   const {
@@ -875,6 +973,9 @@ function genVNodeCall(node: VNodeCall, context: CodegenContext) {
   }
 }
 
+/**
+ * 去掉尾部多余的空参数，并把中间空位显式补成 `null`。
+ */
 function genNullableArgs(args: any[]): CallExpression['arguments'] {
   let i = args.length
   while (i--) {
@@ -884,6 +985,9 @@ function genNullableArgs(args: any[]): CallExpression['arguments'] {
 }
 
 // JavaScript
+/**
+ * 生成普通函数调用表达式。
+ */
 function genCallExpression(node: CallExpression, context: CodegenContext) {
   const { push, helper, pure } = context
   const callee = isString(node.callee) ? node.callee : helper(node.callee)
@@ -895,6 +999,9 @@ function genCallExpression(node: CallExpression, context: CodegenContext) {
   push(`)`)
 }
 
+/**
+ * 生成对象表达式。
+ */
 function genObjectExpression(node: ObjectExpression, context: CodegenContext) {
   const { push, indent, deindent, newline } = context
   const { properties } = node
@@ -925,10 +1032,16 @@ function genObjectExpression(node: ObjectExpression, context: CodegenContext) {
   push(multilines ? `}` : ` }`)
 }
 
+/**
+ * 生成数组表达式。
+ */
 function genArrayExpression(node: ArrayExpression, context: CodegenContext) {
   genNodeListAsArray(node.elements as CodegenNode[], context)
 }
 
+/**
+ * 生成功能性回调、slot 函数或 renderList 迭代器函数。
+ */
 function genFunctionExpression(
   node: FunctionExpression,
   context: CodegenContext,
@@ -974,6 +1087,9 @@ function genFunctionExpression(
   }
 }
 
+/**
+ * 生成三元条件表达式，并在需要时做多行排版。
+ */
 function genConditionalExpression(
   node: ConditionalExpression,
   context: CodegenContext,
@@ -1010,6 +1126,9 @@ function genConditionalExpression(
   needNewline && deindent(true /* without newline */)
 }
 
+/**
+ * 生成 `_cache[x]` 形式的缓存表达式。
+ */
 function genCacheExpression(node: CacheExpression, context: CodegenContext) {
   const { push, helper, indent, deindent, newline } = context
   const { needPauseTracking, needArraySpread } = node
@@ -1041,6 +1160,9 @@ function genCacheExpression(node: CacheExpression, context: CodegenContext) {
   }
 }
 
+/**
+ * 生成模板字符串表达式。
+ */
 function genTemplateLiteral(node: TemplateLiteral, context: CodegenContext) {
   const { push, indent, deindent } = context
   push('`')
@@ -1061,6 +1183,9 @@ function genTemplateLiteral(node: TemplateLiteral, context: CodegenContext) {
   push('`')
 }
 
+/**
+ * 生成 if 语句。
+ */
 function genIfStatement(node: IfStatement, context: CodegenContext) {
   const { push, indent, deindent } = context
   const { test, consequent, alternate } = node
@@ -1085,6 +1210,9 @@ function genIfStatement(node: IfStatement, context: CodegenContext) {
   }
 }
 
+/**
+ * 生成赋值表达式。
+ */
 function genAssignmentExpression(
   node: AssignmentExpression,
   context: CodegenContext,
@@ -1094,6 +1222,9 @@ function genAssignmentExpression(
   genNode(node.right, context)
 }
 
+/**
+ * 生成顺序表达式。
+ */
 function genSequenceExpression(
   node: SequenceExpression,
   context: CodegenContext,
@@ -1103,6 +1234,9 @@ function genSequenceExpression(
   context.push(`)`)
 }
 
+/**
+ * 生成 return 语句。
+ */
 function genReturnStatement(
   { returns }: ReturnStatement,
   context: CodegenContext,

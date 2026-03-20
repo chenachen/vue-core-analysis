@@ -1,3 +1,9 @@
+/**
+ * Vue 模板 AST 与 codegen AST 的数据结构定义。
+ *
+ * parser 阶段先创建模板 AST，transform 再基于这些类型逐步补齐 codegen 节点；
+ * 这里同时也提供一组工厂函数，方便各阶段稳定地创建中间表示。
+ */
 import { type PatchFlags, isString } from '@vue/shared'
 import {
   CREATE_BLOCK,
@@ -588,6 +594,9 @@ export const locStub: SourceLocation = {
   source: '',
 }
 
+/**
+ * 创建根节点。
+ */
 export function createRoot(
   children: TemplateChildNode[],
   source = '',
@@ -608,6 +617,9 @@ export function createRoot(
   }
 }
 
+/**
+ * 创建一个 VNode 调用描述对象，并按需登记所需 runtime helpers。
+ */
 export function createVNodeCall(
   context: TransformContext | null,
   tag: VNodeCall['tag'],
@@ -648,6 +660,9 @@ export function createVNodeCall(
   }
 }
 
+/**
+ * 创建数组表达式节点。
+ */
 export function createArrayExpression(
   elements: ArrayExpression['elements'],
   loc: SourceLocation = locStub,
@@ -659,6 +674,9 @@ export function createArrayExpression(
   }
 }
 
+/**
+ * 创建对象表达式节点。
+ */
 export function createObjectExpression(
   properties: ObjectExpression['properties'],
   loc: SourceLocation = locStub,
@@ -670,6 +688,9 @@ export function createObjectExpression(
   }
 }
 
+/**
+ * 创建对象属性节点；字符串 key 会被自动包装成静态表达式。
+ */
 export function createObjectProperty(
   key: Property['key'] | string,
   value: Property['value'],
@@ -682,6 +703,9 @@ export function createObjectProperty(
   }
 }
 
+/**
+ * 创建简单表达式节点。
+ */
 export function createSimpleExpression(
   content: SimpleExpressionNode['content'],
   isStatic: SimpleExpressionNode['isStatic'] = false,
@@ -697,6 +721,9 @@ export function createSimpleExpression(
   }
 }
 
+/**
+ * 创建插值节点；字符串内容会自动包装成简单表达式。
+ */
 export function createInterpolation(
   content: InterpolationNode['content'] | string,
   loc: SourceLocation,
@@ -710,6 +737,9 @@ export function createInterpolation(
   }
 }
 
+/**
+ * 创建复合表达式节点。
+ */
 export function createCompoundExpression(
   children: CompoundExpressionNode['children'],
   loc: SourceLocation = locStub,
@@ -725,6 +755,9 @@ type InferCodegenNodeType<T> = T extends typeof RENDER_SLOT
   ? RenderSlotCall
   : CallExpression
 
+/**
+ * 创建 JS 调用表达式节点。
+ */
 export function createCallExpression<T extends CallExpression['callee']>(
   callee: T,
   args: CallExpression['arguments'] = [],
@@ -738,6 +771,9 @@ export function createCallExpression<T extends CallExpression['callee']>(
   } as InferCodegenNodeType<T>
 }
 
+/**
+ * 创建函数表达式节点，常用于 slot 函数与 renderList 回调。
+ */
 export function createFunctionExpression(
   params: FunctionExpression['params'],
   returns: FunctionExpression['returns'] = undefined,
@@ -755,6 +791,9 @@ export function createFunctionExpression(
   }
 }
 
+/**
+ * 创建条件表达式节点。
+ */
 export function createConditionalExpression(
   test: ConditionalExpression['test'],
   consequent: ConditionalExpression['consequent'],
@@ -771,6 +810,9 @@ export function createConditionalExpression(
   }
 }
 
+/**
+ * 创建缓存表达式节点，对应 render 中的 `_cache[x]` 包装。
+ */
 export function createCacheExpression(
   index: number,
   value: JSChildNode,
@@ -788,6 +830,9 @@ export function createCacheExpression(
   }
 }
 
+/**
+ * 创建块语句节点。
+ */
 export function createBlockStatement(
   body: BlockStatement['body'],
 ): BlockStatement {
@@ -798,6 +843,9 @@ export function createBlockStatement(
   }
 }
 
+/**
+ * 创建模板字符串节点。
+ */
 export function createTemplateLiteral(
   elements: TemplateLiteral['elements'],
 ): TemplateLiteral {
@@ -808,6 +856,9 @@ export function createTemplateLiteral(
   }
 }
 
+/**
+ * 创建 if 语句节点。
+ */
 export function createIfStatement(
   test: IfStatement['test'],
   consequent: IfStatement['consequent'],
@@ -822,6 +873,9 @@ export function createIfStatement(
   }
 }
 
+/**
+ * 创建赋值表达式节点。
+ */
 export function createAssignmentExpression(
   left: AssignmentExpression['left'],
   right: AssignmentExpression['right'],
@@ -834,6 +888,9 @@ export function createAssignmentExpression(
   }
 }
 
+/**
+ * 创建顺序表达式节点。
+ */
 export function createSequenceExpression(
   expressions: SequenceExpression['expressions'],
 ): SequenceExpression {
@@ -844,6 +901,9 @@ export function createSequenceExpression(
   }
 }
 
+/**
+ * 创建 return 语句节点。
+ */
 export function createReturnStatement(
   returns: ReturnStatement['returns'],
 ): ReturnStatement {
@@ -854,6 +914,9 @@ export function createReturnStatement(
   }
 }
 
+/**
+ * 根据 SSR/组件标记选择普通 VNode helper。
+ */
 export function getVNodeHelper(
   ssr: boolean,
   isComponent: boolean,
@@ -861,6 +924,9 @@ export function getVNodeHelper(
   return ssr || isComponent ? CREATE_VNODE : CREATE_ELEMENT_VNODE
 }
 
+/**
+ * 根据 SSR/组件标记选择 block 版 VNode helper。
+ */
 export function getVNodeBlockHelper(
   ssr: boolean,
   isComponent: boolean,
@@ -868,6 +934,9 @@ export function getVNodeBlockHelper(
   return ssr || isComponent ? CREATE_BLOCK : CREATE_ELEMENT_BLOCK
 }
 
+/**
+ * 把普通 VNode 调用升级成 block 调用。
+ */
 export function convertToBlock(
   node: VNodeCall,
   { helper, removeHelper, inSSR }: TransformContext,

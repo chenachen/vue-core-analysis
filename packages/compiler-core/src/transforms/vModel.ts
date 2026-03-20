@@ -1,3 +1,11 @@
+/**
+ * 通用 `v-model` transform。
+ *
+ * 它负责把 `v-model` 编译成：
+ * - 传入组件/元素的 value prop
+ * - 对应的 `onUpdate:*` 事件处理函数
+ * 同时也会处理 `<script setup>` inline 模式下的 ref / let 绑定差异。
+ */
 import type { DirectiveTransform } from '../transform'
 import {
   ConstantTypes,
@@ -20,6 +28,9 @@ import { IS_REF } from '../runtimeHelpers'
 import { BindingTypes } from '../options'
 import { camelize } from '@vue/shared'
 
+/**
+ * 把 `v-model` 改写成 prop + update 事件这一对运行时协议。
+ */
 export const transformModel: DirectiveTransform = (dir, node, context) => {
   const { exp, arg } = dir
   if (!exp) {
@@ -155,6 +166,9 @@ export const transformModel: DirectiveTransform = (dir, node, context) => {
   return createTransformProps(props)
 }
 
+/**
+ * 为 transform 结果创建统一返回结构。
+ */
 function createTransformProps(props: Property[] = []) {
   return { props }
 }

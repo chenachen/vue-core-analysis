@@ -1,3 +1,14 @@
+/**
+ * 模板解析器。
+ *
+ * 这一层不直接自己逐字符扫描模板，而是借助 `tokenizer.ts` 先把源码切成
+ * 文本、标签、属性、插值等 token，再在这些回调里逐步组装 AST。
+ *
+ * 可以把它理解成“语法树装配车间”：
+ * - tokenizer 负责识别当前读到了什么
+ * - parser 负责决定这些 token 在 Vue AST 里应该长成什么节点
+ * - 同时补充 SourceLocation、平台命名空间、`v-pre` / `pre` / SFC 特殊规则
+ */
 import {
   type AttributeNode,
   ConstantTypes,
@@ -85,6 +96,8 @@ let currentOptions: MergedParserOptions = defaultParserOptions
 let currentRoot: RootNode | null = null
 
 // parser state
+// 这些状态变量会在一次 parse 生命周期内被 tokenizer 回调持续读写，
+// 用来描述“当前正在构建哪个标签 / 属性 / 文本区间”。
 let currentInput = ''
 let currentOpenTag: ElementNode | null = null
 let currentProp: AttributeNode | DirectiveNode | null = null
@@ -492,6 +505,12 @@ const tokenizer = new Tokenizer(stack, {
 const forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/
 const stripParensRE = /^\(|\)$/g
 
+/**
+ * 解析 `v-for="(value, key, index) in list"` 这样的表达式。
+ *
+ * 它的目标不是执行 JS，而是把 `source / value / key / index` 四个逻辑片段
+ * 拆成独立的 `SimpleExpressionNode`，供后续 `vFor` transform 继续处理。
+ */
 function parseForExpression(
   input: SimpleExpressionNode,
 ): ForParseResult | undefined {
@@ -565,10 +584,21 @@ function parseForExpression(
   return result
 }
 
+/**
+ * 从原始输入里截取指定范围的源码片段。
+ */
 function getSlice(start: number, end: number) {
   return currentInput.slice(start, end)
 }
 
+/**
+ * 结束开始标签的构造流程。
+ *
+ * 这里会把 `currentOpenTag` 真正挂到 AST 上，并根据标签特征决定：
+ * - 是否进入 `pre` / XML 模式
+ * - 是否应当立刻闭合（void tag）
+ * - 是否需要压栈，等待后续读取子节点与结束标签
+ */
 function endOpenTag(end: number) {
   if (tokenizer.inSFCRoot) {
     // in SFC mode, generate locations for root-level tags' inner content.
@@ -590,6 +620,14 @@ function endOpenTag(end: number) {
   currentOpenTag = null
 }
 
+/**
+ * 处理文本 token。
+ *
+ * parser 会在这里把 tokenizer 输出的原始文本合并进当前父节点：
+ * - 浏览器构建下按需做 HTML entity 解码
+ * - 如果前一个兄弟节点也是文本，则直接合并，减少 AST 噪音
+ * - 否则创建新的 `TEXT` 节点
+ */
 function onText(content: string, start: number, end: number) {
   if (__BROWSER__) {
     const tag = stack[0] && stack[0].tag
@@ -612,6 +650,15 @@ function onText(content: string, start: number, end: number) {
   }
 }
 
+/**
+ * 处理闭合标签，并在元素真正完成后做一轮“收尾”。
+ *
+ * 这一步会集中补齐：
+ * - 元素结束位置、SFC `innerLoc`
+ * - `slot` / `template` / component 等更精确的 `tagType`
+ * - whitespace 压缩、`pre` / `v-pre` 状态恢复
+ * - compat 模式下的遗留语法兼容与警告
+ */
 function onCloseTag(el: ElementNode, end: number, isImplied = false) {
   // attach end position
   if (isImplied) {
@@ -751,12 +798,18 @@ function onCloseTag(el: ElementNode, end: number, isImplied = false) {
   }
 }
 
+/**
+ * 向前搜索最近一个目标字符的位置。
+ */
 function lookAhead(index: number, c: number) {
   let i = index
   while (currentInput.charCodeAt(i) !== c && i < currentInput.length - 1) i++
   return i
 }
 
+/**
+ * 向后回溯最近一个目标字符的位置。
+ */
 function backTrack(index: number, c: number) {
   let i = index
   while (currentInput.charCodeAt(i) !== c && i >= 0) i--
@@ -764,6 +817,9 @@ function backTrack(index: number, c: number) {
 }
 
 const specialTemplateDir = new Set(['if', 'else', 'else-if', 'for', 'slot'])
+/**
+ * 判断 `<template>` 是否承担结构型容器角色，而不是普通原生 template。
+ */
 function isFragmentTemplate({ tag, props }: ElementNode): boolean {
   if (tag === 'template') {
     for (let i = 0; i < props.length; i++) {
@@ -778,6 +834,9 @@ function isFragmentTemplate({ tag, props }: ElementNode): boolean {
   return false
 }
 
+/**
+ * 判断一个元素在当前平台配置下是否应被视为组件。
+ */
 function isComponent({ tag, props }: ElementNode): boolean {
   if (currentOptions.isCustomElement(tag)) {
     return false
@@ -828,11 +887,17 @@ function isComponent({ tag, props }: ElementNode): boolean {
   return false
 }
 
+/**
+ * 判断字符码是否是大写英文字母。
+ */
 function isUpperCase(c: number) {
   return c > 64 && c < 91
 }
 
 const windowsNewlineRE = /\r\n/g
+/**
+ * 按编译选项压缩并清理子节点列表里的空白文本。
+ */
 function condenseWhitespace(nodes: TemplateChildNode[]): TemplateChildNode[] {
   const shouldCondense = currentOptions.whitespace !== 'preserve'
   let removedWhitespace = false
@@ -881,6 +946,9 @@ function condenseWhitespace(nodes: TemplateChildNode[]): TemplateChildNode[] {
   return removedWhitespace ? nodes.filter(Boolean) : nodes
 }
 
+/**
+ * 判断整段字符串是否全部由空白字符组成。
+ */
 function isAllWhitespace(str: string) {
   for (let i = 0; i < str.length; i++) {
     if (!isWhitespace(str.charCodeAt(i))) {
@@ -890,6 +958,9 @@ function isAllWhitespace(str: string) {
   return true
 }
 
+/**
+ * 判断字符串里是否包含换行字符。
+ */
 function hasNewlineChar(str: string) {
   for (let i = 0; i < str.length; i++) {
     const c = str.charCodeAt(i)
@@ -900,6 +971,9 @@ function hasNewlineChar(str: string) {
   return false
 }
 
+/**
+ * 把连续空白压缩成单个空格。
+ */
 function condense(str: string) {
   let ret = ''
   let prevCharIsWhitespace = false
@@ -917,10 +991,16 @@ function condense(str: string) {
   return ret
 }
 
+/**
+ * 把新节点挂到当前父节点下。
+ */
 function addNode(node: TemplateChildNode) {
   ;(stack[0] || currentRoot).children.push(node)
 }
 
+/**
+ * 根据起止 offset 构造源码位置信息对象。
+ */
 function getLoc(start: number, end?: number): SourceLocation {
   return {
     start: tokenizer.getPos(start),
@@ -931,15 +1011,24 @@ function getLoc(start: number, end?: number): SourceLocation {
   }
 }
 
+/**
+ * 复制一份新的位置信息对象。
+ */
 export function cloneLoc(loc: SourceLocation): SourceLocation {
   return getLoc(loc.start.offset, loc.end.offset)
 }
 
+/**
+ * 补齐一个位置对象的结束位置与源码切片。
+ */
 function setLocEnd(loc: SourceLocation, end: number) {
   loc.end = tokenizer.getPos(end)
   loc.source = getSlice(loc.start.offset, end)
 }
 
+/**
+ * 把指令节点临时还原成属性节点，供 compat / 解析流程复用。
+ */
 function dirToAttr(dir: DirectiveNode): AttributeNode {
   const attr: AttributeNode = {
     type: NodeTypes.ATTRIBUTE,
@@ -976,6 +1065,12 @@ enum ExpParseMode {
   Skip,
 }
 
+/**
+ * 为指令表达式、插值表达式等创建 `SimpleExpressionNode`。
+ *
+ * 在 `prefixIdentifiers` 模式下，这里还会额外借助 Babel 预解析表达式，
+ * 让 transform 阶段可以拿到更可靠的 JS AST / identifier 信息。
+ */
 function createExp(
   content: SimpleExpressionNode['content'],
   isStatic: SimpleExpressionNode['isStatic'] = false,
@@ -1017,12 +1112,21 @@ function createExp(
   return exp
 }
 
+/**
+ * 统一发出解析阶段错误。
+ */
 function emitError(code: ErrorCodes, index: number, message?: string) {
   currentOptions.onError(
     createCompilerError(code, getLoc(index, index), undefined, message),
   )
 }
 
+/**
+ * 重置 parser 的全局状态。
+ *
+ * `parser.ts` 通过一组模块级变量配合 tokenizer 工作，所以每次新的 parse
+ * 开始前都必须先清空上一次留下的标签、属性与栈状态。
+ */
 function reset() {
   tokenizer.reset()
   currentOpenTag = null
@@ -1033,6 +1137,16 @@ function reset() {
   stack.length = 0
 }
 
+/**
+ * 模板字符串到根 AST 的入口。
+ *
+ * 这里负责：
+ * 1. 合并本次 parse 选项
+ * 2. 切换 tokenizer 的解析模式（base/html/sfc）
+ * 3. 根据自定义分隔符与命名空间调整 tokenizer 状态
+ * 4. 驱动 tokenizer 扫描整段模板
+ * 5. 在结束后补齐根节点位置信息，并统一做一轮 whitespace 压缩
+ */
 export function baseParse(input: string, options?: ParserOptions): RootNode {
   reset()
   currentInput = input

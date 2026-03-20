@@ -1,3 +1,9 @@
+/**
+ * compiler-core 通用工具集。
+ *
+ * 这里放的是多个阶段都会复用的小型判断与改写工具：
+ * 有些偏 AST 结构判断，有些偏源码位置信息处理，也有些专门服务于 props/VNode 生成。
+ */
 import {
   type BlockCodegenNode,
   type CacheExpression,
@@ -46,6 +52,9 @@ import { unwrapTSNode } from './babelUtils'
 export const isStaticExp = (p: JSChildNode): p is SimpleExpressionNode =>
   p.type === NodeTypes.SIMPLE_EXPRESSION && p.isStatic
 
+/**
+ * 识别 Vue 运行时内建组件，并返回对应 helper symbol。
+ */
 export function isCoreComponent(tag: string): symbol | void {
   switch (tag) {
     case 'Teleport':
@@ -230,6 +239,9 @@ export const isFnExpression: (
   context: TransformContext,
 ) => boolean = __BROWSER__ ? isFnExpressionBrowser : isFnExpressionNode
 
+/**
+ * 在不修改原对象的情况下推进源码位置信息。
+ */
 export function advancePositionWithClone(
   pos: Position,
   source: string,
@@ -248,6 +260,9 @@ export function advancePositionWithClone(
 
 // advance by mutation without cloning (for performance reasons), since this
 // gets called a lot in the parser
+/**
+ * 原地推进源码位置信息，避免 parser 热路径上的额外对象分配。
+ */
 export function advancePositionWithMutation(
   pos: Position,
   source: string,
@@ -272,6 +287,9 @@ export function advancePositionWithMutation(
   return pos
 }
 
+/**
+ * 内部断言工具，用于在开发环境快速暴露编译阶段的不变量被破坏的问题。
+ */
 export function assert(condition: boolean, msg?: string): void {
   /* v8 ignore next 3 */
   if (!condition) {
@@ -279,6 +297,9 @@ export function assert(condition: boolean, msg?: string): void {
   }
 }
 
+/**
+ * 在元素节点上查找指定名称的指令。
+ */
 export function findDir(
   node: ElementNode,
   name: string | RegExp,
@@ -296,6 +317,9 @@ export function findDir(
   }
 }
 
+/**
+ * 在元素节点上查找普通属性或静态参数形式的 `v-bind`。
+ */
 export function findProp(
   node: ElementNode,
   name: string,
@@ -319,6 +343,9 @@ export function findProp(
   }
 }
 
+/**
+ * 判断一个指令参数是否是给定名称的静态参数。
+ */
 export function isStaticArgOf(
   arg: DirectiveNode['arg'],
   name: string,
@@ -326,6 +353,9 @@ export function isStaticArgOf(
   return !!(arg && isStaticExp(arg) && arg.content === name)
 }
 
+/**
+ * 判断元素上是否存在会产生动态 key 的 `v-bind`。
+ */
 export function hasDynamicKeyVBind(node: ElementNode): boolean {
   return node.props.some(
     p =>
@@ -337,20 +367,32 @@ export function hasDynamicKeyVBind(node: ElementNode): boolean {
   )
 }
 
+/**
+ * 判断节点是否属于可直接合并处理的文本类节点。
+ */
 export function isText(
   node: TemplateChildNode,
 ): node is TextNode | InterpolationNode {
   return node.type === NodeTypes.INTERPOLATION || node.type === NodeTypes.TEXT
 }
 
+/**
+ * 判断属性节点是否是 `v-pre`。
+ */
 export function isVPre(p: ElementNode['props'][0]): p is DirectiveNode {
   return p.type === NodeTypes.DIRECTIVE && p.name === 'pre'
 }
 
+/**
+ * 判断属性节点是否是 `v-slot`。
+ */
 export function isVSlot(p: ElementNode['props'][0]): p is DirectiveNode {
   return p.type === NodeTypes.DIRECTIVE && p.name === 'slot'
 }
 
+/**
+ * 判断节点是否是会在 transform 阶段被编译消除的 template 容器节点。
+ */
 export function isTemplateNode(
   node: RootNode | TemplateChildNode,
 ): node is TemplateNode {
@@ -359,6 +401,9 @@ export function isTemplateNode(
   )
 }
 
+/**
+ * 判断节点是否是 `<slot>` 出口节点。
+ */
 export function isSlotOutlet(
   node: RootNode | TemplateChildNode,
 ): node is SlotOutletNode {
@@ -367,6 +412,9 @@ export function isSlotOutlet(
 
 const propsHelperSet = new Set([NORMALIZE_PROPS, GUARD_REACTIVE_PROPS])
 
+/**
+ * 沿着 helper 包装链回溯，拿到尚未被 normalize 的原始 props 表达式。
+ */
 function getUnnormalizedProps(
   props: PropsExpression | '{}',
   callPath: CallExpression[] = [],
@@ -386,6 +434,10 @@ function getUnnormalizedProps(
   }
   return [props, callPath]
 }
+
+/**
+ * 为一个 VNode / slot 调用注入新的 prop。
+ */
 export function injectProp(
   node: VNodeCall | RenderSlotCall,
   prop: Property,
@@ -473,6 +525,9 @@ export function injectProp(
 }
 
 // check existing key to avoid overriding user provided keys
+/**
+ * 检查目标对象表达式里是否已经存在同名 prop。
+ */
 function hasProp(prop: Property, props: ObjectExpression) {
   let result = false
   if (prop.key.type === NodeTypes.SIMPLE_EXPRESSION) {
@@ -486,6 +541,9 @@ function hasProp(prop: Property, props: ObjectExpression) {
   return result
 }
 
+/**
+ * 把组件/指令/过滤器名转成稳定且合法的局部变量名。
+ */
 export function toValidAssetId(
   name: string,
   type: 'component' | 'directive' | 'filter',
@@ -497,6 +555,9 @@ export function toValidAssetId(
 }
 
 // Check if a node contains expressions that reference current context scope ids
+/**
+ * 检查一段模板/表达式树里是否引用了当前作用域内的标识符。
+ */
 export function hasScopeRef(
   node:
     | TemplateChildNode
@@ -557,6 +618,9 @@ export function hasScopeRef(
   }
 }
 
+/**
+ * 从 `withMemo()` 包装结构中取回真正的 VNode 调用。
+ */
 export function getMemoedVNodeCall(
   node: BlockCodegenNode | MemoExpression,
 ): VNodeCall | RenderSlotCall {

@@ -1,3 +1,9 @@
+/**
+ * `v-html` DOM transform。
+ *
+ * 它会把 `v-html` 直接编译成 `innerHTML` prop，
+ * 并在缺失表达式或已有子节点时给出 DOM 专属错误。
+ */
 import {
   type DirectiveTransform,
   createObjectProperty,
@@ -5,6 +11,9 @@ import {
 } from '@vue/compiler-core'
 import { DOMErrorCodes, createDOMCompilerError } from '../errors'
 
+/**
+ * 把 `v-html` 改写成 `innerHTML` 赋值。
+ */
 export const transformVHtml: DirectiveTransform = (dir, node, context) => {
   const { exp, loc } = dir
   if (!exp) {

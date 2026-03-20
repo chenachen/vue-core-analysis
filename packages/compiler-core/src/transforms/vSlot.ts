@@ -1,3 +1,9 @@
+/**
+ * slot 构建 transform。
+ *
+ * 它负责收集组件上的默认 slot、`<template v-slot>`、条件 slot、循环 slot，
+ * 并生成最终传给组件 VNode 的 slots 对象表达式。
+ */
 import {
   type CallExpression,
   type ConditionalExpression,
@@ -43,6 +49,9 @@ const defaultFallback = createSimpleExpression(`undefined`, false)
 // 2. Track v-slot depths so that we know a slot is inside another slot.
 //    Note the exit callback is executed before buildSlots() on the same node,
 //    so only nested slots see positive numbers.
+/**
+ * 跟踪普通 scoped slot 引入的作用域变量与嵌套深度。
+ */
 export const trackSlotScopes: NodeTransform = (node, context) => {
   if (
     node.type === NodeTypes.ELEMENT &&
@@ -70,6 +79,9 @@ export const trackSlotScopes: NodeTransform = (node, context) => {
 
 // A NodeTransform that tracks scope identifiers for scoped slots with v-for.
 // This transform is only applied in non-browser builds with { prefixIdentifiers: true }
+/**
+ * 跟踪带 `v-for` 的 scoped slot 引入的循环别名作用域。
+ */
 export const trackVForSlotScopes: NodeTransform = (node, context) => {
   let vFor
   if (
@@ -102,6 +114,9 @@ export type SlotFnBuilder = (
   loc: SourceLocation,
 ) => FunctionExpression
 
+/**
+ * 默认的客户端 slot 函数构造器。
+ */
 const buildClientSlotFn: SlotFnBuilder = (props, _vForExp, children, loc) =>
   createFunctionExpression(
     props,
@@ -113,6 +128,9 @@ const buildClientSlotFn: SlotFnBuilder = (props, _vForExp, children, loc) =>
 
 // Instead of being a DirectiveTransform, v-slot processing is called during
 // transformElement to build the slots object for a component.
+/**
+ * 为组件节点构建最终的 slots 对象与动态 slot 列表。
+ */
 export function buildSlots(
   node: ElementNode,
   context: TransformContext,
@@ -369,6 +387,9 @@ export function buildSlots(
   }
 }
 
+/**
+ * 为动态 slot（条件 / 循环场景）生成统一的数据结构。
+ */
 function buildDynamicSlot(
   name: ExpressionNode,
   fn: FunctionExpression,
@@ -386,6 +407,9 @@ function buildDynamicSlot(
   return createObjectExpression(props)
 }
 
+/**
+ * 判断一组子节点是否包含会把父级 slot 动态性继续向上传递的内容。
+ */
 function hasForwardedSlots(children: TemplateChildNode[]): boolean {
   for (let i = 0; i < children.length; i++) {
     const child = children[i]
@@ -412,6 +436,9 @@ function hasForwardedSlots(children: TemplateChildNode[]): boolean {
   return false
 }
 
+/**
+ * 判断节点是否属于真正有内容的 slot 子节点，而不是纯空白文本。
+ */
 function isNonWhitespaceContent(node: TemplateChildNode): boolean {
   if (node.type !== NodeTypes.TEXT && node.type !== NodeTypes.TEXT_CALL)
     return true

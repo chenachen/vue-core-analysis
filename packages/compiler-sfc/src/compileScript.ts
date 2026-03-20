@@ -1,3 +1,12 @@
+/**
+ * `<script>` / `<script setup>` 编译器。
+ *
+ * 这是 `compiler-sfc` 中最复杂的一层，负责：
+ * - 合并普通 `<script>` 与 `<script setup>`
+ * - 识别并擦除编译期宏（`defineProps` / `defineEmits` / `defineModel` 等）
+ * - 分析绑定、import、顶层 await、CSS 变量、模板内联渲染函数
+ * - 最终输出浏览器真正执行的组件脚本内容
+ */
 import {
   BindingTypes,
   UNREF,
@@ -152,9 +161,10 @@ const MACROS = [
 ]
 
 /**
- * Compile `<script setup>`
- * It requires the whole SFC descriptor because we need to handle and merge
- * normal `<script>` + `<script setup>` if both are present.
+ * 编译 `<script setup>`，并在必要时与普通 `<script>` 合并。
+ *
+ * 这里是 SFC 脚本阶段的总入口：会先建立 `ScriptCompileContext`，然后完成
+ * 宏处理、绑定分析、模板内联、CSS 变量注入以及最终源码拼接。
  */
 export function compileScript(
   sfc: SFCDescriptor,
@@ -210,6 +220,9 @@ export function compileScript(
   const scriptStartOffset = script && script.loc.start.offset
   const scriptEndOffset = script && script.loc.end.offset
 
+  /**
+   * 把 `<script setup>` 中可静态前置的语句提升到文件顶部。
+   */
   function hoistNode(node: Statement) {
     const start = node.start! + startOffset
     let end = node.end! + startOffset
@@ -229,6 +242,9 @@ export function compileScript(
     ctx.s.move(start, end, 0)
   }
 
+  /**
+   * 记录用户 import 的来源、别名、类型属性以及模板是否会使用它。
+   */
   function registerUserImport(
     source: string,
     local: string,
@@ -260,6 +276,9 @@ export function compileScript(
     }
   }
 
+  /**
+   * 校验会被提升到模块作用域的宏参数没有引用 setup 内局部变量。
+   */
   function checkInvalidScopeReference(node: Node | undefined, method: string) {
     if (!node) return
     walkIdentifiers(node, id => {
@@ -310,6 +329,9 @@ export function compileScript(
 
       // dedupe imports
       let removed = 0
+      /**
+       * 删除当前 import specifier，并正确处理逗号与前后片段。
+       */
       const removeSpecifier = (i: number) => {
         const removeLeft = i > removed
         removed++
@@ -1049,6 +1071,9 @@ export function compileScript(
   }
 }
 
+/**
+ * 把一个标识符登记到 bindingMetadata 中。
+ */
 function registerBinding(
   bindings: Record<string, BindingTypes>,
   node: Identifier,
@@ -1057,6 +1082,9 @@ function registerBinding(
   bindings[node.name] = type
 }
 
+/**
+ * 深度遍历声明语句，把其中引入的变量都标成合适的 binding 类型。
+ */
 function walkDeclaration(
   from: 'script' | 'scriptSetup',
   node: Declaration,
@@ -1162,6 +1190,9 @@ function walkDeclaration(
   return isAllLiteral
 }
 
+/**
+ * 遍历对象解构模式，提取其中所有声明出来的绑定。
+ */
 function walkObjectPattern(
   node: ObjectPattern,
   bindings: Record<string, BindingTypes>,
@@ -1190,6 +1221,9 @@ function walkObjectPattern(
   }
 }
 
+/**
+ * 遍历数组解构模式，提取其中所有声明出来的绑定。
+ */
 function walkArrayPattern(
   node: ArrayPattern,
   bindings: Record<string, BindingTypes>,
@@ -1201,6 +1235,9 @@ function walkArrayPattern(
   }
 }
 
+/**
+ * 按模式节点类型分发解构遍历逻辑。
+ */
 function walkPattern(
   node: Node,
   bindings: Record<string, BindingTypes>,
@@ -1236,6 +1273,9 @@ function walkPattern(
   }
 }
 
+/**
+ * 判断某个表达式是否不可能成为 ref 值。
+ */
 function canNeverBeRef(node: Node, userReactiveImport?: string): boolean {
   if (isCallOf(node, userReactiveImport)) {
     return true
@@ -1264,6 +1304,9 @@ function canNeverBeRef(node: Node, userReactiveImport?: string): boolean {
   }
 }
 
+/**
+ * 判断节点是否可以被视为纯静态表达式。
+ */
 function isStaticNode(node: Node): boolean {
   node = unwrapTSNode(node)
 
@@ -1301,12 +1344,18 @@ function isStaticNode(node: Node): boolean {
   return false
 }
 
+/**
+ * 合并脚本转换与模板内联阶段产生的 source map。
+ */
 export function mergeSourceMaps(
   scriptMap: RawSourceMap,
   templateMap: RawSourceMap,
   templateLineOffset: number,
 ): RawSourceMap {
   const generator = new SourceMapGenerator()
+  /**
+   * 把一份 source map 的 mappings 搬运到合并生成器上，并可选平移行号。
+   */
   const addMapping = (map: RawSourceMap, lineOffset = 0) => {
     const consumer = new SourceMapConsumer(map)
     ;(consumer as any).sources.forEach((sourceFile: string) => {

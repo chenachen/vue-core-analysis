@@ -1,3 +1,8 @@
+/**
+ * PostCSS scoped 样式改写插件。
+ *
+ * 它负责在选择器里注入 `data-v-xxx`，并处理 `:deep` / `:slotted` / `:global` 等语法。
+ */
 import {
   type AtRule,
   type Container,
@@ -12,6 +17,9 @@ const animationNameRE = /^(-\w+-)?animation-name$/
 const animationRE = /^(-\w+-)?animation$/
 const keyframesRE = /^(?:-\w+-)?keyframes$/
 
+/**
+ * 创建 scoped 样式 PostCSS 插件实例。
+ */
 const scopedPlugin: PluginCreator<string> = (id = '') => {
   const keyframes = Object.create(null)
   const shortId = id.replace(/^data-v-/, '')
@@ -65,6 +73,9 @@ const scopedPlugin: PluginCreator<string> = (id = '') => {
 
 const processedRules = new WeakSet<Rule>()
 
+/**
+ * 处理单个 CSS rule 的 selector 改写。
+ */
 function processRule(id: string, rule: Rule) {
   if (
     processedRules.has(rule) ||
@@ -91,6 +102,9 @@ function processRule(id: string, rule: Rule) {
   }).processSync(rule.selector)
 }
 
+/**
+ * 重写单个 selector，把 scoped / deep / slotted / global 语义翻译成最终选择器。
+ */
 function rewriteSelector(
   id: string,
   rule: Rule,
@@ -275,10 +289,16 @@ function rewriteSelector(
   }
 }
 
+/**
+ * 判断节点是否是纯空格组合符。
+ */
 function isSpaceCombinator(node: selectorParser.Node) {
   return node.type === 'combinator' && /^\s+$/.test(node.value)
 }
 
+/**
+ * 把裸声明/注释包进 `&` 规则中，避免嵌套场景下注入 scoped 属性时丢失结构。
+ */
 function extractAndWrapNodes(parentNode: Rule | AtRule) {
   if (!parentNode.nodes) return
   const nodes = parentNode.nodes.filter(

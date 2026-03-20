@@ -1,3 +1,9 @@
+/**
+ * `compiler-sfc` 的 TypeScript 类型解析引擎。
+ *
+ * 它负责把宏里的类型声明解析成可用于运行时 props / emits 推导的结构，
+ * 并按需跨文件解析 import、tsconfig、namespace、utility type 与 `.vue` 文件。
+ */
 import type {
   Expression,
   Identifier,
@@ -159,6 +165,9 @@ export function resolveTypeElements(
   return canCache ? (node._resolvedElements = resolved) : resolved
 }
 
+/**
+ * 递归解析任意 TS 类型节点，产出统一的 props / call signatures 结构。
+ */
 function innerResolveTypeElements(
   ctx: TypeResolveContext,
   node: Node,
@@ -320,6 +329,9 @@ function innerResolveTypeElements(
   return ctx.error(`Unresolvable type: ${node.type}`, node, scope)
 }
 
+/**
+ * 把 type literal / interface body 成员列表映射为属性表与调用签名表。
+ */
 function typeElementsToMap(
   ctx: TypeResolveContext,
   elements: TSTypeElement[],
@@ -357,6 +369,9 @@ function typeElementsToMap(
   return res
 }
 
+/**
+ * 合并 union / intersection 分支解析出的属性集合。
+ */
 function mergeElements(
   maps: ResolvedElements[],
   type: 'TSUnionType' | 'TSIntersectionType',
@@ -388,6 +403,9 @@ function mergeElements(
   return res
 }
 
+/**
+ * 构造一个带 owner scope 的虚拟属性签名节点。
+ */
 function createProperty(
   key: Expression,
   typeAnnotation: TSType,
@@ -407,6 +425,9 @@ function createProperty(
   }
 }
 
+/**
+ * 解析 interface 成员，并递归并入 extends 基类中的属性。
+ */
 function resolveInterfaceMembers(
   ctx: TypeResolveContext,
   node: TSInterfaceDeclaration & MaybeWithScope,
@@ -448,6 +469,9 @@ function resolveInterfaceMembers(
   return base
 }
 
+/**
+ * 展开 mapped type，生成对应的属性映射。
+ */
 function resolveMappedType(
   ctx: TypeResolveContext,
   node: TSMappedType,
@@ -478,6 +502,9 @@ function resolveMappedType(
   return res
 }
 
+/**
+ * 解析索引访问类型，得到被访问成员的具体类型列表。
+ */
 function resolveIndexType(
   ctx: TypeResolveContext,
   node: TSIndexedAccessType,
@@ -509,6 +536,9 @@ function resolveIndexType(
   return types
 }
 
+/**
+ * 从数组、元组或 `Array<T>` 引用中提取元素类型。
+ */
 function resolveArrayElementType(
   ctx: TypeResolveContext,
   node: Node,
@@ -542,6 +572,9 @@ function resolveArrayElementType(
   )
 }
 
+/**
+ * 把类型节点解析成有限字符串字面量集合。
+ */
 function resolveStringType(
   ctx: TypeResolveContext,
   node: Node,
@@ -575,6 +608,9 @@ function resolveStringType(
             typeParameters,
           )
         }
+        /**
+         * 读取当前 utility type 的某个类型参数，并继续解析为字符串集合。
+         */
         const getParam = (index = 0) =>
           resolveStringType(
             ctx,
@@ -610,6 +646,9 @@ function resolveStringType(
   return ctx.error('Failed to resolve index type into finite keys', node, scope)
 }
 
+/**
+ * 展开模板字面量类型，生成所有可能的字符串 key。
+ */
 function resolveTemplateKeys(
   ctx: TypeResolveContext,
   node: TemplateLiteral,
@@ -653,6 +692,9 @@ const SupportedBuiltinsSet = new Set([
 
 type GetSetType<T> = T extends Set<infer V> ? V : never
 
+/**
+ * 解析内建 utility types（如 `Partial` / `Pick` / `Omit`）到属性映射。
+ */
 function resolveBuiltin(
   ctx: TypeResolveContext,
   node: TSTypeReference | TSExpressionWithTypeArguments,
@@ -719,6 +761,9 @@ type ReferenceTypes =
   | TSImportType
   | TSTypeQuery
 
+/**
+ * 解析类型引用，并对非泛型场景启用缓存。
+ */
 function resolveTypeReference(
   ctx: TypeResolveContext,
   node: ReferenceTypes & {
@@ -742,6 +787,9 @@ function resolveTypeReference(
   return canCache ? (node._resolvedReference = resolved) : resolved
 }
 
+/**
+ * 在当前作用域、导入源、全局类型与命名空间链中查找具体类型定义。
+ */
 function innerResolveTypeReference(
   ctx: TypeResolveContext,
   scope: TypeScope,
@@ -798,6 +846,9 @@ function innerResolveTypeReference(
   }
 }
 
+/**
+ * 读取引用类型节点对应的名字或命名空间路径。
+ */
 function getReferenceName(node: ReferenceTypes): string | string[] {
   const ref =
     node.type === 'TSTypeReference'
@@ -816,6 +867,9 @@ function getReferenceName(node: ReferenceTypes): string | string[] {
   }
 }
 
+/**
+ * 把限定名 `Foo.Bar.Baz` 展开成路径数组。
+ */
 function qualifiedNameToPath(node: Identifier | TSQualifiedName): string[] {
   if (node.type === 'Identifier') {
     return [node.name]
@@ -824,6 +878,9 @@ function qualifiedNameToPath(node: Identifier | TSQualifiedName): string[] {
   }
 }
 
+/**
+ * 加载用户提供的全局类型文件并转换成作用域对象。
+ */
 function resolveGlobalScope(ctx: TypeResolveContext): TypeScope[] | undefined {
   if (ctx.options.globalTypeFiles) {
     const fs = resolveFS(ctx)
@@ -866,6 +923,9 @@ export function registerTS(_loadTS: () => typeof TS): void {
 
 type FS = NonNullable<SFCScriptCompileOptions['fs']>
 
+/**
+ * 解析并缓存当前上下文可用的文件系统抽象。
+ */
 function resolveFS(ctx: TypeResolveContext): FS | undefined {
   if (ctx.fs) {
     return ctx.fs
@@ -894,6 +954,9 @@ function resolveFS(ctx: TypeResolveContext): FS | undefined {
   })
 }
 
+/**
+ * 从 import 绑定解析到它真正引用的类型定义节点。
+ */
 function resolveTypeFromImport(
   ctx: TypeResolveContext,
   node: ReferenceTypes,
@@ -905,6 +968,9 @@ function resolveTypeFromImport(
   return resolveTypeReference(ctx, node, sourceScope, imported, true)
 }
 
+/**
+ * 把 import source 解析成对应文件的 `TypeScope`。
+ */
 function importSourceToScope(
   ctx: TypeResolveContext,
   node: Node,
@@ -977,9 +1043,15 @@ function importSourceToScope(
   }
 }
 
+/**
+ * 依次尝试常见 TS 扩展名，把裸文件名解析成真实存在的文件路径。
+ */
 function resolveExt(filename: string, fs: FS) {
   // #8339 ts may import .js but we should resolve to corresponding ts or d.ts
   filename = filename.replace(/\.js$/, '')
+  /**
+   * 如果候选文件存在则直接返回。
+   */
   const tryResolve = (filename: string) => {
     if (fs.fileExists(filename)) return filename
   }
@@ -1002,6 +1074,9 @@ interface CachedConfig {
 const tsConfigCache = createCache<CachedConfig[]>()
 const tsConfigRefMap = new Map<string, string>()
 
+/**
+ * 借助 TypeScript 官方模块解析流程处理非相对导入。
+ */
 function resolveWithTS(
   containingFile: string,
   source: string,
@@ -1085,6 +1160,9 @@ function resolveWithTS(
   }
 }
 
+/**
+ * 读取 tsconfig，并递归展开 project references。
+ */
 function loadTSConfig(
   configPath: string,
   ts: typeof TS,
@@ -1136,6 +1214,9 @@ export function invalidateTypeCache(filename: string): void {
   if (affectedConfig) tsConfigCache.delete(affectedConfig)
 }
 
+/**
+ * 把任意类型源文件解析为 `TypeScope`，并写入缓存。
+ */
 export function fileToScope(
   ctx: TypeResolveContext,
   filename: string,
@@ -1155,6 +1236,9 @@ export function fileToScope(
   return scope
 }
 
+/**
+ * 解析 `.ts` / `.d.ts` / `.vue` 等文件，提取顶层 statements。
+ */
 function parseFile(
   filename: string,
   content: string,
@@ -1218,6 +1302,9 @@ function parseFile(
   return []
 }
 
+/**
+ * 从当前编译上下文派生出可复用的类型作用域。
+ */
 function ctxToScope(ctx: TypeResolveContext): TypeScope {
   if (ctx.scope) {
     return ctx.scope
@@ -1242,6 +1329,9 @@ function ctxToScope(ctx: TypeResolveContext): TypeScope {
   return (ctx.scope = scope)
 }
 
+/**
+ * 把 TS namespace/module declaration 转换成子作用域。
+ */
 function moduleDeclToScope(
   ctx: TypeResolveContext,
   node: TSModuleDeclaration & { _resolvedChildScope?: TypeScope },
@@ -1265,6 +1355,9 @@ function moduleDeclToScope(
   return (node._resolvedChildScope = scope)
 }
 
+/**
+ * 基于父作用域创建可继承 imports/types/declares 的子作用域。
+ */
 function createChildScope(parentScope: TypeScope) {
   return new TypeScope(
     parentScope.filename,
@@ -1278,6 +1371,9 @@ function createChildScope(parentScope: TypeScope) {
 
 const importExportRE = /^Import|^Export/
 
+/**
+ * 扫描 statements，把类型声明、declare 声明与导出信息记录到作用域。
+ */
 function recordTypes(
   ctx: TypeResolveContext,
   body: Statement[],
@@ -1368,6 +1464,9 @@ function recordTypes(
   }
 }
 
+/**
+ * 把单个声明节点登记进 `types` / `declares` 表。
+ */
 function recordType(
   node: Node,
   types: Record<string, Node>,
@@ -1434,6 +1533,9 @@ function recordType(
   }
 }
 
+/**
+ * 合并同名 namespace/module declaration。
+ */
 function mergeNamespaces(to: TSModuleDeclaration, from: TSModuleDeclaration) {
   const toBody = to.body
   const fromBody = from.body
@@ -1464,6 +1566,9 @@ function mergeNamespaces(to: TSModuleDeclaration, from: TSModuleDeclaration) {
   }
 }
 
+/**
+ * 把 namespace 声明挂接到已有类型节点上。
+ */
 function attachNamespace(
   to: Node & { _ns?: TSModuleDeclaration },
   ns: TSModuleDeclaration,
@@ -1475,6 +1580,9 @@ function attachNamespace(
   }
 }
 
+/**
+ * 记录文件里的所有 import 绑定。
+ */
 export function recordImports(body: Statement[]): Record<string, Import> {
   const imports: TypeScope['imports'] = Object.create(null)
   for (const s of body) {
@@ -1483,6 +1591,9 @@ export function recordImports(body: Statement[]): Record<string, Import> {
   return imports
 }
 
+/**
+ * 记录单条 import declaration 中的本地绑定与来源。
+ */
 function recordImport(node: Node, imports: TypeScope['imports']) {
   if (node.type !== 'ImportDeclaration') {
     return
@@ -1495,6 +1606,9 @@ function recordImport(node: Node, imports: TypeScope['imports']) {
   }
 }
 
+/**
+ * 从 TS 类型节点推导运行时需要保留的构造器类型集合。
+ */
 export function inferRuntimeType(
   ctx: TypeResolveContext,
   node: Node & MaybeWithScope,
@@ -1803,6 +1917,9 @@ export function inferRuntimeType(
   return [UNKNOWN_TYPE] // no runtime check
 }
 
+/**
+ * 把多个类型分支推导出的运行时类型拍平成去重数组。
+ */
 function flattenTypes(
   ctx: TypeResolveContext,
   types: TSType[],
@@ -1821,6 +1938,9 @@ function flattenTypes(
   ]
 }
 
+/**
+ * 根据枚举成员初始化值推断枚举的运行时类型。
+ */
 function inferEnumType(node: TSEnumDeclaration): string[] {
   const types = new Set<string>()
   for (const m of node.members) {
@@ -1858,6 +1978,9 @@ function resolveExtractPropTypes(
   return res
 }
 
+/**
+ * 反向从 `PropType` / `xxxConstructor` 这类声明推回属性签名。
+ */
 function reverseInferType(
   key: Expression,
   node: TSType,
@@ -1907,6 +2030,9 @@ function reverseInferType(
   return createProperty(key, { type: `TSNullKeyword` }, scope, optional)
 }
 
+/**
+ * 把 `StringConstructor` 之类的名字转换成对应 TS 类型节点。
+ */
 function ctorToType(ctorType: string): TSType {
   const ctor = ctorType.slice(0, -11)
   switch (ctor) {
@@ -1932,6 +2058,9 @@ function ctorToType(ctorType: string): TSType {
   return { type: `TSNullKeyword` }
 }
 
+/**
+ * 查找对象字面量类型中某个静态属性的类型注解。
+ */
 function findStaticPropertyType(node: TSTypeLiteral, key: string) {
   const prop = node.members.find(
     m =>
@@ -1943,6 +2072,9 @@ function findStaticPropertyType(node: TSTypeLiteral, key: string) {
   return prop && prop.typeAnnotation!.typeAnnotation
 }
 
+/**
+ * 尝试解析函数类型或声明的返回类型，用于支持 `ReturnType<T>`。
+ */
 function resolveReturnType(
   ctx: TypeResolveContext,
   arg: Node,
@@ -1965,6 +2097,9 @@ function resolveReturnType(
   }
 }
 
+/**
+ * 展开 union 类型引用，返回最底层的类型节点数组。
+ */
 export function resolveUnionType(
   ctx: TypeResolveContext,
   node: Node & MaybeWithScope & { _resolvedElements?: ResolvedElements },

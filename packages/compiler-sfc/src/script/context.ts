@@ -1,3 +1,8 @@
+/**
+ * `compileScript` 共享上下文。
+ *
+ * 它集中保存 SFC 描述符、Babel AST、宏状态、绑定信息、辅助导入以及报错能力。
+ */
 import type { CallExpression, Node, ObjectPattern, Program } from '@babel/types'
 import type { SFCDescriptor } from '../parse'
 import { generateCodeFrame, isArray } from '@vue/shared'
@@ -112,6 +117,9 @@ export class ScriptCompileContext {
       options.babelParserPlugins,
     )
 
+    /**
+     * 解析单个 script block，并在失败时补齐带 code frame 的 SFC 错误信息。
+     */
     function parse(input: string, offset: number): Program {
       try {
         return babelParse(input, {
@@ -157,6 +165,9 @@ export class ScriptCompileContext {
   }
 }
 
+/**
+ * 生成带源码定位的脚本编译错误文本。
+ */
 function generateError(
   msg: string,
   node: Node,
@@ -171,6 +182,9 @@ function generateError(
   )}`
 }
 
+/**
+ * 按语言和用户配置组装 Babel parser plugins。
+ */
 export function resolveParserPlugins(
   lang: string,
   userPlugins?: ParserPlugin[],

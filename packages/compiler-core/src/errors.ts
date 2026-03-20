@@ -1,3 +1,9 @@
+/**
+ * 编译器错误模型与错误码定义。
+ *
+ * parser、transform、codegen 都通过这里统一创建错误对象，
+ * 这样上层编译器和工具链可以稳定地拿到错误码、源码位置与消息文本。
+ */
 import type { SourceLocation } from './ast'
 
 export interface CompilerError extends SyntaxError {
@@ -9,10 +15,16 @@ export interface CoreCompilerError extends CompilerError {
   code: ErrorCodes
 }
 
+/**
+ * 默认错误处理：直接抛出异常，终止当前编译流程。
+ */
 export function defaultOnError(error: CompilerError): never {
   throw error
 }
 
+/**
+ * 默认警告处理：开发环境打印到控制台，生产环境静默。
+ */
 export function defaultOnWarn(msg: CompilerError): void {
   __DEV__ && console.warn(`[Vue warn] ${msg.message}`)
 }
@@ -21,6 +33,12 @@ type InferCompilerError<T> = T extends ErrorCodes
   ? CoreCompilerError
   : CompilerError
 
+/**
+ * 根据错误码创建统一的编译错误对象。
+ *
+ * 非浏览器或开发环境下会直接内联错误文案，方便调试；
+ * 浏览器生产构建则退化成错误码链接，减少包体积。
+ */
 export function createCompilerError<T extends number>(
   code: T,
   loc?: SourceLocation,

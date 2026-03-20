@@ -1,3 +1,6 @@
+/**
+ * 分析模板里真正用到的标识符，用于裁剪 `<script setup>` 返回对象与 import 暴露。
+ */
 import type { SFCDescriptor } from '../parse'
 import {
   type ExpressionNode,
@@ -21,6 +24,9 @@ export function isImportUsed(local: string, sfc: SFCDescriptor): boolean {
 
 const templateUsageCheckCache = createCache<Set<string>>()
 
+/**
+ * 解析模板 AST，收集所有会在模板运行时被访问的标识符。
+ */
 function resolveTemplateUsedIdentifiers(sfc: SFCDescriptor): Set<string> {
   const { content, ast } = sfc.template!
   const cached = templateUsageCheckCache.get(content)
@@ -32,6 +38,9 @@ function resolveTemplateUsedIdentifiers(sfc: SFCDescriptor): Set<string> {
 
   ast!.children.forEach(walk)
 
+  /**
+   * 深度遍历模板节点，补齐标签名、指令表达式、插值等引用。
+   */
   function walk(node: TemplateChildNode) {
     switch (node.type) {
       case NodeTypes.ELEMENT:
@@ -85,6 +94,9 @@ function resolveTemplateUsedIdentifiers(sfc: SFCDescriptor): Set<string> {
   return ids
 }
 
+/**
+ * 从表达式节点里提取标识符名称。
+ */
 function extractIdentifiers(ids: Set<string>, node: ExpressionNode) {
   if (node.ast) {
     walkIdentifiers(node.ast, n => ids.add(n.name))

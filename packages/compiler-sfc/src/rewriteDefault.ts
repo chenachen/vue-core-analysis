@@ -1,9 +1,15 @@
+/**
+ * 重写普通脚本里的 `export default`，便于 SFC 编译阶段向默认导出对象继续注入元信息。
+ */
 import { parse } from '@babel/parser'
 import MagicString from 'magic-string'
 import type { ParserPlugin } from '@babel/parser'
 import type { Identifier, Statement } from '@babel/types'
 import { resolveParserPlugins } from './script/context'
 
+/**
+ * 解析源码并把默认导出重写成指定变量名。
+ */
 export function rewriteDefault(
   input: string,
   as: string,
@@ -89,6 +95,9 @@ export function rewriteDefaultAST(
   })
 }
 
+/**
+ * 判断脚本 AST 是否包含默认导出。
+ */
 export function hasDefaultExport(ast: Statement[]): boolean {
   for (const stmt of ast) {
     if (stmt.type === 'ExportDefaultDeclaration') {
@@ -105,6 +114,9 @@ export function hasDefaultExport(ast: Statement[]): boolean {
   return false
 }
 
+/**
+ * 定位 export specifier 应删除到的结束位置，兼容逗号与空白。
+ */
 function specifierEnd(s: MagicString, end: number, nodeEnd: number | null) {
   // export { default   , foo } ...
   let hasCommas = false

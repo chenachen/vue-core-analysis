@@ -1,3 +1,6 @@
+/**
+ * 分析普通 `<script>` 的 Options API 导出，推导模板可见绑定元数据。
+ */
 import type {
   ArrayExpression,
   Node,
@@ -24,6 +27,9 @@ export function analyzeScriptBindings(ast: Statement[]): BindingMetadata {
   return {}
 }
 
+/**
+ * 从组件 options 对象中提取 props / inject / methods / computed / setup / data 绑定。
+ */
 function analyzeBindingsFromOptions(node: ObjectExpression): BindingMetadata {
   const bindings: BindingMetadata = {}
   // #3270, #3275
@@ -100,6 +106,9 @@ function analyzeBindingsFromOptions(node: ObjectExpression): BindingMetadata {
   return bindings
 }
 
+/**
+ * 读取对象字面量中的静态 key 列表。
+ */
 function getObjectExpressionKeys(node: ObjectExpression): string[] {
   const keys = []
   for (const prop of node.properties) {
@@ -110,6 +119,9 @@ function getObjectExpressionKeys(node: ObjectExpression): string[] {
   return keys
 }
 
+/**
+ * 读取字符串数组形式的 key 列表。
+ */
 function getArrayExpressionKeys(node: ArrayExpression): string[] {
   const keys = []
   for (const element of node.elements) {
@@ -120,6 +132,9 @@ function getArrayExpressionKeys(node: ArrayExpression): string[] {
   return keys
 }
 
+/**
+ * 统一读取对象或数组形式的 options key。
+ */
 export function getObjectOrArrayExpressionKeys(value: Node): string[] {
   if (value.type === 'ArrayExpression') {
     return getArrayExpressionKeys(value)
