@@ -153,6 +153,12 @@ function triggerEvent(
   }
 }
 
+/**
+ * 首次挂载 Suspense。
+ *
+ * 主分支会先被挂到一个离屏容器里探测异步依赖；如果发现 pending async setup，
+ * 再把 fallback 分支挂到真实容器，否则直接把主分支 resolve 为当前活动分支。
+ */
 function mountSuspense(
   vnode: VNode,
   container: RendererElement,
@@ -218,6 +224,12 @@ function mountSuspense(
   }
 }
 
+/**
+ * 更新 Suspense 边界。
+ *
+ * 更新时要同时考虑活动分支、pending 分支、fallback 分支以及 hydration 状态，
+ * 因而这里本质上是在维护一个“小型状态机”。
+ */
 function patchSuspense(
   n1: VNode,
   n2: VNode,
@@ -447,6 +459,12 @@ export interface SuspenseBoundary {
 
 let hasWarned = false
 
+/**
+ * 创建 SuspenseBoundary 对象。
+ *
+ * 这个对象保存了 Suspense 在运行期需要的全部状态与操作入口：当前活动分支、
+ * 待解析分支、依赖计数、resolve/fallback/move/unmount 等控制方法都定义在这里。
+ */
 function createSuspenseBoundary(
   vnode: VNode,
   parentSuspense: SuspenseBoundary | null,
@@ -768,6 +786,12 @@ function createSuspenseBoundary(
   return suspense
 }
 
+/**
+ * 水合服务端渲染出来的 Suspense。
+ *
+ * 客户端无法直接知道服务端当时落地的是内容分支还是 fallback 分支，因此这里会先
+ * 假设内容分支成功渲染，再根据依赖收集结果决定是否立即 resolve。
+ */
 function hydrateSuspense(
   node: Node,
   vnode: VNode,
@@ -820,6 +844,12 @@ function hydrateSuspense(
   return result
 }
 
+/**
+ * 把 Suspense 的默认插槽与 fallback 插槽规范化成两个 vnode 分支。
+ *
+ * Suspense 运行期后续所有逻辑都只与 `ssContent` / `ssFallback` 打交道，因此先在
+ * 入口把 slot 形式统一展开。
+ */
 function normalizeSuspenseChildren(vnode: VNode): void {
   const { shapeFlag, children } = vnode
   const isSlotChildren = shapeFlag & ShapeFlags.SLOTS_CHILDREN
@@ -867,6 +897,12 @@ function normalizeSuspenseSlot(s: any) {
   return s
 }
 
+/**
+ * 把副作用暂存到 Suspense，或在无 Suspense 时直接进入 post 队列。
+ *
+ * 这样可以保证 pending 分支里的 mounted/updated 等副作用不会早于 resolve 时机
+ * 执行，避免 DOM 还没真正展示出来就提前触发用户逻辑。
+ */
 export function queueEffectWithSuspense(
   fn: Function | Function[],
   suspense: SuspenseBoundary | null,

@@ -99,6 +99,12 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
  * 这一步封装了大量浏览器兼容性细节：SVG/MathML、枚举属性、只读属性，以及
  * 原生内联事件字符串等场景都不能简单地使用 `el[key] = value`。
  */
+/**
+ * 判断当前 key 在浏览器中应走 DOM property 还是 attribute 语义。
+ *
+ * 这个判断函数把平台差异集中收口：一旦判错，更新结果就可能出现类型强转、只读属性
+ * 失败或 SVG 行为异常，因此这里保存了大量“看似零散、实际上很关键”的分支。
+ */
 function shouldSetAsProp(
   el: Element,
   key: string,

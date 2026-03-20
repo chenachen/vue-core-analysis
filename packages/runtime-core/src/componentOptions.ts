@@ -505,6 +505,12 @@ enum OptionTypes {
   INJECT = 'Inject',
 }
 
+/**
+ * 创建一个开发期重复键检查器。
+ *
+ * Options API 允许 props / data / methods / computed / inject 等来源共同暴露到
+ * 组件实例上，这里用一个轻量缓存提醒“同名字段后定义覆盖先定义”的情况。
+ */
 function createDuplicateChecker() {
   const cache = Object.create(null)
   return (type: OptionTypes, key: string) => {
@@ -518,6 +524,12 @@ function createDuplicateChecker() {
 
 export let shouldCacheAccess = true
 
+/**
+ * 把 Options API 配置真正安装到组件实例上。
+ *
+ * 它按照 Vue 2 保持兼容的顺序依次处理 inject、methods、data、computed、watch、
+ * provide 和各类生命周期钩子，让 `this.xxx` 与组合式 API 共存于同一实例上。
+ */
 export function applyOptions(instance: ComponentInternalInstance): void {
   const options = resolveMergedOptions(instance)
   const publicThis = instance.proxy! as any
@@ -792,6 +804,12 @@ export function applyOptions(instance: ComponentInternalInstance): void {
   }
 }
 
+/**
+ * 解析并注入 inject 选项。
+ *
+ * 这里既处理对象/数组两种声明形式，也负责把注入进来的 ref 在实例代理上自动解包，
+ * 让 Options API 中通过 `this.foo` 访问 inject 时保持直观体验。
+ */
 export function resolveInjections(
   injectOptions: ComponentInjectOptions,
   ctx: any,
@@ -847,6 +865,12 @@ function callHook(
   )
 }
 
+/**
+ * 把单个 watch 选项转换成真正的运行时 watch 调用。
+ *
+ * watch 选项既可能是字符串方法名、函数、对象配置，也可能是这些形式的数组；
+ * 这里统一把它们规范化成 getter + handler + options 的组合。
+ */
 export function createWatcher(
   raw: ComponentWatchOptionItem,
   ctx: Data,
@@ -925,6 +949,12 @@ export function createWatcher(
  * This is done only once per-component since the merging does not involve
  * instances.
  */
+/**
+ * 解析组件最终可用的合并后选项，并做按组件级别缓存。
+ *
+ * 由于 mixins / extends / 全局 mixins 的合并结果与实例状态无关，所以同一个组件类型
+ * 只需要计算一次，后续实例可以直接复用缓存结果。
+ */
 export function resolveMergedOptions(
   instance: ComponentInternalInstance,
 ): MergedComponentOptions {
@@ -967,6 +997,12 @@ export function resolveMergedOptions(
   return resolved
 }
 
+/**
+ * 递归合并一个组件及其 extends / mixins 链上的选项。
+ *
+ * 具体字段如何合并交给 merge strategy 决定：生命周期会拼数组、对象型选项会浅合并，
+ * props/emits/watch 则有各自的专用策略。
+ */
 export function mergeOptions(
   to: any,
   from: any,

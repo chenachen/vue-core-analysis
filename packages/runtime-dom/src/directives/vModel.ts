@@ -21,6 +21,12 @@ import {
 
 type AssignerFn = (value: any) => void
 
+/**
+ * 从 vnode props 中解析出 `v-model` 最终要调用的赋值函数。
+ *
+ * 编译器会把 `v-model` 变成 `onUpdate:modelValue` 监听器，这里顺带兼容旧版
+ * `onModelCompat:input`，并把数组监听器封装成统一的单函数入口。
+ */
 const getModelAssigner = (vnode: VNode): AssignerFn => {
   const fn =
     vnode.props!['onUpdate:modelValue'] ||
@@ -161,6 +167,12 @@ export const vModelCheckbox: ModelDirective<HTMLInputElement> = {
   },
 }
 
+/**
+ * 根据当前绑定值反推 checkbox 的勾选状态。
+ *
+ * checkbox 支持单值、数组、Set 以及 true-value/false-value 这几种模式，
+ * 因此需要在更新前把这些分支统一换算成最终的 `el.checked`。
+ */
 function setChecked(
   el: HTMLInputElement,
   { value, oldValue }: DirectiveBinding,
@@ -242,6 +254,12 @@ export const vModelSelect: ModelDirective<HTMLSelectElement, 'number'> = {
   },
 }
 
+/**
+ * 根据绑定值同步 `<select>` 的选中项。
+ *
+ * 单选和多选、Array 和 Set、原始值与对象值在这里都会分别处理，确保 DOM 选中状态
+ * 与 v-model 绑定值保持一致。
+ */
 function setSelected(el: HTMLSelectElement, value: any) {
   const isMultiple = el.multiple
   const isArrayValue = isArray(value)
@@ -310,6 +328,12 @@ export const vModelDynamic: ObjectDirective<
   },
 }
 
+/**
+ * 按元素标签名和 input type 选择具体的 v-model 实现。
+ *
+ * `vModelDynamic` 自身只是一个分发壳，真正的行为由 text / checkbox / radio /
+ * select 这几个专用实现承担。
+ */
 function resolveDynamicModel(tagName: string, type: string | undefined) {
   switch (tagName) {
     case 'SELECT':
@@ -328,6 +352,12 @@ function resolveDynamicModel(tagName: string, type: string | undefined) {
   }
 }
 
+/**
+ * 转发动态 v-model 指令的各个生命周期钩子。
+ *
+ * 这样模板里统一写一个 `v-model` 时，运行时仍然可以按真实元素类型调用最合适的
+ * 专用实现，而不必在编译阶段展开成多套代码。
+ */
 function callModelHook(
   el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
   binding: DirectiveBinding,
@@ -345,6 +375,12 @@ function callModelHook(
 
 // SSR vnode transforms, only used when user includes client-oriented render
 // function in SSR
+/**
+ * 为 SSR 渲染准备各类 v-model 指令的服务端 props 生成逻辑。
+ *
+ * 这些 `getSSRProps` 会在服务端直接产出 `value` / `checked` 等初始属性，保证
+ * 首屏 HTML 与客户端接管时的预期状态尽量一致。
+ */
 export function initVModelForSSR(): void {
   vModelText.getSSRProps = ({ value }) => ({ value })
 

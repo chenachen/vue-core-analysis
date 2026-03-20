@@ -607,6 +607,12 @@ const emptyAppContext = createAppContext()
 
 let uid = 0
 
+/**
+ * 创建组件实例对象。
+ *
+ * 这一步只负责准备组件运行期需要的各种槽位和默认状态，还不会执行 setup / render。
+ * renderer 后续会继续填充这些字段，把实例从“空壳”推进到可渲染状态。
+ */
 export function createComponentInstance(
   vnode: VNode,
   parent: ComponentInternalInstance | null,
@@ -766,6 +772,12 @@ if (__SSR__) {
   }
 }
 
+/**
+ * 设置当前正在执行的组件实例，并激活它的 effect scope。
+ *
+ * 返回的 reset 函数用于在 setup/render 结束后恢复旧实例，保证嵌套组件、
+ * 生命周期钩子与组合式 API 都能读到正确的 `currentInstance`。
+ */
 export const setCurrentInstance = (instance: ComponentInternalInstance) => {
   const prev = currentInstance
   internalSetCurrentInstance(instance)
@@ -802,6 +814,12 @@ export function isStatefulComponent(
 
 export let isInSSRComponentSetup = false
 
+/**
+ * 初始化组件输入侧状态。
+ *
+ * 无论是有状态组件还是函数式组件，都会先在这里解析 props / slots；只有
+ * 有状态组件才会继续进入 `setupStatefulComponent`。
+ */
 export function setupComponent(
   instance: ComponentInternalInstance,
   isSSR = false,
@@ -822,6 +840,12 @@ export function setupComponent(
   return setupResult
 }
 
+/**
+ * 初始化有状态组件。
+ *
+ * 这里会建立公开实例代理、执行用户的 `setup()`，并把同步或异步返回值交给
+ * `handleSetupResult` 统一收口。
+ */
 function setupStatefulComponent(
   instance: ComponentInternalInstance,
   isSSR: boolean,
@@ -922,6 +946,12 @@ function setupStatefulComponent(
   }
 }
 
+/**
+ * 归一化 setup() 的返回结果。
+ *
+ * setup 可以返回 render 函数、状态对象，或在异常场景下返回其它值；这里把这些
+ * 分支整理成实例上的 `render` / `setupState`，然后继续完成组件安装。
+ */
 export function handleSetupResult(
   instance: ComponentInternalInstance,
   setupResult: unknown,
@@ -986,6 +1016,12 @@ export function registerRuntimeCompiler(_compile: any): void {
 // dev only
 export const isRuntimeOnly = (): boolean => !compile
 
+/**
+ * 完成组件安装的最后一步。
+ *
+ * 如果实例还没有 render，会在这里尝试模板编译与 render 归一化；随后再执行
+ * Options API 相关的 data/computed/watch/lifecycle 合并逻辑。
+ */
 export function finishComponentSetup(
   instance: ComponentInternalInstance,
   isSSR: boolean,
@@ -1125,6 +1161,12 @@ function getSlotsProxy(instance: ComponentInternalInstance): Slots {
   })
 }
 
+/**
+ * 创建传给 setup() 的上下文对象。
+ *
+ * 它把 `attrs`、`slots`、`emit`、`expose` 打包成一个只读入口，避免用户直接
+ * 操作内部实例，同时保留运行时追踪 attrs/slots 访问的能力。
+ */
 export function createSetupContext(
   instance: ComponentInternalInstance,
 ): SetupContext {
@@ -1182,6 +1224,12 @@ export function createSetupContext(
   }
 }
 
+/**
+ * 获取暴露给模板 ref / 外部调用方的公共实例。
+ *
+ * 如果组件调用了 `expose()`，这里优先返回暴露对象代理；否则回退到常规的
+ * `instance.proxy`，也就是模板和用户最常见的组件公开实例。
+ */
 export function getComponentPublicInstance(
   instance: ComponentInternalInstance,
 ): ComponentPublicInstance | ComponentInternalInstance['exposed'] | null {
@@ -1219,6 +1267,12 @@ export function getComponentName(
     : Component.name || (includeInferred && Component.__name)
 }
 
+/**
+ * 生成用于 warning / devtools / 调试输出的组件名。
+ *
+ * 名称优先来自显式 `name`，其次回退到文件名或注册表反查结果，最终保证日志里
+ * 能尽量显示出可读的组件标识。
+ */
 export function formatComponentName(
   instance: ComponentInternalInstance | null,
   Component: ConcreteComponent,

@@ -342,6 +342,13 @@ function baseCreateRenderer(
 ): HydrationRenderer
 
 // implementation
+/**
+ * 创建渲染器闭包并把宿主平台能力绑定进来。
+ *
+ * `runtime-core` 自身并不会直接操作 DOM，而是把节点增删改查全部委托给
+ * `RendererOptions`。这样同一套 patch 算法就能被 DOM、custom renderer、
+ * hydration 等不同宿主环境复用。
+ */
 function baseCreateRenderer(
   options: RendererOptions,
   createHydrationFns?: typeof createHydrationFunctions,
@@ -639,8 +646,9 @@ function baseCreateRenderer(
   /**
    * 处理普通元素 vnode。
    *
-   * `patch` 在识别出当前 vnode 是原生元素后，会在这里继续区分首次挂载与更新：
-   * 挂载走 `mountElement` 创建真实节点，更新走 `patchElement` 做最小化 diff。
+   * 这里先根据标签名推导命名空间，再在“首次挂载”和“已有旧节点更新”两条路径
+   * 之间分发。元素本身的真实创建/打补丁逻辑分别落在 `mountElement` 与
+   * `patchElement` 中。
    */
   const processElement = (
     n1: VNode | null,
@@ -685,6 +693,13 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 首次挂载元素节点。
+   *
+   * 顺序上会先创建宿主元素，再挂子节点、打 props、设置作用域与指令钩子，
+   * 最后真正插入容器。这样可以保证像 `<select value>` 这类依赖子节点状态的
+   * 属性在合适的时机生效。
+   */
   const mountElement = (
     vnode: VNode,
     container: RendererElement,
@@ -799,6 +814,12 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 为当前元素补齐单文件组件相关的 scope id。
+   *
+   * 除了当前 vnode 自己携带的 `scopeId`，还可能需要继承父组件根节点、
+   * slot 作用域和 Suspense 包裹场景传递下来的作用域标记。
+   */
   const setScopeId = (
     el: RendererElement,
     vnode: VNode,
@@ -845,6 +866,12 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 顺序挂载一段 children。
+   *
+   * 编译优化开启时，children 中的 vnode 可能已经是可复用节点；否则需要先
+   * 规范化为标准 vnode，再继续递归进入 `patch`。
+   */
   const mountChildren: MountChildrenFn = (
     children,
     container,
@@ -875,6 +902,12 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 更新同类型元素节点。
+   *
+   * 该函数会先执行 beforeUpdate 相关钩子，再根据 patchFlag 决定走编译期
+   * 优化路径还是全量 diff，最后补发 mounted 之后的更新钩子与指令钩子。
+   */
   const patchElement = (
     n1: VNode,
     n2: VNode,
@@ -1152,6 +1185,12 @@ function baseCreateRenderer(
    * @param {string[] | null} slotScopeIds - 插槽作用域 ID。
    * @param {boolean} optimized - 是否启用优化模式。
    */
+  /**
+   * 处理 Fragment。
+   *
+   * Fragment 没有真实宿主元素，因此运行时会用一对锚点文本节点界定它在宿主树中
+   * 的起止范围。更新时优先尝试稳定片段优化，否则退回常规 children diff。
+   */
   const processFragment = (
     n1: VNode | null,
     n2: VNode,
@@ -1289,6 +1328,12 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 首次挂载组件。
+   *
+   * 组件挂载会经历：创建实例 → 解析 props/slots → 执行 setup/options →
+   * 建立渲染副作用。KeepAlive、Suspense、HMR 等能力也都在这一步接入主流程。
+   */
   const mountComponent: MountComponentFn = (
     initialVNode,
     container,
@@ -1375,6 +1420,12 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 更新组件 vnode。
+   *
+   * 如果 `shouldUpdateComponent` 判定无需更新，就只复用旧实例与宿主节点；
+   * 否则把新 vnode 挂到实例上，并触发现有渲染 effect 重新执行。
+   */
   const updateComponent = (n1: VNode, n2: VNode, optimized: boolean) => {
     const instance = (n2.component = n1.component)!
     // 判断是否需要更新组件
@@ -1766,6 +1817,12 @@ function baseCreateRenderer(
     update()
   }
 
+  /**
+   * 在组件真正重新渲染之前，同步 next vnode、props、slots 和 attrs。
+   *
+   * 这一步把实例的“输入快照”切换成最新状态，后面的 render 执行拿到的就是
+   * 更新后的 props/slots，而不是旧 vnode 遗留下来的数据。
+   */
   const updateComponentPreRender = (
     instance: ComponentInternalInstance,
     nextVNode: VNode,
@@ -1793,11 +1850,10 @@ function baseCreateRenderer(
   }
 
   /**
-   * 对比并更新 vnode 的 children。
+   * 比较并更新 children。
    *
-   * 它会先根据 patchFlag 选择编译器提供的快速路径；若无法命中，再按“文本 /
-   * 数组 / 空”三种形态切换策略。数组分支最终会进入 keyed / unkeyed diff，
-   * keyed diff 还会结合最长递增子序列（LIS）尽量减少 DOM 移动。
+   * 这里是元素/组件子树 diff 的总入口：先看文本/数组/空子节点三种大形态，
+   * 再在数组场景下继续分发到 keyed / unkeyed 算法。
    */
   const patchChildren: PatchChildrenFn = (
     n1,
@@ -1934,6 +1990,12 @@ function baseCreateRenderer(
    * @param {string[] | null} slotScopeIds - 插槽作用域 ID。
    * @param {boolean} optimized - 是否启用优化模式。
    */
+  /**
+   * 处理无 key 的 children diff。
+   *
+   * 无 key 场景无法表达“节点身份”，因此只能按索引尽量复用前缀公共部分，
+   * 超出的旧节点卸载、超出的新节点挂载。
+   */
   const patchUnkeyedChildren = (
     c1: VNode[],
     c2: VNodeArrayChildren,
@@ -1995,6 +2057,12 @@ function baseCreateRenderer(
   }
 
   // can be all-keyed or mixed
+  /**
+   * 处理带 key 的 children diff。
+   *
+   * 这是 renderer 中最核心的序列比较算法：先做头尾同步，再处理中间乱序区间，
+   * 最后借助最长递增子序列把需要移动的节点数量降到最少。
+   */
   const patchKeyedChildren = (
     c1: VNode[],
     c2: VNodeArrayChildren,
@@ -2781,6 +2849,12 @@ function baseCreateRenderer(
 
   //
   let isFlushing = false
+  /**
+   * 渲染器对外暴露的根入口。
+   *
+   * 根级别只区分“传入 vnode”与“传入 null 卸载”两类操作，真正的递归工作全部
+   * 交给 `patch`。完成后把最新 vnode 缓存在容器上，供下一轮 diff 复用。
+   */
   const render: RootRenderFunction = (vnode, container, namespace) => {
     // 如果 vnode 为空，则卸载容器中的内容
     if (vnode == null) {
@@ -2941,6 +3015,12 @@ export function traverseStaticChildren(
 }
 
 // https://en.wikipedia.org/wiki/Longest_increasing_subsequence
+/**
+ * 计算最长递增子序列的索引集合。
+ *
+ * keyed diff 会把“新索引相对旧索引的映射”交给这里处理，返回值代表可以保持原位
+ * 不动的节点序列，其余节点才需要执行 DOM move。
+ */
 function getSequence(arr: number[]): number[] {
   const p = arr.slice()
   const result = [0]
