@@ -39,11 +39,19 @@ import { setTransitionHooks } from './components/BaseTransition'
  */
 let accessedAttrs: boolean = false
 
+/**
+ * 封装 `markAttrsAccessed` 辅助逻辑。
+ */
+
 export function markAttrsAccessed(): void {
   accessedAttrs = true
 }
 
 type SetRootFn = ((root: VNode) => void) | undefined
+
+/**
+ * 渲染组件根节点。
+ */
 
 export function renderComponentRoot(
   instance: ComponentInternalInstance,
@@ -83,6 +91,10 @@ export function renderComponentRoot(
       const thisProxy =
         __DEV__ && setupState.__isScriptSetup
           ? new Proxy(proxyToUse!, {
+              /**
+               * 读取目标值。
+               */
+
               get(target, key, receiver) {
                 warn(
                   `Property '${String(
@@ -118,6 +130,10 @@ export function renderComponentRoot(
               __DEV__ ? shallowReadonly(props) : props,
               __DEV__
                 ? {
+                    /**
+                     * 读取attrs。
+                     */
+
                     get attrs() {
                       markAttrsAccessed()
                       return shallowReadonly(attrs)
@@ -292,6 +308,11 @@ const getChildRoot = (vnode: VNode): [VNode, SetRootFn] => {
 
   const index = rawChildren.indexOf(childRoot)
   const dynamicIndex = dynamicChildren ? dynamicChildren.indexOf(childRoot) : -1
+
+  /**
+   * 写入根节点。
+   */
+
   const setRoot: SetRootFn = (updatedRoot: VNode) => {
     rawChildren[index] = updatedRoot
     if (dynamicChildren) {
@@ -346,6 +367,10 @@ export function filterSingleRoot(
   return singleRoot
 }
 
+/**
+ * 读取`functional``fallthrough`。
+ */
+
 const getFunctionalFallthrough = (attrs: Data): Data | undefined => {
   let res: Data | undefined
   for (const key in attrs) {
@@ -356,6 +381,10 @@ const getFunctionalFallthrough = (attrs: Data): Data | undefined => {
   return res
 }
 
+/**
+ * 封装 `filterModelListeners` 辅助逻辑。
+ */
+
 const filterModelListeners = (attrs: Data, props: NormalizedProps): Data => {
   const res: Data = {}
   for (const key in attrs) {
@@ -365,6 +394,10 @@ const filterModelListeners = (attrs: Data, props: NormalizedProps): Data => {
   }
   return res
 }
+
+/**
+ * 判断当前是否满足元素根节点。
+ */
 
 const isElementRoot = (vnode: VNode) => {
   return (
@@ -463,6 +496,10 @@ export function shouldUpdateComponent(
 
   return false
 }
+
+/**
+ * 判断是否存在props`changed`。
+ */
 
 function hasPropsChanged(
   prevProps: Data,

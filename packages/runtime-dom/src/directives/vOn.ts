@@ -35,16 +35,60 @@ const modifierGuards: Record<
   | ((e: Event) => void | boolean)
   | ((e: Event, modifiers: string[]) => void | boolean)
 > = {
+  /**
+   * 封装 `stop` 分支逻辑。
+   */
+
   stop: (e: Event) => e.stopPropagation(),
+
+  /**
+   * 封装 `prevent` 分支逻辑。
+   */
   prevent: (e: Event) => e.preventDefault(),
+
+  /**
+   * 封装 `self` 分支逻辑。
+   */
   self: (e: Event) => e.target !== e.currentTarget,
+
+  /**
+   * 封装 `ctrl` 分支逻辑。
+   */
   ctrl: (e: Event) => !(e as KeyedEvent).ctrlKey,
+
+  /**
+   * 封装 `shift` 分支逻辑。
+   */
   shift: (e: Event) => !(e as KeyedEvent).shiftKey,
+
+  /**
+   * 封装 `alt` 分支逻辑。
+   */
   alt: (e: Event) => !(e as KeyedEvent).altKey,
+
+  /**
+   * 封装 `meta` 分支逻辑。
+   */
   meta: (e: Event) => !(e as KeyedEvent).metaKey,
+
+  /**
+   * 封装 `left` 分支逻辑。
+   */
   left: (e: Event) => 'button' in e && (e as MouseEvent).button !== 0,
+
+  /**
+   * 封装 `middle` 分支逻辑。
+   */
   middle: (e: Event) => 'button' in e && (e as MouseEvent).button !== 1,
+
+  /**
+   * 封装 `right` 分支逻辑。
+   */
   right: (e: Event) => 'button' in e && (e as MouseEvent).button !== 2,
+
+  /**
+   * 封装 `exact` 分支逻辑。
+   */
   exact: (e, modifiers) =>
     systemModifiers.some(m => (e as any)[`${m}Key`] && !modifiers.includes(m)),
 }

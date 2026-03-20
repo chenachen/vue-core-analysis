@@ -20,6 +20,10 @@ import { LifecycleHooks } from './enums'
 
 export { onActivated, onDeactivated } from './components/KeepAlive'
 
+/**
+ * 注入钩子。
+ */
+
 export function injectHook(
   type: LifecycleHooks,
   hook: Function & { __weh?: Function },
@@ -66,6 +70,10 @@ export function injectHook(
   }
 }
 
+/**
+ * 创建钩子。
+ */
+
 const createHook =
   <T extends Function = () => any>(lifecycle: LifecycleHooks) =>
   (
@@ -110,6 +118,10 @@ export type ErrorCapturedHook<TError = unknown> = (
   instance: ComponentPublicInstance | null,
   info: string,
 ) => boolean | void
+
+/**
+ * 封装 `onErrorCaptured` 辅助逻辑。
+ */
 
 export function onErrorCaptured<TError = Error>(
   hook: ErrorCapturedHook<TError>,

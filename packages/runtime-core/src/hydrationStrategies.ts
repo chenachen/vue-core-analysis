@@ -29,12 +29,20 @@ export type HydrationStrategyFactory<Options> = (
   options?: Options,
 ) => HydrationStrategy
 
+/**
+ * 封装 `hydrateOnIdle` 辅助逻辑。
+ */
+
 export const hydrateOnIdle: HydrationStrategyFactory<number> =
   (timeout = 10000) =>
   hydrate => {
     const id = requestIdleCallback(hydrate, { timeout })
     return () => cancelIdleCallback(id)
   }
+
+/**
+ * 封装 `elementIsVisibleInViewport` 辅助逻辑。
+ */
 
 function elementIsVisibleInViewport(el: Element) {
   const { top, left, bottom, right } = el.getBoundingClientRect()
@@ -45,6 +53,10 @@ function elementIsVisibleInViewport(el: Element) {
     ((left > 0 && left < innerWidth) || (right > 0 && right < innerWidth))
   )
 }
+
+/**
+ * 封装 `hydrateOnVisible` 辅助逻辑。
+ */
 
 export const hydrateOnVisible: HydrationStrategyFactory<
   IntersectionObserverInit
@@ -69,6 +81,10 @@ export const hydrateOnVisible: HydrationStrategyFactory<
   return () => ob.disconnect()
 }
 
+/**
+ * 封装 `hydrateOnMediaQuery` 辅助逻辑。
+ */
+
 export const hydrateOnMediaQuery: HydrationStrategyFactory<string> =
   query => hydrate => {
     if (query) {
@@ -82,6 +98,10 @@ export const hydrateOnMediaQuery: HydrationStrategyFactory<string> =
     }
   }
 
+/**
+ * 封装 `hydrateOnInteraction` 辅助逻辑。
+ */
+
 export const hydrateOnInteraction: HydrationStrategyFactory<
   keyof HTMLElementEventMap | Array<keyof HTMLElementEventMap>
 > =
@@ -89,6 +109,11 @@ export const hydrateOnInteraction: HydrationStrategyFactory<
   (hydrate, forEach) => {
     if (isString(interactions)) interactions = [interactions]
     let hasHydrated = false
+
+    /**
+     * 封装 `doHydrate` 辅助逻辑。
+     */
+
     const doHydrate = (e: Event) => {
       if (!hasHydrated) {
         hasHydrated = true
@@ -98,6 +123,11 @@ export const hydrateOnInteraction: HydrationStrategyFactory<
         e.target!.dispatchEvent(new (e.constructor as any)(e.type, e))
       }
     }
+
+    /**
+     * 封装 `teardown` 辅助逻辑。
+     */
+
     const teardown = () => {
       forEach(el => {
         for (const i of interactions) {
@@ -112,6 +142,10 @@ export const hydrateOnInteraction: HydrationStrategyFactory<
     })
     return teardown
   }
+
+/**
+ * 封装 `forEachElement` 辅助逻辑。
+ */
 
 export function forEachElement(
   node: Node,

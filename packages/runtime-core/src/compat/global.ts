@@ -102,34 +102,42 @@ export type CompatVue = Pick<App, 'version' | 'component' | 'directive'> & {
    * @deprecated Vue 3 no longer supports extending constructors.
    */
   extend: (options?: ComponentOptions) => CompatVue
+
   /**
    * @deprecated Vue 3 no longer needs set() for adding new properties.
    */
   set(target: any, key: PropertyKey, value: any): void
+
   /**
    * @deprecated Vue 3 no longer needs delete() for property deletions.
    */
   delete(target: any, key: PropertyKey): void
+
   /**
    * @deprecated use `reactive` instead.
    */
   observable: typeof reactive
+
   /**
    * @deprecated filters have been removed from Vue 3.
    */
   filter(name: string, arg?: any): null
+
   /**
    * @internal
    */
   cid: number
+
   /**
    * @internal
    */
   options: ComponentOptions
+
   /**
    * @internal
    */
   util: any
+
   /**
    * @internal
    */
@@ -154,6 +162,10 @@ export function createCompatVue(
   ) {
     return createCompatApp(options, Vue)
   } as any)
+
+  /**
+   * 创建`compat`应用。
+   */
 
   function createCompatApp(options: ComponentOptions = {}, Ctor: any) {
     assertCompatEnabled(DeprecationTypes.GLOBAL_MOUNT, null)
@@ -225,6 +237,10 @@ export function createCompatVue(
 
   const extendCache = new WeakMap()
 
+  /**
+   * 封装 `extendCtor` 辅助逻辑。
+   */
+
   function extendCtor(this: any, extendOptions: ComponentOptions = {}) {
     assertCompatEnabled(DeprecationTypes.GLOBAL_EXTEND, null)
     if (isFunction(extendOptions)) {
@@ -236,6 +252,11 @@ export function createCompatVue(
     }
 
     const Super = this
+
+    /**
+     * 封装 `SubVue` 辅助逻辑。
+     */
+
     function SubVue(inlineOptions?: ComponentOptions) {
       if (!inlineOptions) {
         return createCompatApp(SubVue.options, SubVue)
@@ -312,6 +333,10 @@ export function createCompatVue(
   const util = {
     warn: __DEV__ ? warn : NOOP,
     extend,
+
+    /**
+     * 封装 `mergeOptions` 分支逻辑。
+     */
     mergeOptions: (parent: any, child: any, vm?: ComponentPublicInstance) =>
       mergeOptions(
         parent,
@@ -321,6 +346,10 @@ export function createCompatVue(
     defineReactive,
   }
   Object.defineProperty(Vue, 'util', {
+    /**
+     * 读取目标值。
+     */
+
     get() {
       assertCompatEnabled(DeprecationTypes.GLOBAL_PRIVATE_UTIL, null)
       return util
@@ -331,6 +360,10 @@ export function createCompatVue(
 
   return Vue
 }
+
+/**
+ * 封装 `installAppCompatProperties` 辅助逻辑。
+ */
 
 export function installAppCompatProperties(
   app: App,
@@ -352,6 +385,10 @@ export function installAppCompatProperties(
   if (__DEV__) installLegacyConfigWarnings(app.config)
 }
 
+/**
+ * 封装 `installFilterMethod` 辅助逻辑。
+ */
+
 function installFilterMethod(app: App, context: AppContext) {
   context.filters = {}
   app.filter = (name: string, filter?: Function): any => {
@@ -367,11 +404,19 @@ function installFilterMethod(app: App, context: AppContext) {
   }
 }
 
+/**
+ * 封装 `installLegacyAPIs` 辅助逻辑。
+ */
+
 function installLegacyAPIs(app: App) {
   // expose global API on app instance for legacy plugins
   Object.defineProperties(app, {
     // so that app.use() can work with legacy plugins that extend prototypes
     prototype: {
+      /**
+       * 读取目标值。
+       */
+
       get() {
         __DEV__ && warnDeprecation(DeprecationTypes.GLOBAL_PROTOTYPE, null)
         return app.config.globalProperties
@@ -383,12 +428,20 @@ function installLegacyAPIs(app: App) {
     delete: { value: singletonCtor.delete },
     observable: { value: singletonCtor.observable },
     util: {
+      /**
+       * 读取目标值。
+       */
+
       get() {
         return singletonCtor.util
       },
     },
   })
 }
+
+/**
+ * 应用`singleton`应用`mutations`。
+ */
 
 function applySingletonAppMutations(app: App) {
   // copy over asset registries and deopt flag
@@ -428,6 +481,10 @@ function applySingletonAppMutations(app: App) {
   applySingletonPrototype(app, singletonCtor)
 }
 
+/**
+ * 应用`singleton``prototype`。
+ */
+
 function applySingletonPrototype(app: App, Ctor: Function) {
   // copy prototype augmentations as config.globalProperties
   const enabled = isCompatEnabled(DeprecationTypes.GLOBAL_PROTOTYPE, null)
@@ -452,6 +509,10 @@ function applySingletonPrototype(app: App, Ctor: Function) {
   }
 }
 
+/**
+ * 封装 `installCompatMount` 辅助逻辑。
+ */
+
 function installCompatMount(
   app: App,
   context: AppContext,
@@ -471,6 +532,11 @@ function installCompatMount(
 
     const hasNoRender =
       !isFunction(component) && !component.render && !component.template
+
+    /**
+     * 封装 `emptyRender` 辅助逻辑。
+     */
+
     const emptyRender = () => {}
 
     // create root instance
@@ -618,6 +684,10 @@ const methodsToPatch = [
 
 const patched = new WeakSet<object>()
 
+/**
+ * 封装 `defineReactive` 辅助逻辑。
+ */
+
 function defineReactive(obj: any, key: string, val: any) {
   // it's possible for the original object to be mutated after being defined
   // and expecting reactivity... we are covering it here because this seems to
@@ -651,15 +721,27 @@ function defineReactive(obj: any, key: string, val: any) {
   }
 }
 
+/**
+ * 封装 `defineReactiveSimple` 辅助逻辑。
+ */
+
 function defineReactiveSimple(obj: any, key: string, val: any) {
   val = isObject(val) ? reactive(val) : val
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
+
+    /**
+     * 读取目标值。
+     */
     get() {
       track(obj, TrackOpTypes.GET, key)
       return val
     },
+
+    /**
+     * 写入目标值。
+     */
     set(newVal) {
       val = isObject(newVal) ? reactive(newVal) : newVal
       trigger(obj, TriggerOpTypes.SET, key, newVal)

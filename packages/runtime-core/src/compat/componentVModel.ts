@@ -16,6 +16,10 @@ export const compatModelEventPrefix = `onModelCompat:`
 
 const warnedTypes = new WeakSet()
 
+/**
+ * 封装 `convertLegacyVModelProps` 辅助逻辑。
+ */
+
 export function convertLegacyVModelProps(vnode: VNode): void {
   const { type, shapeFlag, props, dynamicProps } = vnode
   const comp = type as ComponentOptions
@@ -58,6 +62,10 @@ export function convertLegacyVModelProps(vnode: VNode): void {
   }
 }
 
+/**
+ * 应用v-model`from``mixins`。
+ */
+
 function applyModelFromMixins(model: any, mixins?: ComponentOptions[]) {
   if (mixins) {
     mixins.forEach(m => {
@@ -66,6 +74,10 @@ function applyModelFromMixins(model: any, mixins?: ComponentOptions[]) {
     })
   }
 }
+
+/**
+ * 封装 `compatModelEmit` 辅助逻辑。
+ */
 
 export function compatModelEmit(
   instance: ComponentInternalInstance,

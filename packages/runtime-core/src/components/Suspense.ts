@@ -40,6 +40,7 @@ export interface SuspenseProps {
   onPending?: () => void
   onFallback?: () => void
   timeout?: string | number
+
   /**
    * Allow suspense to be captured by parent suspense
    *
@@ -47,6 +48,10 @@ export interface SuspenseProps {
    */
   suspensible?: boolean
 }
+
+/**
+ * 判断当前是否满足Suspense。
+ */
 
 export const isSuspense = (type: any): boolean => type.__isSuspense
 
@@ -68,6 +73,10 @@ export const SuspenseImpl = {
   // on a vnode's type and calls the `process` method, passing in renderer
   // internals.
   __isSuspense: true,
+
+  /**
+   * 处理当前分支。
+   */
   process(
     n1: VNode | null,
     n2: VNode,
@@ -142,6 +151,10 @@ export const Suspense = (__FEATURE_SUSPENSE__
     }
   }
 }
+
+/**
+ * 封装 `triggerEvent` 辅助逻辑。
+ */
 
 function triggerEvent(
   vnode: VNode,
@@ -530,6 +543,9 @@ function createSuspenseBoundary(
     isUnmounted: false,
     effects: [],
 
+    /**
+     * 解析并确定目标结果。
+     */
     resolve(resume = false, sync = false) {
       if (__DEV__) {
         if (!resume && !suspense.pendingBranch) {
@@ -640,6 +656,9 @@ function createSuspenseBoundary(
       triggerEvent(vnode, 'onResolve')
     },
 
+    /**
+     * 封装 `fallback` 辅助逻辑。
+     */
     fallback(fallbackVNode) {
       if (!suspense.pendingBranch) {
         return
@@ -652,6 +671,11 @@ function createSuspenseBoundary(
       triggerEvent(vnode, 'onFallback')
 
       const anchor = next(activeBranch!)
+
+      /**
+       * 挂载降级分支。
+       */
+
       const mountFallback = () => {
         if (!suspense.isInFallback) {
           return
@@ -691,16 +715,25 @@ function createSuspenseBoundary(
       }
     },
 
+    /**
+     * 移动当前节点。
+     */
     move(container, anchor, type) {
       suspense.activeBranch &&
         move(suspense.activeBranch, container, anchor, type)
       suspense.container = container
     },
 
+    /**
+     * 推进后续流程。
+     */
     next() {
       return suspense.activeBranch && next(suspense.activeBranch)
     },
 
+    /**
+     * 注册`dep`。
+     */
     registerDep(instance, setupRenderEffect, optimized) {
       const isInPendingSuspense = !!suspense.pendingBranch
       if (isInPendingSuspense) {
@@ -762,6 +795,9 @@ function createSuspenseBoundary(
         })
     },
 
+    /**
+     * 卸载当前节点。
+     */
     unmount(parentSuspense, doRemove) {
       suspense.isUnmounted = true
       if (suspense.activeBranch) {
@@ -861,6 +897,10 @@ function normalizeSuspenseChildren(vnode: VNode): void {
     : createVNode(Comment)
 }
 
+/**
+ * 规范化Suspense插槽。
+ */
+
 function normalizeSuspenseSlot(s: any) {
   let block: VNode[] | null | undefined
   if (isFunction(s)) {
@@ -918,6 +958,10 @@ export function queueEffectWithSuspense(
   }
 }
 
+/**
+ * 写入`active``branch`。
+ */
+
 function setActiveBranch(suspense: SuspenseBoundary, branch: VNode) {
   suspense.activeBranch = branch
   const { vnode, parentComponent } = suspense
@@ -936,6 +980,10 @@ function setActiveBranch(suspense: SuspenseBoundary, branch: VNode) {
     updateHOCHostEl(parentComponent, el)
   }
 }
+
+/**
+ * 判断当前是否满足VNode`suspensible`。
+ */
 
 function isVNodeSuspensible(vnode: VNode) {
   const suspensible = vnode.props && vnode.props.suspensible

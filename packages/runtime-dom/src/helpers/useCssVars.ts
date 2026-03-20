@@ -16,6 +16,7 @@ import {
 import { NOOP, ShapeFlags, normalizeCssVarValue } from '@vue/shared'
 
 export const CSS_VAR_TEXT: unique symbol = Symbol(__DEV__ ? 'CSS_VAR_TEXT' : '')
+
 /**
  * Runtime helper for SFC's CSS variable injection feature.
  * @private
@@ -44,6 +45,10 @@ export function useCssVars(
     instance.getCssVars = () => getter(instance.proxy)
   }
 
+  /**
+   * 写入CSS 变量。
+   */
+
   const setVars = () => {
     const vars = getter(instance.proxy)
     if (instance.ce) {
@@ -68,6 +73,10 @@ export function useCssVars(
     onUnmounted(() => ob.disconnect())
   })
 }
+
+/**
+ * 写入CSS 变量`on`VNode。
+ */
 
 function setVarsOnVNode(vnode: VNode, vars: Record<string, unknown>) {
   if (__FEATURE_SUSPENSE__ && vnode.shapeFlag & ShapeFlags.SUSPENSE) {
@@ -98,6 +107,10 @@ function setVarsOnVNode(vnode: VNode, vars: Record<string, unknown>) {
     }
   }
 }
+
+/**
+ * 写入CSS 变量`on`节点。
+ */
 
 function setVarsOnNode(el: Node, vars: Record<string, unknown>) {
   if (el.nodeType === 1) {

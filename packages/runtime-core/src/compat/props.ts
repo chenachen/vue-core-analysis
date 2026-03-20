@@ -10,6 +10,10 @@ import {
 } from '../componentOptions'
 import { DeprecationTypes, warnDeprecation } from './compatConfig'
 
+/**
+ * 创建props`default``this`。
+ */
+
 export function createPropsDefaultThis(
   instance: ComponentInternalInstance,
   rawProps: Data,
@@ -18,6 +22,10 @@ export function createPropsDefaultThis(
   return new Proxy(
     {},
     {
+      /**
+       * 读取目标值。
+       */
+
       get(_, key: string) {
         __DEV__ &&
           warnDeprecation(DeprecationTypes.PROPS_DEFAULT_THIS, null, propKey)

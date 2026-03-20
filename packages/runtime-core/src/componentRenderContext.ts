@@ -82,6 +82,10 @@ export function withCtx(
     return fn
   }
 
+  /**
+   * 渲染`fn``with`上下文。
+   */
+
   const renderFnWithContext: ContextualRenderFn = (...args: any[]) => {
     // If a user calls a compiled slot inside a template expression (#1745), it
     // can mess up block tracking, so by default we disable block tracking and

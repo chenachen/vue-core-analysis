@@ -6,6 +6,10 @@ import { warn } from '../warning'
 
 export const ssrContextKey: unique symbol = Symbol.for('v-scx')
 
+/**
+ * 提供`ssrcontext`的组合式入口。
+ */
+
 export const useSSRContext = <T = Record<string, any>>(): T | undefined => {
   if (!__GLOBAL__) {
     const ctx = inject<T>(ssrContextKey)

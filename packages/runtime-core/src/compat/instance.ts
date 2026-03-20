@@ -65,29 +65,51 @@ export interface LegacyPublicProperties {
   $listeners: Record<string, Function | Function[]>
 }
 
+/**
+ * 封装 `installCompatInstanceProperties` 辅助逻辑。
+ */
+
 export function installCompatInstanceProperties(
   map: PublicPropertiesMap,
 ): void {
+  /**
+   * 写入目标值。
+   */
+
   const set = (target: any, key: any, val: any) => {
     target[key] = val
     return target[key]
   }
+
+  /**
+   * 封装 `del` 辅助逻辑。
+   */
 
   const del = (target: any, key: any) => {
     delete target[key]
   }
 
   extend(map, {
+    /**
+     * 封装 `$set` 分支逻辑。
+     */
+
     $set: i => {
       assertCompatEnabled(DeprecationTypes.INSTANCE_SET, i)
       return set
     },
 
+    /**
+     * 封装 `$delete` 分支逻辑。
+     */
     $delete: i => {
       assertCompatEnabled(DeprecationTypes.INSTANCE_DELETE, i)
       return del
     },
 
+    /**
+     * 封装 `$mount` 分支逻辑。
+     */
     $mount: i => {
       assertCompatEnabled(
         DeprecationTypes.GLOBAL_MOUNT,
@@ -97,6 +119,9 @@ export function installCompatInstanceProperties(
       return i.ctx._compat_mount || NOOP
     },
 
+    /**
+     * 封装 `$destroy` 分支逻辑。
+     */
     $destroy: i => {
       assertCompatEnabled(DeprecationTypes.INSTANCE_DESTROY, i)
       // root destroy override from ./global.ts in installCompatMount
@@ -115,13 +140,27 @@ export function installCompatInstanceProperties(
       return __DEV__ ? shallowReadonly(i.slots) : i.slots
     },
 
+    /**
+     * 封装 `$scopedSlots` 分支逻辑。
+     */
     $scopedSlots: i => {
       assertCompatEnabled(DeprecationTypes.INSTANCE_SCOPED_SLOTS, i)
       return __DEV__ ? shallowReadonly(i.slots) : i.slots
     },
 
+    /**
+     * 封装 `$on` 分支逻辑。
+     */
     $on: i => on.bind(null, i),
+
+    /**
+     * 封装 `$once` 分支逻辑。
+     */
     $once: i => once.bind(null, i),
+
+    /**
+     * 封装 `$off` 分支逻辑。
+     */
     $off: i => off.bind(null, i),
 
     $children: getCompatChildren,
@@ -139,12 +178,20 @@ export function installCompatInstanceProperties(
       const res = (i.resolvedOptions = extend({}, resolveMergedOptions(i)))
       Object.defineProperties(res, {
         parent: {
+          /**
+           * 读取目标值。
+           */
+
           get() {
             warnDeprecation(DeprecationTypes.PRIVATE_APIS, i, '$options.parent')
             return i.proxy!.$parent
           },
         },
         propsData: {
+          /**
+           * 读取目标值。
+           */
+
           get() {
             warnDeprecation(
               DeprecationTypes.PRIVATE_APIS,
@@ -165,30 +212,118 @@ export function installCompatInstanceProperties(
 
     // some private properties that are likely accessed...
     _self: i => i.proxy,
+
+    /**
+     * 封装 `_uid` 分支逻辑。
+     */
     _uid: i => i.uid,
+
+    /**
+     * 封装 `_data` 分支逻辑。
+     */
     _data: i => i.data,
+
+    /**
+     * 封装 `_isMounted` 分支逻辑。
+     */
     _isMounted: i => i.isMounted,
+
+    /**
+     * 封装 `_isDestroyed` 分支逻辑。
+     */
     _isDestroyed: i => i.isUnmounted,
 
     // v2 render helpers
     $createElement: () => compatH,
+
+    /**
+     * 封装 `_c` 分支逻辑。
+     */
     _c: () => compatH,
+
+    /**
+     * 封装 `_o` 分支逻辑。
+     */
     _o: () => legacyMarkOnce,
+
+    /**
+     * 封装 `_n` 分支逻辑。
+     */
     _n: () => looseToNumber,
+
+    /**
+     * 封装 `_s` 分支逻辑。
+     */
     _s: () => toDisplayString,
+
+    /**
+     * 封装 `_l` 分支逻辑。
+     */
     _l: () => renderList,
+
+    /**
+     * 封装 `_t` 分支逻辑。
+     */
     _t: i => legacyRenderSlot.bind(null, i),
+
+    /**
+     * 封装 `_q` 分支逻辑。
+     */
     _q: () => looseEqual,
+
+    /**
+     * 封装 `_i` 分支逻辑。
+     */
     _i: () => looseIndexOf,
+
+    /**
+     * 封装 `_m` 分支逻辑。
+     */
     _m: i => legacyRenderStatic.bind(null, i),
+
+    /**
+     * 封装 `_f` 分支逻辑。
+     */
     _f: () => resolveFilter,
+
+    /**
+     * 封装 `_k` 分支逻辑。
+     */
     _k: i => legacyCheckKeyCodes.bind(null, i),
+
+    /**
+     * 封装 `_b` 分支逻辑。
+     */
     _b: () => legacyBindObjectProps,
+
+    /**
+     * 封装 `_v` 分支逻辑。
+     */
     _v: () => createTextVNode,
+
+    /**
+     * 封装 `_e` 分支逻辑。
+     */
     _e: () => createCommentVNode,
+
+    /**
+     * 封装 `_u` 分支逻辑。
+     */
     _u: () => legacyresolveScopedSlots,
+
+    /**
+     * 封装 `_g` 分支逻辑。
+     */
     _g: () => legacyBindObjectListeners,
+
+    /**
+     * 封装 `_d` 分支逻辑。
+     */
     _d: () => legacyBindDynamicKeys,
+
+    /**
+     * 封装 `_p` 分支逻辑。
+     */
     _p: () => legacyPrependModifier,
   } as PublicPropertiesMap
 

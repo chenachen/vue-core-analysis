@@ -156,6 +156,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.CONFIG_IGNORED_ELEMENTS]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: () => {
       let msg = `config.ignoredElements has been removed.`
       if (isRuntimeOnly()) {
@@ -208,6 +212,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.INSTANCE_EVENT_HOOKS]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: event =>
       `"${event}" lifecycle events are no longer supported. From templates, ` +
       `use the "vue:" prefix instead of "hook:". For example, @${event} ` +
@@ -239,6 +247,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.INSTANCE_ATTRS_CLASS_STYLE]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: componentName =>
       `Component <${
         componentName || 'Anonymous'
@@ -261,6 +273,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.OPTIONS_DATA_MERGE]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: (key: string) =>
       `Detected conflicting key "${key}" when merging data option values. ` +
       `In Vue 3, data keys are merged shallowly and will override one another.`,
@@ -286,6 +302,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.PROPS_DEFAULT_THIS]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: (key: string) =>
       `props default value function no longer has access to "this". The compat ` +
       `build only offers access to this.$options.` +
@@ -294,6 +314,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.CUSTOM_DIR]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: (legacyHook: string, newHook: string) =>
       `Custom directive hook "${legacyHook}" has been removed. ` +
       `Use "${newHook}" instead.`,
@@ -308,6 +332,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.ATTR_FALSE_VALUE]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: (name: string) =>
       `Attribute "${name}" with v-bind value \`false\` will render ` +
       `${name}="false" instead of removing it in Vue 3. To remove the attribute, ` +
@@ -318,6 +346,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.ATTR_ENUMERATED_COERCION]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: (name: string, value: any, coerced: string) =>
       `Enumerated attribute "${name}" with v-bind value \`${value}\` will ` +
       `${
@@ -345,6 +377,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.COMPONENT_ASYNC]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: (comp: any) => {
       const name = getComponentName(comp)
       return (
@@ -363,6 +399,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.COMPONENT_FUNCTIONAL]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: (comp: any) => {
       const name = getComponentName(comp)
       return (
@@ -379,6 +419,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.COMPONENT_V_MODEL]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: (comp: ComponentOptions) => {
       const configMsg =
         `opt-in to ` +
@@ -421,6 +465,10 @@ export const deprecationData: Record<DeprecationTypes, DeprecationData> = {
   },
 
   [DeprecationTypes.PRIVATE_APIS]: {
+    /**
+     * 封装 `message` 分支逻辑。
+     */
+
     message: name =>
       `"${name}" is a Vue 2 private API that no longer exists in Vue 3. ` +
       `If you are seeing this warning only due to a dependency, you can ` +
@@ -434,9 +482,17 @@ const warnCount: Record<string, number> = Object.create(null)
 // test only
 let warningEnabled = true
 
+/**
+ * 封装 `toggleDeprecationWarning` 辅助逻辑。
+ */
+
 export function toggleDeprecationWarning(flag: boolean): void {
   warningEnabled = flag
 }
+
+/**
+ * 输出与`deprecation`相关的警告。
+ */
 
 export function warnDeprecation(
   key: DeprecationTypes,
@@ -505,6 +561,10 @@ export const globalCompatConfig: CompatConfig = {
   MODE: 2,
 }
 
+/**
+ * 封装 `configureCompat` 辅助逻辑。
+ */
+
 export function configureCompat(config: CompatConfig): void {
   if (__DEV__) {
     validateCompatConfig(config)
@@ -554,6 +614,10 @@ export function validateCompatConfig(
   }
 }
 
+/**
+ * 读取`compat`配置`for`key。
+ */
+
 export function getCompatConfigForKey(
   key: DeprecationTypes | 'MODE',
   instance: ComponentInternalInstance | null,
@@ -565,6 +629,10 @@ export function getCompatConfigForKey(
   }
   return globalCompatConfig[key]
 }
+
+/**
+ * 判断当前是否满足`compat``enabled`。
+ */
 
 export function isCompatEnabled(
   key: DeprecationTypes,

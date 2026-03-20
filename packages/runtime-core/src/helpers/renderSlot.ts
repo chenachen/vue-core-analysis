@@ -102,6 +102,10 @@ export function renderSlot(
   return rendered
 }
 
+/**
+ * 确保`valid`VNode已准备就绪。
+ */
+
 export function ensureValidVNode(
   vnodes: VNodeArrayChildren,
 ): VNodeArrayChildren | null {

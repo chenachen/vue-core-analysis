@@ -26,6 +26,10 @@ const normalizedAsyncComponentMap = new WeakMap<
   Component
 >()
 
+/**
+ * 封装 `convertLegacyAsyncComponent` 辅助逻辑。
+ */
+
 export function convertLegacyAsyncComponent(
   comp: LegacyAsyncComponent,
 ): Component {
@@ -48,6 +52,10 @@ export function convertLegacyAsyncComponent(
     converted = defineAsyncComponent(() => res)
   } else if (isObject(res) && !isVNode(res) && !isArray(res)) {
     converted = defineAsyncComponent({
+      /**
+       * 封装 `loader` 分支逻辑。
+       */
+
       loader: () => res.component,
       loadingComponent: res.loading,
       errorComponent: res.error,

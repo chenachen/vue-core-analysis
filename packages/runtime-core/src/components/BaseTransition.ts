@@ -101,6 +101,10 @@ export interface TransitionElement {
   [leaveCbKey]?: PendingCallback
 }
 
+/**
+ * 提供过渡状态的组合式入口。
+ */
+
 export function useTransitionState(): TransitionState {
   const state: TransitionState = {
     isMounted: false,
@@ -140,6 +144,10 @@ export const BaseTransitionPropsValidators: Record<string, any> = {
   onAppearCancelled: TransitionHookValidator,
 }
 
+/**
+ * 封装 `recursiveGetSubtree` 辅助逻辑。
+ */
+
 const recursiveGetSubtree = (instance: ComponentInternalInstance): VNode => {
   const subTree = instance.subTree
   return subTree.component ? recursiveGetSubtree(subTree.component) : subTree
@@ -150,6 +158,9 @@ const BaseTransitionImpl: ComponentOptions = {
 
   props: BaseTransitionPropsValidators,
 
+  /**
+   * 建立运行时上下文的初始化流程。
+   */
   setup(props: BaseTransitionProps, { slots }: SetupContext) {
     const instance = getCurrentInstance()!
     const state = useTransitionState()
@@ -273,6 +284,10 @@ if (__COMPAT__) {
   BaseTransitionImpl.__isBuiltIn = true
 }
 
+/**
+ * 封装 `findNonCommentChild` 辅助逻辑。
+ */
+
 function findNonCommentChild(children: VNode[]): VNode {
   let child: VNode = children[0]
   if (children.length > 1) {
@@ -307,6 +322,10 @@ export const BaseTransition = BaseTransitionImpl as unknown as {
     }
   }
 }
+
+/**
+ * 读取`leaving``nodes``for`类型。
+ */
 
 function getLeavingNodesForType(
   state: TransitionState,
@@ -350,6 +369,10 @@ export function resolveTransitionHooks(
   const key = String(vnode.key)
   const leavingVNodesCache = getLeavingNodesForType(state, vnode)
 
+  /**
+   * 调用钩子。
+   */
+
   const callHook: TransitionHookCaller = (hook, args) => {
     hook &&
       callWithAsyncErrorHandling(
@@ -359,6 +382,10 @@ export function resolveTransitionHooks(
         args,
       )
   }
+
+  /**
+   * 调用异步钩子。
+   */
 
   const callAsyncHook = (
     hook: Hook<(el: any, done: () => void) => void>,
@@ -376,6 +403,10 @@ export function resolveTransitionHooks(
   const hooks: TransitionHooks<TransitionElement> = {
     mode,
     persisted,
+
+    /**
+     * 封装 `beforeEnter` 辅助逻辑。
+     */
     beforeEnter(el) {
       let hook = onBeforeEnter
       if (!state.isMounted) {
@@ -402,6 +433,9 @@ export function resolveTransitionHooks(
       callHook(hook, [el])
     },
 
+    /**
+     * 封装 `enter` 辅助逻辑。
+     */
     enter(el) {
       let hook = onEnter
       let afterHook = onAfterEnter
@@ -436,6 +470,9 @@ export function resolveTransitionHooks(
       }
     },
 
+    /**
+     * 封装 `leave` 辅助逻辑。
+     */
     leave(el, remove) {
       const key = String(vnode.key)
       if (el[enterCbKey]) {
@@ -468,6 +505,9 @@ export function resolveTransitionHooks(
       }
     },
 
+    /**
+     * 封装 `clone` 辅助逻辑。
+     */
     clone(vnode) {
       const hooks = resolveTransitionHooks(
         vnode,
@@ -495,6 +535,10 @@ function emptyPlaceholder(vnode: VNode): VNode | undefined {
     return vnode
   }
 }
+
+/**
+ * 读取`inner``child`。
+ */
 
 function getInnerChild(vnode: VNode): VNode | undefined {
   if (!isKeepAlive(vnode)) {
@@ -525,6 +569,10 @@ function getInnerChild(vnode: VNode): VNode | undefined {
   }
 }
 
+/**
+ * 写入过渡钩子。
+ */
+
 export function setTransitionHooks(vnode: VNode, hooks: TransitionHooks): void {
   if (vnode.shapeFlag & ShapeFlags.COMPONENT && vnode.component) {
     vnode.transition = hooks
@@ -536,6 +584,10 @@ export function setTransitionHooks(vnode: VNode, hooks: TransitionHooks): void {
     vnode.transition = hooks
   }
 }
+
+/**
+ * 读取过渡原始子节点。
+ */
 
 export function getTransitionRawChildren(
   children: VNode[],

@@ -8,6 +8,7 @@ import { type ComponentInternalInstance, getComponentName } from './component'
 export enum SchedulerJobFlags {
   QUEUED = 1 << 0,
   PRE = 1 << 1,
+
   /**
    * Indicates whether the effect is allowed to recursively trigger itself
    * when managed by the scheduler.
@@ -29,11 +30,13 @@ export enum SchedulerJobFlags {
 
 export interface SchedulerJob extends Function {
   id?: number
+
   /**
    * flags can technically be undefined, but it can still be used in bitwise
    * operations just like 0.
    */
   flags?: SchedulerJobFlags
+
   /**
    * Attached by renderer.ts when setting up a component's render effect
    * Used to obtain component information when reporting max recursive updates.
@@ -79,6 +82,7 @@ export function nextTick<T = void, R = void>(
 // A pre watcher will have the same id as its component's update job. The
 // watcher should be inserted immediately before the update job. This allows
 // watchers to be skipped if the component is unmounted by the parent update.
+
 /**
  * 在主队列中找到 job 应插入的位置。
  *
@@ -131,6 +135,10 @@ export function queueJob(job: SchedulerJob): void {
     queueFlush()
   }
 }
+
+/**
+ * 把`flush`加入调度队列。
+ */
 
 function queueFlush() {
   if (!currentFlushPromise) {
@@ -242,6 +250,10 @@ export function flushPostFlushCbs(seen?: CountMap): void {
   }
 }
 
+/**
+ * 读取标识。
+ */
+
 const getId = (job: SchedulerJob): number =>
   job.id == null ? (job.flags! & SchedulerJobFlags.PRE ? -1 : Infinity) : job.id
 
@@ -306,6 +318,10 @@ function flushJobs(seen?: CountMap) {
     }
   }
 }
+
+/**
+ * 封装 `checkRecursiveUpdates` 辅助逻辑。
+ */
 
 function checkRecursiveUpdates(seen: CountMap, fn: SchedulerJob) {
   const count = seen.get(fn) || 0

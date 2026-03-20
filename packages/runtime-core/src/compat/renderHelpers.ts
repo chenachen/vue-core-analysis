@@ -17,6 +17,10 @@ import { renderSlot } from '../helpers/renderSlot'
 import { toHandlers } from '../helpers/toHandlers'
 import { type VNode, mergeProps } from '../vnode'
 
+/**
+ * 封装 `toObject` 辅助逻辑。
+ */
+
 function toObject(arr: Array<any>): Object {
   const res = {}
   for (let i = 0; i < arr.length; i++) {
@@ -26,6 +30,10 @@ function toObject(arr: Array<any>): Object {
   }
   return res
 }
+
+/**
+ * 封装 `legacyBindObjectProps` 辅助逻辑。
+ */
 
 export function legacyBindObjectProps(
   data: any,
@@ -65,9 +73,17 @@ export function legacyBindObjectProps(
   return data
 }
 
+/**
+ * 封装 `legacyBindObjectListeners` 辅助逻辑。
+ */
+
 export function legacyBindObjectListeners(props: any, listeners: any): Data {
   return mergeProps(props, toHandlers(listeners))
 }
+
+/**
+ * 封装 `legacyRenderSlot` 辅助逻辑。
+ */
 
 export function legacyRenderSlot(
   instance: ComponentInternalInstance,
@@ -90,6 +106,10 @@ type LegacyScopedSlotsData = Array<
   | LegacyScopedSlotsData
 >
 
+/**
+ * 封装 `legacyresolveScopedSlots` 辅助逻辑。
+ */
+
 export function legacyresolveScopedSlots(
   fns: LegacyScopedSlotsData,
   raw?: Record<string, Slot>,
@@ -102,6 +122,10 @@ export function legacyresolveScopedSlots(
     mapKeyToName(fns),
   )
 }
+
+/**
+ * 封装 `mapKeyToName` 辅助逻辑。
+ */
 
 function mapKeyToName(slots: LegacyScopedSlotsData) {
   for (let i = 0; i < slots.length; i++) {
@@ -117,10 +141,13 @@ function mapKeyToName(slots: LegacyScopedSlotsData) {
   return slots as any
 }
 
-const staticCacheMap = /*@__PURE__*/ new WeakMap<
-  ComponentInternalInstance,
-  any[]
->()
+const staticCacheMap =
+  /*@__PURE__*/
+  new WeakMap<ComponentInternalInstance, any[]>()
+
+/**
+ * 封装 `legacyRenderStatic` 辅助逻辑。
+ */
 
 export function legacyRenderStatic(
   instance: ComponentInternalInstance,
@@ -137,6 +164,10 @@ export function legacyRenderStatic(
   const ctx = instance.proxy
   return (cache[index] = fn.call(ctx, null, ctx))
 }
+
+/**
+ * 封装 `legacyCheckKeyCodes` 辅助逻辑。
+ */
 
 export function legacyCheckKeyCodes(
   instance: ComponentInternalInstance,
@@ -158,6 +189,10 @@ export function legacyCheckKeyCodes(
   }
 }
 
+/**
+ * 判断当前是否满足key`not``match`。
+ */
+
 function isKeyNotMatch<T>(expect: T | T[], actual: T): boolean {
   if (isArray(expect)) {
     return !expect.includes(actual)
@@ -166,9 +201,17 @@ function isKeyNotMatch<T>(expect: T | T[], actual: T): boolean {
   }
 }
 
+/**
+ * 封装 `legacyMarkOnce` 辅助逻辑。
+ */
+
 export function legacyMarkOnce(tree: VNode): VNode {
   return tree
 }
+
+/**
+ * 封装 `legacyBindDynamicKeys` 辅助逻辑。
+ */
 
 export function legacyBindDynamicKeys(props: any, values: any[]): any {
   for (let i = 0; i < values.length; i += 2) {
@@ -179,6 +222,10 @@ export function legacyBindDynamicKeys(props: any, values: any[]): any {
   }
   return props
 }
+
+/**
+ * 封装 `legacyPrependModifier` 辅助逻辑。
+ */
 
 export function legacyPrependModifier(value: any, symbol: string): any {
   return typeof value === 'string' ? symbol + value : value

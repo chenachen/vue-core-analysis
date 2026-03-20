@@ -26,6 +26,10 @@ const legacyDirectiveHookMap: Partial<
   unmounted: 'unbind',
 }
 
+/**
+ * 封装 `mapCompatDirectiveHook` 辅助逻辑。
+ */
+
 export function mapCompatDirectiveHook(
   name: keyof ObjectDirective,
   dir: ObjectDirective & LegacyDirective,

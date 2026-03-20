@@ -14,6 +14,10 @@ type Style = string | Record<string, string | string[]> | null
 
 const displayRE = /(^|;)\s*display\s*:/
 
+/**
+ * 同步样式到最新运行时状态。
+ */
+
 export function patchStyle(el: Element, prev: Style, next: Style): void {
   const style = (el as HTMLElement).style
   const isCssString = isString(next)
@@ -70,6 +74,10 @@ export function patchStyle(el: Element, prev: Style, next: Style): void {
 const semicolonRE = /[^\\];\s*$/
 const importantRE = /\s*!important$/
 
+/**
+ * 写入样式。
+ */
+
 function setStyle(
   style: CSSStyleDeclaration,
   name: string,
@@ -107,6 +115,10 @@ function setStyle(
 
 const prefixes = ['Webkit', 'Moz', 'ms']
 const prefixCache: Record<string, string> = {}
+
+/**
+ * 封装 `autoPrefix` 辅助逻辑。
+ */
 
 function autoPrefix(style: CSSStyleDeclaration, rawName: string): string {
   const cached = prefixCache[rawName]

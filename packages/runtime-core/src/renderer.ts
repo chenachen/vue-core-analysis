@@ -342,6 +342,7 @@ function baseCreateRenderer(
 ): HydrationRenderer
 
 // implementation
+
 /**
  * 创建渲染器闭包并把宿主平台能力绑定进来。
  *
@@ -381,6 +382,7 @@ function baseCreateRenderer(
 
   // Note: functions inside this closure should use `const xxx = () => {}`
   // style in order to prevent being inlined by minifiers.
+
   /**
    * 对虚拟节点（VNode）进行打补丁操作的函数。
    *
@@ -527,6 +529,10 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 处理文本。
+   */
+
   const processText: ProcessTextOrCommentFn = (n1, n2, container, anchor) => {
     if (n1 == null) {
       // 如果旧节点为空，创建并插入新的文本节点
@@ -543,6 +549,10 @@ function baseCreateRenderer(
       }
     }
   }
+
+  /**
+   * 处理`comment`节点。
+   */
 
   const processCommentNode: ProcessTextOrCommentFn = (
     n1,
@@ -563,6 +573,10 @@ function baseCreateRenderer(
       n2.el = n1.el
     }
   }
+
+  /**
+   * 挂载静态内容节点。
+   */
 
   const mountStaticNode = (
     n2: VNode,
@@ -757,6 +771,7 @@ function baseCreateRenderer(
           hostPatchProp(el, key, null, props[key], namespace, parentComponent)
         }
       }
+
       /**
        * Special case for setting value on DOM elements:
        * - it can be order-sensitive (e.g. should be set *after* min/max, #2325, #4024)
@@ -766,6 +781,7 @@ function baseCreateRenderer(
        * here to reduce the complexity. (Special casing it also should not
        * affect non-DOM renderers)
        */
+
       /**
        * 处理 value 属性的特殊情况：
        * - 它可能对顺序敏感（例如，应在 min/max 之后设置，#2325，#4024）
@@ -1175,7 +1191,8 @@ function baseCreateRenderer(
   /**
    * 处理片段节点的函数。
    *
-  /**
+
+/**
    * 处理 Fragment。
    *
    * Fragment 没有真实宿主元素，因此运行时会用一对锚点文本节点界定它在宿主树中
@@ -1464,6 +1481,10 @@ function baseCreateRenderer(
     namespace: ElementNamespace,
     optimized,
   ) => {
+    /**
+     * 封装 `componentUpdateFn` 辅助逻辑。
+     */
+
     const componentUpdateFn = () => {
       // 如果组件未挂载，则进行挂载逻辑
       if (!instance.isMounted) {
@@ -1965,7 +1986,8 @@ function baseCreateRenderer(
    *
    * 说明：
    * - 该函数用于对比旧的子节点数组（c1）和新的子节点数组（c2），
-  /**
+
+/**
    * 处理无 key 的 children diff。
    *
    * 无 key 场景无法表达“节点身份”，因此只能按索引尽量复用前缀公共部分，
@@ -2032,6 +2054,7 @@ function baseCreateRenderer(
   }
 
   // can be all-keyed or mixed
+
   /**
    * 处理带 key 的 children diff。
    *
@@ -2381,6 +2404,11 @@ function baseCreateRenderer(
       } else {
         // 处理离开过渡
         const { leave, delayLeave, afterLeave } = transition!
+
+        /**
+         * 移除目标内容。
+         */
+
         const remove = () => {
           if (vnode.ctx!.isUnmounted) {
             hostRemove(el!)
@@ -2388,6 +2416,11 @@ function baseCreateRenderer(
             hostInsert(el!, container, anchor)
           }
         }
+
+        /**
+         * 封装 `performLeave` 辅助逻辑。
+         */
+
         const performLeave = () => {
           leave(el!, () => {
             remove()
@@ -2610,6 +2643,11 @@ function baseCreateRenderer(
       !transition.persisted
     ) {
       const { leave, delayLeave } = transition
+
+      /**
+       * 封装 `performLeave` 辅助逻辑。
+       */
+
       const performLeave = () => leave(el!, performRemove)
       if (delayLeave) {
         delayLeave(vnode.el!, performRemove, performLeave)
@@ -2824,6 +2862,7 @@ function baseCreateRenderer(
 
   //
   let isFlushing = false
+
   /**
    * 渲染器对外暴露的根入口。
    *
@@ -2886,6 +2925,10 @@ function baseCreateRenderer(
   }
 }
 
+/**
+ * 解析并确定子节点命名空间。
+ */
+
 function resolveChildrenNamespace(
   { type, props }: VNode,
   currentNamespace: ElementNamespace,
@@ -2928,6 +2971,10 @@ function toggleRecurse(
     job.flags! &= ~SchedulerJobFlags.ALLOW_RECURSE
   }
 }
+
+/**
+ * 判断过渡是否必需。
+ */
 
 export function needTransition(
   parentSuspense: SuspenseBoundary | null,
@@ -2990,6 +3037,7 @@ export function traverseStaticChildren(
 }
 
 // https://en.wikipedia.org/wiki/Longest_increasing_subsequence
+
 /**
  * 计算最长递增子序列的索引集合。
  *
@@ -3059,6 +3107,10 @@ function locateNonHydratedAsyncRoot(
     }
   }
 }
+
+/**
+ * 封装 `invalidateMount` 辅助逻辑。
+ */
 
 export function invalidateMount(hooks: LifecycleHook): void {
   if (hooks) {

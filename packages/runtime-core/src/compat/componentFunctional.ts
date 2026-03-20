@@ -16,11 +16,19 @@ const normalizedFunctionalComponentMap = new WeakMap<
   FunctionalComponent
 >()
 export const legacySlotProxyHandlers: ProxyHandler<InternalSlots> = {
+  /**
+   * 读取目标值。
+   */
+
   get(target, key: string) {
     const slot = target[key]
     return slot && slot()
   },
 }
+
+/**
+ * 封装 `convertLegacyFunctionalComponent` 辅助逻辑。
+ */
 
 export function convertLegacyFunctionalComponent(
   comp: ComponentOptions,
@@ -31,6 +39,10 @@ export function convertLegacyFunctionalComponent(
 
   const legacyFn = comp.render as any
 
+  /**
+   * 封装 `Func` 辅助逻辑。
+   */
+
   const Func: FunctionalComponent = (props, ctx) => {
     const instance = getCurrentInstance()!
 
@@ -40,12 +52,24 @@ export function convertLegacyFunctionalComponent(
       data: instance.vnode.props || {},
       scopedSlots: ctx.slots,
       parent: instance.parent && instance.parent.proxy,
+
+      /**
+       * 封装 `slots` 辅助逻辑。
+       */
       slots() {
         return new Proxy(ctx.slots, legacySlotProxyHandlers)
       },
+
+      /**
+       * 读取`listeners`。
+       */
       get listeners() {
         return getCompatListeners(instance)
       },
+
+      /**
+       * 读取`injections`。
+       */
       get injections() {
         if (comp.inject) {
           const injections = {}

@@ -67,12 +67,14 @@ export type RawSlots = {
   [name: string]: unknown
   // manual render fn hint to skip forced children updates
   $stable?: boolean
+
   /**
    * for tracking slot owner instance. This is attached during
    * normalizeChildren when the component vnode is created.
    * @internal
    */
   _ctx?: ComponentInternalInstance | null
+
   /**
    * indicates compiler generated slots
    * we use a reserved property instead of a vnode patchFlag because the slots
@@ -82,6 +84,7 @@ export type RawSlots = {
    * @internal
    */
   _?: SlotFlags
+
   /**
    * cache indexes for slot content
    * @internal
@@ -89,13 +92,25 @@ export type RawSlots = {
   __?: number[]
 }
 
+/**
+ * 判断当前是否满足`internal`key。
+ */
+
 const isInternalKey = (key: string) =>
   key === '_' || key === '__' || key === '_ctx' || key === '$stable'
+
+/**
+ * 规范化插槽值。
+ */
 
 const normalizeSlotValue = (value: unknown): VNode[] =>
   isArray(value)
     ? value.map(normalizeVNode)
     : [normalizeVNode(value as VNodeChild)]
+
+/**
+ * 规范化插槽。
+ */
 
 const normalizeSlot = (
   key: string,
@@ -125,6 +140,10 @@ const normalizeSlot = (
   ;(normalized as ContextualRenderFn)._c = false
   return normalized
 }
+
+/**
+ * 规范化`object`插槽。
+ */
 
 const normalizeObjectSlots = (
   rawSlots: RawSlots,
@@ -156,6 +175,10 @@ const normalizeObjectSlots = (
   }
 }
 
+/**
+ * 规范化VNode插槽。
+ */
+
 const normalizeVNodeSlots = (
   instance: ComponentInternalInstance,
   children: VNodeNormalizedChildren,
@@ -174,6 +197,10 @@ const normalizeVNodeSlots = (
   instance.slots.default = () => normalized
 }
 
+/**
+ * 封装 `assignSlots` 辅助逻辑。
+ */
+
 const assignSlots = (
   slots: InternalSlots,
   children: Slots,
@@ -189,6 +216,10 @@ const assignSlots = (
     }
   }
 }
+
+/**
+ * 初始化插槽。
+ */
 
 export const initSlots = (
   instance: ComponentInternalInstance,
@@ -215,6 +246,10 @@ export const initSlots = (
     normalizeVNodeSlots(instance, children)
   }
 }
+
+/**
+ * 更新插槽。
+ */
 
 export const updateSlots = (
   instance: ComponentInternalInstance,

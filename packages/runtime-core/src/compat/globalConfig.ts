@@ -16,21 +16,25 @@ export type LegacyConfig = {
    * @deprecated `config.silent` option has been removed
    */
   silent?: boolean
+
   /**
    * @deprecated use __VUE_PROD_DEVTOOLS__ compile-time feature flag instead
    * https://github.com/vuejs/core/tree/main/packages/vue#bundler-build-feature-flags
    */
   devtools?: boolean
+
   /**
    * @deprecated use `config.isCustomElement` instead
    * https://v3-migration.vuejs.org/breaking-changes/global-api.html#config-ignoredelements-is-now-config-iscustomelement
    */
   ignoredElements?: (string | RegExp)[]
+
   /**
    * @deprecated
    * https://v3-migration.vuejs.org/breaking-changes/keycode-modifiers.html
    */
   keyCodes?: Record<string, number | number[]>
+
   /**
    * @deprecated
    * https://v3-migration.vuejs.org/breaking-changes/global-api.html#config-productiontip-removed
@@ -52,9 +56,17 @@ export function installLegacyConfigWarnings(config: AppConfig): void {
     let val = (config as any)[key]
     Object.defineProperty(config, key, {
       enumerable: true,
+
+      /**
+       * 读取目标值。
+       */
       get() {
         return val
       },
+
+      /**
+       * 写入目标值。
+       */
       set(newVal) {
         if (!isCopyingConfig) {
           warnDeprecation(legacyConfigOptions[key], null)
@@ -65,8 +77,16 @@ export function installLegacyConfigWarnings(config: AppConfig): void {
   })
 }
 
+/**
+ * 封装 `installLegacyOptionMergeStrats` 辅助逻辑。
+ */
+
 export function installLegacyOptionMergeStrats(config: AppConfig): void {
   config.optionMergeStrategies = new Proxy({} as any, {
+    /**
+     * 读取目标值。
+     */
+
     get(target, key) {
       if (key in target) {
         return target[key]

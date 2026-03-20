@@ -11,10 +11,13 @@ interface EventRegistry {
   [event: string]: Function[] | undefined
 }
 
-const eventRegistryMap = /*@__PURE__*/ new WeakMap<
-  ComponentInternalInstance,
-  EventRegistry
->()
+const eventRegistryMap =
+  /*@__PURE__*/
+  new WeakMap<ComponentInternalInstance, EventRegistry>()
+
+/**
+ * 读取`registry`。
+ */
 
 export function getRegistry(
   instance: ComponentInternalInstance,
@@ -25,6 +28,10 @@ export function getRegistry(
   }
   return events!
 }
+
+/**
+ * 封装 `on` 辅助逻辑。
+ */
 
 export function on(
   instance: ComponentInternalInstance,
@@ -49,11 +56,19 @@ export function on(
   return instance.proxy
 }
 
+/**
+ * 封装 `once` 辅助逻辑。
+ */
+
 export function once(
   instance: ComponentInternalInstance,
   event: string,
   fn: Function,
 ): ComponentPublicInstance | null {
+  /**
+   * 封装 `wrapped` 辅助逻辑。
+   */
+
   const wrapped = (...args: any[]) => {
     off(instance, event, wrapped)
     fn.apply(instance.proxy, args)
@@ -62,6 +77,10 @@ export function once(
   on(instance, event, wrapped)
   return instance.proxy
 }
+
+/**
+ * 封装 `off` 辅助逻辑。
+ */
 
 export function off(
   instance: ComponentInternalInstance,
@@ -93,6 +112,10 @@ export function off(
   events[event!] = cbs.filter(cb => !(cb === fn || (cb as any).fn === fn))
   return vm
 }
+
+/**
+ * 封装 `emit` 辅助逻辑。
+ */
 
 export function emit(
   instance: ComponentInternalInstance,

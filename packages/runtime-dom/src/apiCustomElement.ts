@@ -170,6 +170,7 @@ export function defineCustomElement<
 export function defineCustomElement(
   options: any,
   extraOptions?: ComponentOptions,
+
   /**
    * @internal
    */
@@ -207,18 +208,22 @@ export class VueElement
   implements ComponentCustomElementInterface
 {
   _isVueCE = true
+
   /**
    * @internal
    */
   _instance: ComponentInternalInstance | null = null
+
   /**
    * @internal
    */
   _app: App | null = null
+
   /**
    * @internal
    */
   _root: Element | ShadowRoot
+
   /**
    * @internal
    */
@@ -235,10 +240,12 @@ export class VueElement
   private _styleChildren = new WeakSet()
   private _pendingResolve: Promise<void> | undefined
   private _parent: VueElement | undefined
+
   /**
    * dev only
    */
   private _styles?: HTMLStyleElement[]
+
   /**
    * dev only
    */
@@ -273,6 +280,10 @@ export class VueElement
       }
     }
   }
+
+  /**
+   * 封装 `connectedCallback` 辅助逻辑。
+   */
 
   connectedCallback(): void {
     // avoid resolving component if it's not connected
@@ -311,12 +322,20 @@ export class VueElement
     }
   }
 
+  /**
+   * 写入`parent`。
+   */
+
   private _setParent(parent = this._parent) {
     if (parent) {
       this._instance!.parent = parent._instance
       this._inheritParentContext(parent)
     }
   }
+
+  /**
+   * 封装 `_inheritParentContext` 辅助逻辑。
+   */
 
   private _inheritParentContext(parent = this._parent) {
     // #13212, the provides object of the app context must inherit the provides
@@ -328,6 +347,10 @@ export class VueElement
       )
     }
   }
+
+  /**
+   * 封装 `disconnectedCallback` 辅助逻辑。
+   */
 
   disconnectedCallback(): void {
     this._connected = false
@@ -366,6 +389,10 @@ export class VueElement
     })
 
     this._ob.observe(this, { attributes: true })
+
+    /**
+     * 解析并确定目标结果。
+     */
 
     const resolve = (def: InnerComponentDef, isAsync = false) => {
       this._resolved = true
@@ -416,6 +443,10 @@ export class VueElement
     }
   }
 
+  /**
+   * 挂载当前节点。
+   */
+
   private _mount(def: InnerComponentDef) {
     if ((__DEV__ || __FEATURE_PROD_DEVTOOLS__) && !def.name) {
       // @ts-expect-error
@@ -446,6 +477,10 @@ export class VueElement
     }
   }
 
+  /**
+   * 解析并确定props。
+   */
+
   private _resolveProps(def: InnerComponentDef) {
     const { props } = def
     const declaredPropKeys = isArray(props) ? props : Object.keys(props || {})
@@ -460,15 +495,27 @@ export class VueElement
     // defining getter/setters on prototype
     for (const key of declaredPropKeys.map(camelize)) {
       Object.defineProperty(this, key, {
+        /**
+         * 读取目标值。
+         */
+
         get() {
           return this._getProp(key)
         },
+
+        /**
+         * 写入目标值。
+         */
         set(val) {
           this._setProp(key, val, true, true)
         },
       })
     }
   }
+
+  /**
+   * 写入属性。
+   */
 
   protected _setAttr(key: string): void {
     if (key.startsWith('data-v-')) return
@@ -526,11 +573,19 @@ export class VueElement
     }
   }
 
+  /**
+   * 更新当前状态。
+   */
+
   private _update() {
     const vnode = this._createVNode()
     if (this._app) vnode.appContext = this._app._context
     render(vnode, this._root)
   }
+
+  /**
+   * 创建VNode。
+   */
 
   private _createVNode(): VNode<any, any> {
     const baseProps: VNodeProps = {}
@@ -558,6 +613,10 @@ export class VueElement
           }
         }
 
+        /**
+         * 封装 `dispatch` 辅助逻辑。
+         */
+
         const dispatch = (event: string, args: any[]) => {
           this.dispatchEvent(
             new CustomEvent(
@@ -584,6 +643,10 @@ export class VueElement
     }
     return vnode
   }
+
+  /**
+   * 应用`styles`。
+   */
 
   private _applyStyles(
     styles: string[] | undefined,
@@ -690,6 +753,10 @@ export class VueElement
     }
   }
 }
+
+/**
+ * 提供宿主的组合式入口。
+ */
 
 export function useHost(caller?: string): VueElement | null {
   const instance = getCurrentInstance()

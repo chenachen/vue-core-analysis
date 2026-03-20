@@ -25,15 +25,27 @@ type TraceEntry = {
 
 type ComponentTraceStack = TraceEntry[]
 
+/**
+ * 封装 `pushWarningContext` 辅助逻辑。
+ */
+
 export function pushWarningContext(vnode: VNode): void {
   stack.push(vnode)
 }
+
+/**
+ * 封装 `popWarningContext` 辅助逻辑。
+ */
 
 export function popWarningContext(): void {
   stack.pop()
 }
 
 let isWarning = false
+
+/**
+ * 输出与当前场景相关的警告。
+ */
 
 export function warn(msg: string, ...args: any[]): void {
   if (isWarning) return
@@ -81,6 +93,10 @@ export function warn(msg: string, ...args: any[]): void {
   isWarning = false
 }
 
+/**
+ * 读取组件`trace`。
+ */
+
 export function getComponentTrace(): ComponentTraceStack {
   let currentVNode: VNode | null = stack[stack.length - 1]
   if (!currentVNode) {
@@ -119,6 +135,10 @@ function formatTrace(trace: ComponentTraceStack): any[] {
   return logs
 }
 
+/**
+ * 封装 `formatTraceEntry` 辅助逻辑。
+ */
+
 function formatTraceEntry({ vnode, recurseCount }: TraceEntry): any[] {
   const postfix =
     recurseCount > 0 ? `... (${recurseCount} recursive calls)` : ``
@@ -134,6 +154,10 @@ function formatTraceEntry({ vnode, recurseCount }: TraceEntry): any[] {
     : [open + close]
 }
 
+/**
+ * 封装 `formatProps` 辅助逻辑。
+ */
+
 function formatProps(props: Data): any[] {
   const res: any[] = []
   const keys = Object.keys(props)
@@ -148,6 +172,11 @@ function formatProps(props: Data): any[] {
 
 function formatProp(key: string, value: unknown): any[]
 function formatProp(key: string, value: unknown, raw: true): any
+
+/**
+ * 封装 `formatProp` 辅助逻辑。
+ */
+
 function formatProp(key: string, value: unknown, raw?: boolean): any {
   if (isString(value)) {
     value = JSON.stringify(value)

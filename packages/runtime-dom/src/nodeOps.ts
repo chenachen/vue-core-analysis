@@ -18,9 +18,15 @@ const tt =
 
 if (tt) {
   try {
-    policy = /*@__PURE__*/ tt.createPolicy('vue', {
-      createHTML: val => val,
-    })
+    policy =
+      /*@__PURE__*/
+      tt.createPolicy('vue', {
+        /**
+         * 封装 `createHTML` 分支逻辑。
+         */
+
+        createHTML: val => val,
+      })
   } catch (e: unknown) {
     // `createPolicy` throws a TypeError if the name is a duplicate
     // and the CSP trusted-types directive is not using `allow-duplicates`.
@@ -46,10 +52,17 @@ const templateContainer = doc && /*@__PURE__*/ doc.createElement('template')
 
 // 封装一组操作 DOM 节点的方法，符合 Vue 渲染器所需的接口规范。
 export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
+  /**
+   * 封装 `insert` 分支逻辑。
+   */
+
   insert: (child, parent, anchor) => {
     parent.insertBefore(child, anchor || null)
   },
 
+  /**
+   * 封装 `remove` 分支逻辑。
+   */
   remove: child => {
     const parent = child.parentNode
     if (parent) {
@@ -76,24 +89,48 @@ export const nodeOps: Omit<RendererOptions<Node, Element>, 'patchProp'> = {
     return el
   },
 
+  /**
+   * 封装 `createText` 分支逻辑。
+   */
   createText: text => doc.createTextNode(text),
 
+  /**
+   * 封装 `createComment` 分支逻辑。
+   */
   createComment: text => doc.createComment(text),
 
+  /**
+   * 封装 `setText` 分支逻辑。
+   */
   setText: (node, text) => {
     node.nodeValue = text
   },
 
+  /**
+   * 封装 `setElementText` 分支逻辑。
+   */
   setElementText: (el, text) => {
     el.textContent = text
   },
 
+  /**
+   * 封装 `parentNode` 分支逻辑。
+   */
   parentNode: node => node.parentNode as Element | null,
 
+  /**
+   * 封装 `nextSibling` 分支逻辑。
+   */
   nextSibling: node => node.nextSibling,
 
+  /**
+   * 封装 `querySelector` 分支逻辑。
+   */
   querySelector: selector => doc.querySelector(selector),
 
+  /**
+   * 写入作用域标识。
+   */
   setScopeId(el, id) {
     el.setAttribute(id, '')
   },

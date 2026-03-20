@@ -116,6 +116,10 @@ export function setRef(
     const _isRef = isRef(ref)
 
     if (_isString || _isRef) {
+      /**
+       * 封装 `doSet` 辅助逻辑。
+       */
+
       const doSet = () => {
         if (rawRef.f) {
           const existing = _isString

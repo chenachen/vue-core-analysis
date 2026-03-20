@@ -10,6 +10,10 @@ interface InjectionConstraint<T> {}
 
 export type InjectionKey<T> = symbol & InjectionConstraint<T>
 
+/**
+ * 封装 `provide` 辅助逻辑。
+ */
+
 export function provide<T, K = InjectionKey<T> | string | number>(
   key: K,
   value: K extends InjectionKey<infer V> ? V : T,
@@ -46,6 +50,11 @@ export function inject<T>(
   defaultValue: T | (() => T),
   treatDefaultAsFactory: true,
 ): T
+
+/**
+ * 注入目标能力。
+ */
+
 export function inject(
   key: InjectionKey<any> | string,
   defaultValue?: unknown,

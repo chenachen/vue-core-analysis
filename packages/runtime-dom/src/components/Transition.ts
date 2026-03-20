@@ -64,11 +64,9 @@ const DOMTransitionPropsValidators = {
   leaveToClass: String,
 }
 
-export const TransitionPropsValidators: any = /*@__PURE__*/ extend(
-  {},
-  BaseTransitionPropsValidators as any,
-  DOMTransitionPropsValidators,
-)
+export const TransitionPropsValidators: any =
+  /*@__PURE__*/
+  extend({}, BaseTransitionPropsValidators as any, DOMTransitionPropsValidators)
 
 /**
  * Wrap logic that attaches extra properties to Transition in a function
@@ -88,7 +86,8 @@ const decorate = (t: typeof Transition) => {
  * base Transition component, with DOM-specific logic.
  */
 export const Transition: FunctionalComponent<TransitionProps> =
-  /*@__PURE__*/ decorate((props, { slots }) =>
+  /*@__PURE__*/
+  decorate((props, { slots }) =>
     h(BaseTransition, resolveTransitionProps(props), slots),
   )
 
@@ -120,6 +119,10 @@ const hasExplicitCallback = (
       : hook.length > 1
     : false
 }
+
+/**
+ * 解析并确定过渡props。
+ */
 
 export function resolveTransitionProps(
   rawProps: TransitionProps,
@@ -158,6 +161,10 @@ export function resolveTransitionProps(
   let legacyAppearFromClass: string
   let legacyLeaveFromClass: string
   if (__COMPAT__ && legacyClassEnabled) {
+    /**
+     * 封装 `toLegacyClass` 辅助逻辑。
+     */
+
     const toLegacyClass = (cls: string) => cls.replace(/-from$/, '')
     if (!rawProps.enterFromClass) {
       legacyEnterFromClass = toLegacyClass(enterFromClass)
@@ -184,6 +191,10 @@ export function resolveTransitionProps(
     onAppearCancelled = onEnterCancelled,
   } = baseProps
 
+  /**
+   * 收尾进入阶段。
+   */
+
   const finishEnter = (
     el: Element & { _enterCancelled?: boolean },
     isAppear: boolean,
@@ -196,6 +207,10 @@ export function resolveTransitionProps(
     done && done()
   }
 
+  /**
+   * 收尾离开阶段。
+   */
+
   const finishLeave = (
     el: Element & { _isLeaving?: boolean },
     done?: () => void,
@@ -207,9 +222,18 @@ export function resolveTransitionProps(
     done && done()
   }
 
+  /**
+   * 封装 `makeEnterHook` 辅助逻辑。
+   */
+
   const makeEnterHook = (isAppear: boolean) => {
     return (el: Element, done: () => void) => {
       const hook = isAppear ? onAppear : onEnter
+
+      /**
+       * 解析并确定目标结果。
+       */
+
       const resolve = () => finishEnter(el, isAppear, done)
       callHook(hook, [el, resolve])
       nextFrame(() => {
@@ -231,6 +255,10 @@ export function resolveTransitionProps(
   }
 
   return extend(baseProps, {
+    /**
+     * 封装 `onBeforeEnter` 辅助逻辑。
+     */
+
     onBeforeEnter(el) {
       callHook(onBeforeEnter, [el])
       addTransitionClass(el, enterFromClass)
@@ -239,6 +267,10 @@ export function resolveTransitionProps(
       }
       addTransitionClass(el, enterActiveClass)
     },
+
+    /**
+     * 封装 `onBeforeAppear` 辅助逻辑。
+     */
     onBeforeAppear(el) {
       callHook(onBeforeAppear, [el])
       addTransitionClass(el, appearFromClass)
@@ -249,11 +281,20 @@ export function resolveTransitionProps(
     },
     onEnter: makeEnterHook(false),
     onAppear: makeEnterHook(true),
+
+    /**
+     * 封装 `onLeave` 辅助逻辑。
+     */
     onLeave(
       el: Element & { _isLeaving?: boolean; _enterCancelled?: boolean },
       done,
     ) {
       el._isLeaving = true
+
+      /**
+       * 解析并确定目标结果。
+       */
+
       const resolve = () => finishLeave(el, done)
       addTransitionClass(el, leaveFromClass)
       if (__COMPAT__ && legacyClassEnabled && legacyLeaveFromClass) {
@@ -285,20 +326,36 @@ export function resolveTransitionProps(
       })
       callHook(onLeave, [el, resolve])
     },
+
+    /**
+     * 封装 `onEnterCancelled` 辅助逻辑。
+     */
     onEnterCancelled(el) {
       finishEnter(el, false, undefined, true)
       callHook(onEnterCancelled, [el])
     },
+
+    /**
+     * 封装 `onAppearCancelled` 辅助逻辑。
+     */
     onAppearCancelled(el) {
       finishEnter(el, true, undefined, true)
       callHook(onAppearCancelled, [el])
     },
+
+    /**
+     * 封装 `onLeaveCancelled` 辅助逻辑。
+     */
     onLeaveCancelled(el) {
       finishLeave(el)
       callHook(onLeaveCancelled, [el])
     },
   } as BaseTransitionProps<Element>)
 }
+
+/**
+ * 规范化时长。
+ */
 
 function normalizeDuration(
   duration: TransitionProps['duration'],
@@ -313,6 +370,10 @@ function normalizeDuration(
   }
 }
 
+/**
+ * 封装 `NumberOf` 辅助逻辑。
+ */
+
 function NumberOf(val: unknown): number {
   const res = toNumber(val)
   if (__DEV__) {
@@ -321,6 +382,10 @@ function NumberOf(val: unknown): number {
   return res
 }
 
+/**
+ * 添加过渡class。
+ */
+
 export function addTransitionClass(el: Element, cls: string): void {
   cls.split(/\s+/).forEach(c => c && el.classList.add(c))
   ;(
@@ -328,6 +393,10 @@ export function addTransitionClass(el: Element, cls: string): void {
     ((el as ElementWithTransition)[vtcKey] = new Set())
   ).add(cls)
 }
+
+/**
+ * 移除过渡class。
+ */
 
 export function removeTransitionClass(el: Element, cls: string): void {
   cls.split(/\s+/).forEach(c => c && el.classList.remove(c))
@@ -340,6 +409,10 @@ export function removeTransitionClass(el: Element, cls: string): void {
   }
 }
 
+/**
+ * 推进`frame`。
+ */
+
 function nextFrame(cb: () => void) {
   requestAnimationFrame(() => {
     requestAnimationFrame(cb)
@@ -348,6 +421,10 @@ function nextFrame(cb: () => void) {
 
 let endId = 0
 
+/**
+ * 封装 `whenTransitionEnds` 辅助逻辑。
+ */
+
 function whenTransitionEnds(
   el: Element & { _endId?: number },
   expectedType: TransitionProps['type'] | undefined,
@@ -355,6 +432,11 @@ function whenTransitionEnds(
   resolve: () => void,
 ) {
   const id = (el._endId = ++endId)
+
+  /**
+   * 解析并确定`if``not``stale`。
+   */
+
   const resolveIfNotStale = () => {
     if (id === el._endId) {
       resolve()
@@ -372,10 +454,20 @@ function whenTransitionEnds(
 
   const endEvent = type + 'end'
   let ended = 0
+
+  /**
+   * 封装 `end` 辅助逻辑。
+   */
+
   const end = () => {
     el.removeEventListener(endEvent, onEnd)
     resolveIfNotStale()
   }
+
+  /**
+   * 封装 `onEnd` 辅助逻辑。
+   */
+
   const onEnd = (e: Event) => {
     if (e.target === el && ++ended >= propCount) {
       end()
@@ -400,6 +492,10 @@ type AnimationProperties = 'Delay' | 'Duration'
 type StylePropertiesKey =
   | `${AnimationTypes}${AnimationProperties}`
   | `${typeof TRANSITION}Property`
+
+/**
+ * 读取过渡`info`。
+ */
 
 export function getTransitionInfo(
   el: Element,
@@ -460,6 +556,10 @@ export function getTransitionInfo(
     hasTransform,
   }
 }
+
+/**
+ * 读取超时信息。
+ */
 
 function getTimeout(delays: string[], durations: string[]): number {
   while (delays.length < durations.length) {

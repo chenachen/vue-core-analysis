@@ -5,6 +5,10 @@ import { isOn } from '@vue/shared'
 import type { ComponentInternalInstance } from '../component'
 import { DeprecationTypes, isCompatEnabled } from './compatConfig'
 
+/**
+ * 判断是否应当执行`skip`属性。
+ */
+
 export function shouldSkipAttr(
   key: string,
   instance: ComponentInternalInstance,

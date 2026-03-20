@@ -7,6 +7,10 @@ import {
 } from '../component'
 import { warn } from '../warning'
 
+/**
+ * 提供标识的组合式入口。
+ */
+
 export function useId(): string {
   const i = getCurrentInstance()
   if (i) {

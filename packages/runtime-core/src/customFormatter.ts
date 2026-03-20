@@ -15,6 +15,10 @@ import { EMPTY_OBJ, extend, isArray, isFunction, isObject } from '@vue/shared'
 import type { ComponentInternalInstance, ComponentOptions } from './component'
 import type { ComponentPublicInstance } from './componentPublicInstance'
 
+/**
+ * 初始化自定义`formatter`。
+ */
+
 export function initCustomFormatter(): void {
   /* eslint-disable no-restricted-globals */
   if (!__DEV__ || typeof window === 'undefined') {
@@ -30,6 +34,10 @@ export function initCustomFormatter(): void {
   // https://www.mattzeunert.com/2016/02/19/custom-chrome-devtools-object-formatters.html
   const formatter = {
     __vue_custom_formatter: true,
+
+    /**
+     * 封装 `header` 辅助逻辑。
+     */
     header(obj: unknown) {
       // TODO also format ComponentPublicInstance & ctx.slots/attrs in setup
       if (!isObject(obj)) {
@@ -72,9 +80,17 @@ export function initCustomFormatter(): void {
       }
       return null
     },
+
+    /**
+     * 判断是否存在`body`。
+     */
     hasBody(obj: unknown) {
       return obj && (obj as any).__isVue
     },
+
+    /**
+     * 封装 `body` 辅助逻辑。
+     */
     body(obj: unknown) {
       if (obj && (obj as any).__isVue) {
         return [
@@ -85,6 +101,10 @@ export function initCustomFormatter(): void {
       }
     },
   }
+
+  /**
+   * 封装 `formatInstance` 辅助逻辑。
+   */
 
   function formatInstance(instance: ComponentInternalInstance) {
     const blocks = []
@@ -121,6 +141,10 @@ export function initCustomFormatter(): void {
     return blocks
   }
 
+  /**
+   * 创建实例block。
+   */
+
   function createInstanceBlock(type: string, target: any) {
     target = extend({}, target)
     if (!Object.keys(target).length) {
@@ -153,6 +177,10 @@ export function initCustomFormatter(): void {
     ]
   }
 
+  /**
+   * 封装 `formatValue` 辅助逻辑。
+   */
+
   function formatValue(v: unknown, asRaw = true) {
     if (typeof v === 'number') {
       return ['span', numberStyle, v]
@@ -167,6 +195,10 @@ export function initCustomFormatter(): void {
     }
   }
 
+  /**
+   * 封装 `extractKeys` 辅助逻辑。
+   */
+
   function extractKeys(instance: ComponentInternalInstance, type: string) {
     const Comp = instance.type
     if (isFunction(Comp)) {
@@ -180,6 +212,10 @@ export function initCustomFormatter(): void {
     }
     return extracted
   }
+
+  /**
+   * 判断当前是否满足key`of`类型。
+   */
 
   function isKeyOfType(Comp: ComponentOptions, key: string, type: string) {
     const opts = Comp[type]
@@ -196,6 +232,10 @@ export function initCustomFormatter(): void {
       return true
     }
   }
+
+  /**
+   * 封装 `genRefFlag` 辅助逻辑。
+   */
 
   function genRefFlag(v: Ref) {
     if (isShallow(v)) {

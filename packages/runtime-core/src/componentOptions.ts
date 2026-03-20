@@ -198,11 +198,13 @@ export interface ComponentOptionsBase<
    * @internal
    */
   __asyncLoader?: () => Promise<ConcreteComponent>
+
   /**
    * the inner component resolved by the AsyncComponentWrapper
    * @internal
    */
   __asyncResolved?: ConcreteComponent
+
   /**
    * Exposed for lazy hydration
    * @internal
@@ -427,9 +429,11 @@ interface LegacyOptions<
   updated?(): any
   activated?(): any
   deactivated?(): any
+
   /** @deprecated use `beforeUnmount` instead */
   beforeDestroy?(): any
   beforeUnmount?(): any
+
   /** @deprecated use `unmounted` instead */
   destroyed?(): any
   unmounted?(): any
@@ -468,9 +472,11 @@ export type MergedComponentOptionsOverride = {
   updated?: MergedHook
   activated?: MergedHook
   deactivated?: MergedHook
+
   /** @deprecated use `beforeUnmount` instead */
   beforeDestroy?: MergedHook
   beforeUnmount?: MergedHook
+
   /** @deprecated use `unmounted` instead */
   destroyed?: MergedHook
   unmounted?: MergedHook
@@ -657,6 +663,10 @@ export function applyOptions(instance: ComponentInternalInstance): void {
             Object.defineProperty(ctx, key, {
               configurable: true,
               enumerable: true,
+
+              /**
+               * 封装 `get` 分支逻辑。
+               */
               get: () => data[key],
               set: NOOP,
             })
@@ -697,7 +707,15 @@ export function applyOptions(instance: ComponentInternalInstance): void {
       Object.defineProperty(ctx, key, {
         enumerable: true,
         configurable: true,
+
+        /**
+         * 封装 `get` 分支逻辑。
+         */
         get: () => c.value,
+
+        /**
+         * 封装 `set` 分支逻辑。
+         */
         set: v => (c.value = v),
       })
       if (__DEV__) {
@@ -724,6 +742,10 @@ export function applyOptions(instance: ComponentInternalInstance): void {
   if (created) {
     callHook(created, instance, LifecycleHooks.CREATED)
   }
+
+  /**
+   * 注册`lifecycle`钩子。
+   */
 
   function registerLifecycleHook(
     register: Function,
@@ -769,7 +791,15 @@ export function applyOptions(instance: ComponentInternalInstance): void {
       const exposed = instance.exposed || (instance.exposed = {})
       expose.forEach(key => {
         Object.defineProperty(exposed, key, {
+          /**
+           * 封装 `get` 分支逻辑。
+           */
+
           get: () => publicThis[key],
+
+          /**
+           * 封装 `set` 分支逻辑。
+           */
           set: val => (publicThis[key] = val),
           enumerable: true,
         })
@@ -839,7 +869,15 @@ export function resolveInjections(
       Object.defineProperty(ctx, key, {
         enumerable: true,
         configurable: true,
+
+        /**
+         * 封装 `get` 分支逻辑。
+         */
         get: () => (injected as Ref).value,
+
+        /**
+         * 封装 `set` 分支逻辑。
+         */
         set: v => ((injected as Ref).value = v),
       })
     } else {
@@ -850,6 +888,10 @@ export function resolveInjections(
     }
   }
 }
+
+/**
+ * 调用钩子。
+ */
 
 function callHook(
   hook: Function,
@@ -949,6 +991,7 @@ export function createWatcher(
  * This is done only once per-component since the merging does not involve
  * instances.
  */
+
 /**
  * 解析组件最终可用的合并后选项，并做按组件级别缓存。
  *
@@ -1075,6 +1118,10 @@ if (__COMPAT__) {
   internalOptionMergeStrats.filters = mergeObjectOptions
 }
 
+/**
+ * 合并数据`fn`。
+ */
+
 function mergeDataFn(to: any, from: any) {
   if (!from) {
     return to
@@ -1094,12 +1141,20 @@ function mergeDataFn(to: any, from: any) {
   }
 }
 
+/**
+ * 合并`inject`。
+ */
+
 function mergeInject(
   to: ComponentInjectOptions | undefined,
   from: ComponentInjectOptions,
 ) {
   return mergeObjectOptions(normalizeInject(to), normalizeInject(from))
 }
+
+/**
+ * 规范化`inject`。
+ */
 
 function normalizeInject(
   raw: ComponentInjectOptions | undefined,
@@ -1114,9 +1169,17 @@ function normalizeInject(
   return raw
 }
 
+/**
+ * 合并`as``array`。
+ */
+
 function mergeAsArray<T = Function>(to: T[] | T | undefined, from: T | T[]) {
   return to ? [...new Set([].concat(to as any, from as any))] : from
 }
+
+/**
+ * 合并`object`选项。
+ */
 
 function mergeObjectOptions(to: Object | undefined, from: Object | undefined) {
   return to ? extend(Object.create(null), to, from) : from
@@ -1130,6 +1193,11 @@ function mergeEmitsOrPropsOptions(
   to: ComponentPropsOptions | undefined,
   from: ComponentPropsOptions | undefined,
 ): ComponentPropsOptions | undefined
+
+/**
+ * 合并emits 配置`or`props选项。
+ */
+
 function mergeEmitsOrPropsOptions(
   to: ComponentPropsOptions | EmitsOptions | undefined,
   from: ComponentPropsOptions | EmitsOptions | undefined,
@@ -1147,6 +1215,10 @@ function mergeEmitsOrPropsOptions(
     return from
   }
 }
+
+/**
+ * 合并侦听选项。
+ */
 
 function mergeWatchOptions(
   to: ComponentWatchOptions | undefined,
@@ -1208,10 +1280,12 @@ export type ComponentOptionsWithoutProps<
   Provide
 > & {
   props?: never
+
   /**
    * @private for language-tools use only
    */
   __typeProps?: Props
+
   /**
    * @private for language-tools use only
    */

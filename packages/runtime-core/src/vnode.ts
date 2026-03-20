@@ -99,14 +99,17 @@ export type VNodeNormalizedRefAtom = {
    * component instance
    */
   i: ComponentInternalInstance
+
   /**
    * Actual ref
    */
   r: VNodeRef
+
   /**
    * setup ref key
    */
   k?: string
+
   /**
    * refInFor marker
    */
@@ -179,11 +182,13 @@ export interface VNode<
   props: (VNodeProps & ExtraProps) | null // 节点属性
   key: PropertyKey | null // 节点的 key 值
   ref: VNodeNormalizedRef | null // 节点的 ref 引用
+
   /**
    * SFC only. This is assigned on vnode creation using currentScopeId
    * which is set alongside currentRenderingInstance.
    */
   scopeId: string | null // 节点的作用域 ID，
+
   /**
    * SFC only. This is assigned to:
    * - Slot fragment vnodes with :slotted SFC styles.
@@ -204,6 +209,7 @@ export interface VNode<
   target: HostElement | null // teleport target
   targetStart: HostNode | null // teleport target start anchor
   targetAnchor: HostNode | null // teleport target anchor
+
   /**
    * number of elements contained in a static vnode
    * @internal
@@ -212,10 +218,12 @@ export interface VNode<
 
   // suspense
   suspense: SuspenseBoundary | null
+
   /**
    * @internal
    */
   ssContent: VNode | null
+
   /**
    * @internal
    */
@@ -224,10 +232,12 @@ export interface VNode<
   // optimization only
   shapeFlag: number
   patchFlag: number
+
   /**
    * @internal
    */
   dynamicProps: string[] | null
+
   /**
    * @internal
    */
@@ -245,14 +255,17 @@ export interface VNode<
    * @internal attached by v-memo
    */
   memo?: any[]
+
   /**
    * @internal index for cleaning v-memo cache
    */
   cacheIndex?: number
+
   /**
    * @internal __COMPAT__ only
    */
   isCompatRoot?: true
+
   /**
    * @internal custom element interception hook
    */
@@ -286,6 +299,10 @@ export let currentBlock: VNode['dynamicChildren'] = null
 export function openBlock(disableTracking = false): void {
   blockStack.push((currentBlock = disableTracking ? null : []))
 }
+
+/**
+ * 封装 `closeBlock` 辅助逻辑。
+ */
 
 export function closeBlock(): void {
   blockStack.pop()
@@ -322,6 +339,10 @@ export function setBlockTracking(value: number, inVOnce = false): void {
     currentBlock.hasOnce = true
   }
 }
+
+/**
+ * 建立block的初始化流程。
+ */
 
 function setupBlock(vnode: VNode) {
   // save current block children on the block vnode
@@ -387,6 +408,10 @@ export function createBlock(
   )
 }
 
+/**
+ * 判断当前是否满足VNode。
+ */
+
 export function isVNode(value: any): value is VNode {
   return value ? value.__v_isVNode === true : false
 }
@@ -438,6 +463,10 @@ export function transformVNodeArgs(
   vnodeArgsTransformer = transformer
 }
 
+/**
+ * 创建VNode`with``args``transform`。
+ */
+
 const createVNodeWithArgsTransform = (
   ...args: Parameters<typeof _createVNode>
 ): VNode => {
@@ -448,8 +477,16 @@ const createVNodeWithArgsTransform = (
   )
 }
 
+/**
+ * 规范化key。
+ */
+
 const normalizeKey = ({ key }: VNodeProps): VNode['key'] =>
   key != null ? key : null
+
+/**
+ * 规范化ref。
+ */
 
 const normalizeRef = ({
   ref,
@@ -467,6 +504,10 @@ const normalizeRef = ({
       : null
   ) as any
 }
+
+/**
+ * 创建基础VNode。
+ */
 
 function createBaseVNode(
   type: VNodeTypes | ClassComponent | typeof NULL_DYNAMIC_COMPONENT,
@@ -559,6 +600,10 @@ export { createBaseVNode as createElementVNode }
 export const createVNode = (
   __DEV__ ? createVNodeWithArgsTransform : _createVNode
 ) as typeof _createVNode
+
+/**
+ * 创建VNode。
+ */
 
 function _createVNode(
   type: VNodeTypes | ClassComponent | typeof NULL_DYNAMIC_COMPONENT,
@@ -659,12 +704,20 @@ function _createVNode(
   )
 }
 
+/**
+ * 封装 `guardReactiveProps` 辅助逻辑。
+ */
+
 export function guardReactiveProps(
   props: (Data & VNodeProps) | null,
 ): (Data & VNodeProps) | null {
   if (!props) return null
   return isProxy(props) || isInternalObject(props) ? extend({}, props) : props
 }
+
+/**
+ * 封装 `cloneVNode` 辅助逻辑。
+ */
 
 export function cloneVNode<T, U>(
   vnode: VNode<T, U>,
@@ -800,6 +853,10 @@ export function createCommentVNode(
     : createVNode(Comment, null, text)
 }
 
+/**
+ * 规范化VNode。
+ */
+
 export function normalizeVNode(child: VNodeChild): VNode {
   if (child == null || typeof child === 'boolean') {
     // empty placeholder
@@ -829,6 +886,10 @@ export function cloneIfMounted(child: VNode): VNode {
     ? child
     : cloneVNode(child)
 }
+
+/**
+ * 规范化子节点。
+ */
 
 export function normalizeChildren(vnode: VNode, children: unknown): void {
   let type = 0
@@ -885,6 +946,10 @@ export function normalizeChildren(vnode: VNode, children: unknown): void {
   vnode.shapeFlag |= type
 }
 
+/**
+ * 合并props。
+ */
+
 export function mergeProps(...args: (Data & VNodeProps)[]): Data {
   const ret: Data = {}
   for (let i = 0; i < args.length; i++) {
@@ -915,6 +980,10 @@ export function mergeProps(...args: (Data & VNodeProps)[]): Data {
   }
   return ret
 }
+
+/**
+ * 调用VNode钩子。
+ */
 
 export function invokeVNodeHook(
   hook: VNodeHook,

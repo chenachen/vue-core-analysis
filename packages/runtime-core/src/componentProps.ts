@@ -60,10 +60,12 @@ export interface PropOptions<T = any, D = T> {
   required?: boolean
   default?: D | DefaultFactory<D> | null | undefined | object
   validator?(value: unknown, props: Data): boolean
+
   /**
    * @internal
    */
   skipCheck?: boolean
+
   /**
    * @internal
    */
@@ -238,6 +240,10 @@ export function initProps(
   }
   instance.attrs = attrs
 }
+
+/**
+ * 判断当前是否满足`in``hmr`上下文。
+ */
 
 function isInHmrContext(instance: ComponentInternalInstance | null) {
   while (instance) {
@@ -558,6 +564,10 @@ export function normalizePropsOptions(
   // apply mixin/extends props
   let hasExtends = false
   if (__FEATURE_OPTIONS_API__ && !isFunction(comp)) {
+    /**
+     * 封装 `extendProps` 辅助逻辑。
+     */
+
     const extendProps = (raw: ComponentOptions) => {
       if (__COMPAT__ && isFunction(raw)) {
         raw = raw.options
@@ -646,6 +656,10 @@ export function normalizePropsOptions(
   }
   return res
 }
+
+/**
+ * 校验prop`name`。
+ */
 
 function validatePropName(key: string) {
   if (key[0] !== '$' && !isReservedProp(key)) {
@@ -745,9 +759,9 @@ function validateProp(
   }
 }
 
-const isSimpleType = /*@__PURE__*/ makeMap(
-  'String,Number,Boolean,Function,Symbol,BigInt',
-)
+const isSimpleType =
+  /*@__PURE__*/
+  makeMap('String,Number,Boolean,Function,Symbol,BigInt')
 
 type AssertionResult = {
   valid: boolean

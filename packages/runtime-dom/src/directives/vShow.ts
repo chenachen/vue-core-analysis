@@ -13,6 +13,10 @@ export interface VShowElement extends HTMLElement {
 }
 
 export const vShow: ObjectDirective<VShowElement> & { name?: 'show' } = {
+  /**
+   * 封装 `beforeMount` 辅助逻辑。
+   */
+
   beforeMount(el, { value }, { transition }) {
     el[vShowOriginalDisplay] =
       el.style.display === 'none' ? '' : el.style.display
@@ -22,11 +26,19 @@ export const vShow: ObjectDirective<VShowElement> & { name?: 'show' } = {
       setDisplay(el, value)
     }
   },
+
+  /**
+   * 封装 `mounted` 辅助逻辑。
+   */
   mounted(el, { value }, { transition }) {
     if (transition && value) {
       transition.enter(el)
     }
   },
+
+  /**
+   * 封装 `updated` 辅助逻辑。
+   */
   updated(el, { value, oldValue }, { transition }) {
     if (!value === !oldValue) return
     if (transition) {
@@ -43,6 +55,10 @@ export const vShow: ObjectDirective<VShowElement> & { name?: 'show' } = {
       setDisplay(el, value)
     }
   },
+
+  /**
+   * 封装 `beforeUnmount` 辅助逻辑。
+   */
   beforeUnmount(el, { value }) {
     setDisplay(el, value)
   },
@@ -51,6 +67,10 @@ export const vShow: ObjectDirective<VShowElement> & { name?: 'show' } = {
 if (__DEV__) {
   vShow.name = 'show'
 }
+
+/**
+ * 写入display。
+ */
 
 function setDisplay(el: VShowElement, value: unknown): void {
   el.style.display = value ? el[vShowOriginalDisplay] : 'none'

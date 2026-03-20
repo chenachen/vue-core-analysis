@@ -43,6 +43,10 @@ export interface AsyncComponentOptions<T = any> {
   ) => any
 }
 
+/**
+ * 判断当前是否满足异步`wrapper`。
+ */
+
 export const isAsyncWrapper = (i: ComponentInternalInstance | VNode): boolean =>
   !!(i.type as ComponentOptions).__asyncLoader
 
@@ -69,11 +73,20 @@ export function defineAsyncComponent<
   let resolvedComp: ConcreteComponent | undefined
 
   let retries = 0
+
+  /**
+   * 封装 `retry` 辅助逻辑。
+   */
+
   const retry = () => {
     retries++
     pendingRequest = null
     return load()
   }
+
+  /**
+   * 封装 `load` 辅助逻辑。
+   */
 
   const load = (): Promise<ConcreteComponent> => {
     let thisRequest: Promise<ConcreteComponent>
@@ -85,7 +98,16 @@ export function defineAsyncComponent<
             err = err instanceof Error ? err : new Error(String(err))
             if (userOnError) {
               return new Promise((resolve, reject) => {
+                /**
+                 * 封装 `userRetry` 辅助逻辑。
+                 */
+
                 const userRetry = () => resolve(retry())
+
+                /**
+                 * 封装 `userFail` 辅助逻辑。
+                 */
+
                 const userFail = () => reject(err)
                 userOnError(err, userRetry, userFail, retries + 1)
               })
@@ -124,9 +146,17 @@ export function defineAsyncComponent<
 
     __asyncLoader: load,
 
+    /**
+     * 封装 `__asyncHydrate` 辅助逻辑。
+     */
     __asyncHydrate(el, instance, hydrate) {
       let patched = false
       ;(instance.bu || (instance.bu = [])).push(() => (patched = true))
+
+      /**
+       * 封装 `performHydrate` 辅助逻辑。
+       */
+
       const performHydrate = () => {
         // skip hydration if the component has been patched
         if (patched) {
@@ -157,10 +187,16 @@ export function defineAsyncComponent<
       }
     },
 
+    /**
+     * 读取异步`resolved`。
+     */
     get __asyncResolved() {
       return resolvedComp
     },
 
+    /**
+     * 建立运行时上下文的初始化流程。
+     */
     setup() {
       const instance = currentInstance!
       markAsyncBoundary(instance)
@@ -169,6 +205,10 @@ export function defineAsyncComponent<
       if (resolvedComp) {
         return () => createInnerComp(resolvedComp!, instance)
       }
+
+      /**
+       * 封装 `onError` 辅助逻辑。
+       */
 
       const onError = (err: Error) => {
         pendingRequest = null
@@ -250,6 +290,10 @@ export function defineAsyncComponent<
     },
   }) as T
 }
+
+/**
+ * 创建`inner``comp`。
+ */
 
 function createInnerComp(
   comp: ConcreteComponent,

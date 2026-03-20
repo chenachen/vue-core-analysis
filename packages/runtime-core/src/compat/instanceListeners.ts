@@ -5,6 +5,10 @@ import { isOn } from '@vue/shared'
 import type { ComponentInternalInstance } from '../component'
 import { DeprecationTypes, assertCompatEnabled } from './compatConfig'
 
+/**
+ * 读取`compat``listeners`。
+ */
+
 export function getCompatListeners(
   instance: ComponentInternalInstance,
 ): Record<string, Function | Function[]> {

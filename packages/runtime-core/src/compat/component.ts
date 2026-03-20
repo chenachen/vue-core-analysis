@@ -11,6 +11,10 @@ import {
 import { convertLegacyAsyncComponent } from './componentAsync'
 import { convertLegacyFunctionalComponent } from './componentFunctional'
 
+/**
+ * 封装 `convertLegacyComponent` 辅助逻辑。
+ */
+
 export function convertLegacyComponent(
   comp: any,
   instance: ComponentInternalInstance | null,

@@ -34,9 +34,17 @@ const getModelAssigner = (vnode: VNode): AssignerFn => {
   return isArray(fn) ? value => invokeArrayFns(fn, value) : fn
 }
 
+/**
+ * 封装 `onCompositionStart` 辅助逻辑。
+ */
+
 function onCompositionStart(e: Event) {
   ;(e.target as any).composing = true
 }
+
+/**
+ * 封装 `onCompositionEnd` 辅助逻辑。
+ */
 
 function onCompositionEnd(e: Event) {
   const target = e.target as any
@@ -60,6 +68,10 @@ export const vModelText: ModelDirective<
   HTMLInputElement | HTMLTextAreaElement,
   'trim' | 'number' | 'lazy'
 > = {
+  /**
+   * 封装 `created` 辅助逻辑。
+   */
+
   created(el, { modifiers: { lazy, trim, number } }, vnode) {
     el[assignKey] = getModelAssigner(vnode)
     const castToNumber =
@@ -94,6 +106,10 @@ export const vModelText: ModelDirective<
   mounted(el, { value }) {
     el.value = value == null ? '' : value
   },
+
+  /**
+   * 封装 `beforeUpdate` 辅助逻辑。
+   */
   beforeUpdate(
     el,
     { value, oldValue, modifiers: { lazy, trim, number } },
@@ -129,6 +145,10 @@ export const vModelText: ModelDirective<
 export const vModelCheckbox: ModelDirective<HTMLInputElement> = {
   // #4096 array checkboxes need to be deep traversed
   deep: true,
+
+  /**
+   * 封装 `created` 辅助逻辑。
+   */
   created(el, _, vnode) {
     el[assignKey] = getModelAssigner(vnode)
     addEventListener(el, 'change', () => {
@@ -161,6 +181,10 @@ export const vModelCheckbox: ModelDirective<HTMLInputElement> = {
   },
   // set initial checked on mount to wait for true-value/false-value
   mounted: setChecked,
+
+  /**
+   * 封装 `beforeUpdate` 辅助逻辑。
+   */
   beforeUpdate(el, binding, vnode) {
     el[assignKey] = getModelAssigner(vnode)
     setChecked(el, binding, vnode)
@@ -199,6 +223,10 @@ function setChecked(
 }
 
 export const vModelRadio: ModelDirective<HTMLInputElement> = {
+  /**
+   * 封装 `created` 辅助逻辑。
+   */
+
   created(el, { value }, vnode) {
     el.checked = looseEqual(value, vnode.props!.value)
     el[assignKey] = getModelAssigner(vnode)
@@ -206,6 +234,10 @@ export const vModelRadio: ModelDirective<HTMLInputElement> = {
       el[assignKey](getValue(el))
     })
   },
+
+  /**
+   * 封装 `beforeUpdate` 辅助逻辑。
+   */
   beforeUpdate(el, { value, oldValue }, vnode) {
     el[assignKey] = getModelAssigner(vnode)
     if (value !== oldValue) {
@@ -217,6 +249,10 @@ export const vModelRadio: ModelDirective<HTMLInputElement> = {
 export const vModelSelect: ModelDirective<HTMLSelectElement, 'number'> = {
   // <select multiple> value need to be deep traversed
   deep: true,
+
+  /**
+   * 封装 `created` 辅助逻辑。
+   */
   created(el, { value, modifiers: { number } }, vnode) {
     const isSetModel = isSet(value)
     addEventListener(el, 'change', () => {
@@ -244,9 +280,17 @@ export const vModelSelect: ModelDirective<HTMLSelectElement, 'number'> = {
   mounted(el, { value }) {
     setSelected(el, value)
   },
+
+  /**
+   * 封装 `beforeUpdate` 辅助逻辑。
+   */
   beforeUpdate(el, _binding, vnode) {
     el[assignKey] = getModelAssigner(vnode)
   },
+
+  /**
+   * 封装 `updated` 辅助逻辑。
+   */
   updated(el, { value }) {
     if (!el._assigning) {
       setSelected(el, value)
@@ -314,15 +358,31 @@ function getCheckboxValue(
 export const vModelDynamic: ObjectDirective<
   HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 > = {
+  /**
+   * 封装 `created` 辅助逻辑。
+   */
+
   created(el, binding, vnode) {
     callModelHook(el, binding, vnode, null, 'created')
   },
+
+  /**
+   * 封装 `mounted` 辅助逻辑。
+   */
   mounted(el, binding, vnode) {
     callModelHook(el, binding, vnode, null, 'mounted')
   },
+
+  /**
+   * 封装 `beforeUpdate` 辅助逻辑。
+   */
   beforeUpdate(el, binding, vnode, prevVNode) {
     callModelHook(el, binding, vnode, prevVNode, 'beforeUpdate')
   },
+
+  /**
+   * 封装 `updated` 辅助逻辑。
+   */
   updated(el, binding, vnode, prevVNode) {
     callModelHook(el, binding, vnode, prevVNode, 'updated')
   },
@@ -375,6 +435,7 @@ function callModelHook(
 
 // SSR vnode transforms, only used when user includes client-oriented render
 // function in SSR
+
 /**
  * 为 SSR 渲染准备各类 v-model 指令的服务端 props 生成逻辑。
  *

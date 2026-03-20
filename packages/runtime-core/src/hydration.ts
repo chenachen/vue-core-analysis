@@ -59,6 +59,11 @@ export enum DOMNodeTypes {
 }
 
 let hasLoggedMismatchError = false
+
+/**
+ * 封装 `logMismatchError` 辅助逻辑。
+ */
+
 const logMismatchError = () => {
   if (__TEST__ || hasLoggedMismatchError) {
     return
@@ -68,12 +73,24 @@ const logMismatchError = () => {
   hasLoggedMismatchError = true
 }
 
+/**
+ * 判断当前是否满足`svgcontainer`。
+ */
+
 const isSVGContainer = (container: Element) =>
   container.namespaceURI!.includes('svg') &&
   container.tagName !== 'foreignObject'
 
+/**
+ * 判断当前是否满足`math``mlcontainer`。
+ */
+
 const isMathMLContainer = (container: Element) =>
   container.namespaceURI!.includes('MathML')
+
+/**
+ * 读取`container`类型。
+ */
 
 const getContainerType = (
   container: Element | ShadowRoot,
@@ -84,6 +101,10 @@ const getContainerType = (
   return undefined
 }
 
+/**
+ * 判断当前是否满足`comment`。
+ */
+
 export const isComment = (node: Node): node is Comment =>
   node.nodeType === DOMNodeTypes.COMMENT
 
@@ -92,6 +113,7 @@ export const isComment = (node: Node): node is Comment =>
 // it out creates a ton of unnecessary complexity.
 // Hydration also depends on some renderer internal logic which needs to be
 // passed in via arguments.
+
 /**
  * 基于 renderer internals 生成水合入口。
  *
@@ -165,6 +187,11 @@ export function createHydrationFunctions(
   ): Node | null => {
     optimized = optimized || !!vnode.dynamicChildren
     const isFragmentStart = isComment(node) && node.data === '['
+
+    /**
+     * 封装 `onMismatch` 辅助逻辑。
+     */
+
     const onMismatch = () =>
       handleMismatch(
         node,
@@ -777,6 +804,7 @@ export function createHydrationFunctions(
   }
 
   // looks ahead for a start and closing comment node
+
   /**
    * 向后扫描并定位片段/Teleport 的结束锚点。
    *
@@ -805,6 +833,10 @@ export function createHydrationFunctions(
     return node
   }
 
+  /**
+   * 封装 `replaceNode` 辅助逻辑。
+   */
+
   const replaceNode = (
     newNode: Node,
     oldNode: Node,
@@ -825,6 +857,10 @@ export function createHydrationFunctions(
       parent = parent.parent
     }
   }
+
+  /**
+   * 判断当前是否满足模板节点。
+   */
 
   const isTemplateNode = (node: Node): node is HTMLTemplateElement => {
     return (
@@ -924,6 +960,10 @@ function propHasMismatch(
   }
 
   if (mismatchType != null && !isMismatchAllowed(el, mismatchType)) {
+    /**
+     * 封装 `format` 辅助逻辑。
+     */
+
     const format = (v: any) =>
       v === false ? `(not rendered)` : `${mismatchKey}="${v}"`
     const preSegment = `Hydration ${MismatchTypeString[mismatchType]} mismatch on`
@@ -945,9 +985,17 @@ function propHasMismatch(
   return false
 }
 
+/**
+ * 封装 `toClassSet` 辅助逻辑。
+ */
+
 function toClassSet(str: string): Set<string> {
   return new Set(str.trim().split(/\s+/))
 }
+
+/**
+ * 判断当前是否满足`set``equal`。
+ */
 
 function isSetEqual(a: Set<string>, b: Set<string>): boolean {
   if (a.size !== b.size) {
@@ -961,6 +1009,10 @@ function isSetEqual(a: Set<string>, b: Set<string>): boolean {
   return true
 }
 
+/**
+ * 封装 `toStyleMap` 辅助逻辑。
+ */
+
 function toStyleMap(str: string): Map<string, string> {
   const styleMap: Map<string, string> = new Map()
   for (const item of str.split(';')) {
@@ -973,6 +1025,10 @@ function toStyleMap(str: string): Map<string, string> {
   }
   return styleMap
 }
+
+/**
+ * 判断当前是否满足`map``equal`。
+ */
 
 function isMapEqual(a: Map<string, string>, b: Map<string, string>): boolean {
   if (a.size !== b.size) {

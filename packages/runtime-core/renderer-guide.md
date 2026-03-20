@@ -2,7 +2,7 @@
 
 > 目标：把 `packages/runtime-core` 与 `packages/runtime-dom` 这两层如何协作讲清楚，帮助你把“编译产物 → VNode → patch → DOM 更新 → 生命周期/指令/调度”的闭环完整串起来。
 
-> 本轮补充说明：`packages/runtime-core/src` 下 65 个 `.ts` 文件、`packages/runtime-dom/src` 下 17 个 `.ts` 文件，都已补上文件级说明注释；其中 `renderer.ts`、`component.ts`、`hydration.ts`、`componentOptions.ts`、`componentProps.ts`、`scheduler.ts`、`Suspense.ts`、`patchProp.ts`、`directives/vModel.ts` 等高复杂度文件，进一步补了函数级与关键分支说明。阅读时可以先看每个文件顶部的“文件说明”，再顺着本文梳理主链路。
+> 本轮补充说明：`packages/runtime-core/src` 下 65 个 `.ts` 文件、`packages/runtime-dom/src` 下 17 个 `.ts` 文件，现已统一补齐文件级说明，并在全量运行时函数周围补入函数级注释；其中 `renderer.ts`、`component.ts`、`hydration.ts`、`componentOptions.ts`、`componentProps.ts`、`scheduler.ts`、`Suspense.ts`、`patchProp.ts`、`directives/vModel.ts`、`apiCustomElement.ts`、`components/Transition.ts` 等高复杂度文件，还补了更细的流程节点与关键分支说明。阅读时可以先看每个文件顶部的“文件说明”，再顺着本文梳理主链路。
 
 ## 1. 先给结论：Vue 渲染器到底在做什么
 

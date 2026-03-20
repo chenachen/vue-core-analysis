@@ -4,6 +4,10 @@
 import { hasChanged } from '@vue/shared'
 import { type VNode, currentBlock, isBlockTreeEnabled } from '../vnode'
 
+/**
+ * 为`memo`包裹额外运行时能力。
+ */
+
 export function withMemo(
   memo: any[],
   render: () => VNode<any, any>,
@@ -22,6 +26,10 @@ export function withMemo(
 
   return (cache[index] = ret)
 }
+
+/**
+ * 判断当前是否满足`memo``same`。
+ */
 
 export function isMemoSame(cached: VNode, memo: any[]): boolean {
   const prev: any[] = cached.memo!

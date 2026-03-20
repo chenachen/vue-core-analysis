@@ -16,6 +16,10 @@ import {
 
 export const xlinkNS = 'http://www.w3.org/1999/xlink'
 
+/**
+ * 同步属性到最新运行时状态。
+ */
+
 export function patchAttr(
   el: Element,
   key: string,
@@ -51,8 +55,13 @@ export function patchAttr(
 
 // 2.x compat
 const isEnumeratedAttr = __COMPAT__
-  ? /*@__PURE__*/ makeMap('contenteditable,draggable,spellcheck')
+  ? /*@__PURE__*/
+    makeMap('contenteditable,draggable,spellcheck')
   : NOOP
+
+/**
+ * 封装 `compatCoerceAttr` 辅助逻辑。
+ */
 
 export function compatCoerceAttr(
   el: Element,

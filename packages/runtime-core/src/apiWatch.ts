@@ -62,6 +62,10 @@ export function watchEffect(
   return doWatch(effect, null, options)
 }
 
+/**
+ * 封装 `watchPostEffect` 辅助逻辑。
+ */
+
 export function watchPostEffect(
   effect: WatchEffect,
   options?: DebuggerOptions,
@@ -72,6 +76,10 @@ export function watchPostEffect(
     __DEV__ ? extend({}, options as any, { flush: 'post' }) : { flush: 'post' },
   )
 }
+
+/**
+ * 封装 `watchSyncEffect` 辅助逻辑。
+ */
 
 export function watchSyncEffect(
   effect: WatchEffect,
@@ -141,6 +149,10 @@ export function watch<T = any, Immediate extends Readonly<boolean> = false>(
   return doWatch(source as any, cb, options)
 }
 
+/**
+ * 封装 `doWatch` 辅助逻辑。
+ */
+
 function doWatch(
   source: WatchSource | WatchSource[] | WatchEffect | object,
   cb: WatchCallback | null,
@@ -181,6 +193,10 @@ function doWatch(
       const ctx = useSSRContext()!
       ssrCleanup = ctx.__watcherHandles || (ctx.__watcherHandles = [])
     } else if (!runsImmediately) {
+      /**
+       * 封装 `watchStopHandle` 辅助逻辑。
+       */
+
       const watchStopHandle = () => {}
       watchStopHandle.stop = NOOP
       watchStopHandle.resume = NOOP
@@ -264,6 +280,10 @@ export function instanceWatch(
   reset()
   return res
 }
+
+/**
+ * 创建路径`getter`。
+ */
 
 export function createPathGetter(ctx: any, path: string) {
   const segments = path.split('.')

@@ -111,6 +111,10 @@ export type EmitFn<
           }[Event]
         >
 
+/**
+ * 封装 `emit` 辅助逻辑。
+ */
+
 export function emit(
   instance: ComponentInternalInstance,
   event: string,
@@ -235,6 +239,10 @@ export function emit(
   }
 }
 
+/**
+ * 规范化emits 配置选项。
+ */
+
 export function normalizeEmitsOptions(
   comp: ConcreteComponent,
   appContext: AppContext,
@@ -252,6 +260,10 @@ export function normalizeEmitsOptions(
   // apply mixin/extends props
   let hasExtends = false
   if (__FEATURE_OPTIONS_API__ && !isFunction(comp)) {
+    /**
+     * 封装 `extendEmits` 辅助逻辑。
+     */
+
     const extendEmits = (raw: ComponentOptions) => {
       const normalizedFromExtend = normalizeEmitsOptions(raw, appContext, true)
       if (normalizedFromExtend) {

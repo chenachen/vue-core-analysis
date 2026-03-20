@@ -133,6 +133,10 @@ function resolveAsset(
   }
 }
 
+/**
+ * 解析并确定目标结果。
+ */
+
 function resolve(registry: Record<string, any> | undefined, name: string) {
   return (
     registry &&
