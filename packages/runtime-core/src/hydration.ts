@@ -837,11 +837,9 @@ export function createHydrationFunctions(
 }
 
 /**
- * Dev only
- */
-/**
  * 检查单个属性在服务端 DOM 与客户端 vnode 之间是否存在不可接受的不一致。
  *
+ * Dev only。
  * 这里会对 class、style、布尔属性和普通 attribute 做差异化比较，并结合
  * `data-allow-mismatch` 配置决定是否需要报警。
  */

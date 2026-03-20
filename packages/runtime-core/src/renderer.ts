@@ -1175,16 +1175,6 @@ function baseCreateRenderer(
   /**
    * 处理片段节点的函数。
    *
-   * @param {VNode | null} n1 - 旧的虚拟节点，如果为 `null` 表示这是一个挂载操作。
-   * @param {VNode} n2 - 新的虚拟节点。
-   * @param {RendererElement} container - 容器元素，用于挂载或更新节点。
-   * @param {RendererNode | null} anchor - 插入的参考节点。
-   * @param {ComponentInternalInstance | null} parentComponent - 父组件实例。
-   * @param {SuspenseBoundary | null} parentSuspense - 父级的 Suspense 边界。
-   * @param {ElementNamespace} namespace - 命名空间，用于 SVG 或 MathML。
-   * @param {string[] | null} slotScopeIds - 插槽作用域 ID。
-   * @param {boolean} optimized - 是否启用优化模式。
-   */
   /**
    * 处理 Fragment。
    *
@@ -1975,21 +1965,6 @@ function baseCreateRenderer(
    *
    * 说明：
    * - 该函数用于对比旧的子节点数组（c1）和新的子节点数组（c2），
-   *   并根据差异更新 DOM。
-   * - 如果旧数组长度大于新数组，移除多余的旧节点。
-   * - 如果新数组长度大于旧数组，挂载新增的节点。
-   * - 对于两数组的公共部分，逐一调用 `patch` 函数进行更新。
-   *
-   * @param {VNode[]} c1 - 旧的子节点数组。
-   * @param {VNodeArrayChildren} c2 - 新的子节点数组。
-   * @param {RendererElement} container - 容器元素。
-   * @param {RendererNode | null} anchor - 插入的参考节点。
-   * @param {ComponentInternalInstance | null} parentComponent - 父组件实例。
-   * @param {SuspenseBoundary | null} parentSuspense - 父级的 Suspense 边界。
-   * @param {ElementNamespace} namespace - 命名空间。
-   * @param {string[] | null} slotScopeIds - 插槽作用域 ID。
-   * @param {boolean} optimized - 是否启用优化模式。
-   */
   /**
    * 处理无 key 的 children diff。
    *
