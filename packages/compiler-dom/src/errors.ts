@@ -1,3 +1,9 @@
+/**
+ * DOM 编译器扩展错误码。
+ *
+ * `compiler-dom` 在 `compiler-core` 错误体系之上继续追加 DOM 专属错误，
+ * 例如 `v-html` / `v-text` / DOM `v-model` 等只在浏览器模板语义里才存在的问题。
+ */
 import {
   type CompilerError,
   ErrorCodes,
@@ -9,6 +15,9 @@ export interface DOMCompilerError extends CompilerError {
   code: DOMErrorCodes
 }
 
+/**
+ * 创建 DOM 编译器错误对象，并复用 core 的统一错误构造逻辑。
+ */
 export function createDOMCompilerError(
   code: DOMErrorCodes,
   loc?: SourceLocation,

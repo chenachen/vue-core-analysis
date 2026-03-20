@@ -1,3 +1,9 @@
+/**
+ * `v-text` DOM transform。
+ *
+ * 它会把 `v-text` 编译成 `textContent` prop，
+ * 并在必要时自动包上 `toDisplayString()`。
+ */
 import {
   type DirectiveTransform,
   TO_DISPLAY_STRING,
@@ -8,6 +14,9 @@ import {
 } from '@vue/compiler-core'
 import { DOMErrorCodes, createDOMCompilerError } from '../errors'
 
+/**
+ * 把 `v-text` 改写成 `textContent` 赋值。
+ */
 export const transformVText: DirectiveTransform = (dir, node, context) => {
   const { exp, loc } = dir
   if (!exp) {

@@ -1,3 +1,9 @@
+/**
+ * DOM 编译器额外使用的 runtime helper 符号表。
+ *
+ * 这些 symbol 会注册回 `compiler-core`，这样 DOM transform 返回 helper 时，
+ * codegen 就能像处理 core helpers 一样生成正确的导入与调用代码。
+ */
 import { registerRuntimeHelpers } from '@vue/compiler-core'
 
 export const V_MODEL_RADIO: unique symbol = Symbol(__DEV__ ? `vModelRadio` : ``)

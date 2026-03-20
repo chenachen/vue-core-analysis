@@ -1,3 +1,9 @@
+/**
+ * `<Transition>` 开发期校验 transform。
+ *
+ * 它会在编译阶段检查 Transition 子节点是否合法，
+ * 并在检测到内部子节点使用 `v-show` 时自动注入 `persisted`。
+ */
 import {
   type ComponentNode,
   ElementTypes,
@@ -8,6 +14,9 @@ import {
 import { TRANSITION } from '../runtimeHelpers'
 import { DOMErrorCodes, createDOMCompilerError } from '../errors'
 
+/**
+ * 为内建 `<Transition>` 组件执行专属编译时校验与补充属性。
+ */
 export const transformTransition: NodeTransform = (node, context) => {
   if (
     node.type === NodeTypes.ELEMENT &&
@@ -55,6 +64,9 @@ export const transformTransition: NodeTransform = (node, context) => {
   }
 }
 
+/**
+ * 判断 Transition 实际渲染出的有效子节点是否多于一个。
+ */
 function hasMultipleChildren(node: ComponentNode | IfBranchNode): boolean {
   // #1352 filter out potential comment nodes.
   const children = (node.children = node.children.filter(

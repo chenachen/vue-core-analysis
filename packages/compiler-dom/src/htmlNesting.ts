@@ -8,7 +8,7 @@
  */
 
 /**
- * returns true if given parent-child nesting is valid HTML
+ * 判断给定父子标签组合是否符合 HTML 嵌套规则。
  */
 export function isValidHTMLNesting(parent: string, child: string): boolean {
   // if the parent is a template, it can have any child
