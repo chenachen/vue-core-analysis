@@ -639,6 +639,9 @@ function genImports(importsOptions: ImportItem[], context: CodegenContext) {
   })
 }
 
+/**
+ * 判断一项内容是否属于可直接内联输出的“文本型”节点。
+ */
 function isText(n: string | CodegenNode) {
   return (
     isString(n) ||
@@ -802,6 +805,9 @@ function genNode(node: CodegenNode | symbol | string, context: CodegenContext) {
   }
 }
 
+/**
+ * 生成简单文本节点。
+ */
 function genText(
   node: TextNode | SimpleExpressionNode,
   context: CodegenContext,
@@ -809,6 +815,9 @@ function genText(
   context.push(JSON.stringify(node.content), NewlineType.Unknown, node)
 }
 
+/**
+ * 生成简单表达式节点。
+ */
 function genExpression(node: SimpleExpressionNode, context: CodegenContext) {
   const { content, isStatic } = node
   context.push(
@@ -818,6 +827,9 @@ function genExpression(node: SimpleExpressionNode, context: CodegenContext) {
   )
 }
 
+/**
+ * 生成插值表达式，会包裹 `toDisplayString()`。
+ */
 function genInterpolation(node: InterpolationNode, context: CodegenContext) {
   const { push, helper, pure } = context
   if (pure) push(PURE_ANNOTATION)
@@ -826,6 +838,9 @@ function genInterpolation(node: InterpolationNode, context: CodegenContext) {
   push(`)`)
 }
 
+/**
+ * 顺序输出复合表达式的各个子片段。
+ */
 function genCompoundExpression(
   node: CompoundExpressionNode,
   context: CodegenContext,
@@ -840,6 +855,9 @@ function genCompoundExpression(
   }
 }
 
+/**
+ * 生成对象属性 key，对静态 key、动态 key 和复合 key 做不同处理。
+ */
 function genExpressionAsPropertyKey(
   node: ExpressionNode,
   context: CodegenContext,
@@ -860,6 +878,9 @@ function genExpressionAsPropertyKey(
   }
 }
 
+/**
+ * 生成注释 VNode 调用。
+ */
 function genComment(node: CommentNode, context: CodegenContext) {
   const { push, helper, pure } = context
   if (pure) {
@@ -943,6 +964,9 @@ function genVNodeCall(node: VNodeCall, context: CodegenContext) {
   }
 }
 
+/**
+ * 去掉尾部多余的空参数，并把中间空位显式补成 `null`。
+ */
 function genNullableArgs(args: any[]): CallExpression['arguments'] {
   let i = args.length
   while (i--) {
@@ -952,6 +976,9 @@ function genNullableArgs(args: any[]): CallExpression['arguments'] {
 }
 
 // JavaScript
+/**
+ * 生成普通函数调用表达式。
+ */
 function genCallExpression(node: CallExpression, context: CodegenContext) {
   const { push, helper, pure } = context
   const callee = isString(node.callee) ? node.callee : helper(node.callee)
@@ -963,6 +990,9 @@ function genCallExpression(node: CallExpression, context: CodegenContext) {
   push(`)`)
 }
 
+/**
+ * 生成对象表达式。
+ */
 function genObjectExpression(node: ObjectExpression, context: CodegenContext) {
   const { push, indent, deindent, newline } = context
   const { properties } = node
@@ -993,10 +1023,16 @@ function genObjectExpression(node: ObjectExpression, context: CodegenContext) {
   push(multilines ? `}` : ` }`)
 }
 
+/**
+ * 生成数组表达式。
+ */
 function genArrayExpression(node: ArrayExpression, context: CodegenContext) {
   genNodeListAsArray(node.elements as CodegenNode[], context)
 }
 
+/**
+ * 生成功能性回调、slot 函数或 renderList 迭代器函数。
+ */
 function genFunctionExpression(
   node: FunctionExpression,
   context: CodegenContext,
@@ -1042,6 +1078,9 @@ function genFunctionExpression(
   }
 }
 
+/**
+ * 生成三元条件表达式，并在需要时做多行排版。
+ */
 function genConditionalExpression(
   node: ConditionalExpression,
   context: CodegenContext,
@@ -1078,6 +1117,9 @@ function genConditionalExpression(
   needNewline && deindent(true /* without newline */)
 }
 
+/**
+ * 生成 `_cache[x]` 形式的缓存表达式。
+ */
 function genCacheExpression(node: CacheExpression, context: CodegenContext) {
   const { push, helper, indent, deindent, newline } = context
   const { needPauseTracking, needArraySpread } = node
@@ -1109,6 +1151,9 @@ function genCacheExpression(node: CacheExpression, context: CodegenContext) {
   }
 }
 
+/**
+ * 生成模板字符串表达式。
+ */
 function genTemplateLiteral(node: TemplateLiteral, context: CodegenContext) {
   const { push, indent, deindent } = context
   push('`')
@@ -1129,6 +1174,9 @@ function genTemplateLiteral(node: TemplateLiteral, context: CodegenContext) {
   push('`')
 }
 
+/**
+ * 生成 if 语句。
+ */
 function genIfStatement(node: IfStatement, context: CodegenContext) {
   const { push, indent, deindent } = context
   const { test, consequent, alternate } = node
@@ -1153,6 +1201,9 @@ function genIfStatement(node: IfStatement, context: CodegenContext) {
   }
 }
 
+/**
+ * 生成赋值表达式。
+ */
 function genAssignmentExpression(
   node: AssignmentExpression,
   context: CodegenContext,
@@ -1162,6 +1213,9 @@ function genAssignmentExpression(
   genNode(node.right, context)
 }
 
+/**
+ * 生成顺序表达式。
+ */
 function genSequenceExpression(
   node: SequenceExpression,
   context: CodegenContext,
@@ -1171,6 +1225,9 @@ function genSequenceExpression(
   context.push(`)`)
 }
 
+/**
+ * 生成 return 语句。
+ */
 function genReturnStatement(
   { returns }: ReturnStatement,
   context: CodegenContext,

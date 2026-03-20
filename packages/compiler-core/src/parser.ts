@@ -584,6 +584,9 @@ function parseForExpression(
   return result
 }
 
+/**
+ * 从原始输入里截取指定范围的源码片段。
+ */
 function getSlice(start: number, end: number) {
   return currentInput.slice(start, end)
 }
@@ -795,12 +798,18 @@ function onCloseTag(el: ElementNode, end: number, isImplied = false) {
   }
 }
 
+/**
+ * 向前搜索最近一个目标字符的位置。
+ */
 function lookAhead(index: number, c: number) {
   let i = index
   while (currentInput.charCodeAt(i) !== c && i < currentInput.length - 1) i++
   return i
 }
 
+/**
+ * 向后回溯最近一个目标字符的位置。
+ */
 function backTrack(index: number, c: number) {
   let i = index
   while (currentInput.charCodeAt(i) !== c && i >= 0) i--
@@ -808,6 +817,9 @@ function backTrack(index: number, c: number) {
 }
 
 const specialTemplateDir = new Set(['if', 'else', 'else-if', 'for', 'slot'])
+/**
+ * 判断 `<template>` 是否承担结构型容器角色，而不是普通原生 template。
+ */
 function isFragmentTemplate({ tag, props }: ElementNode): boolean {
   if (tag === 'template') {
     for (let i = 0; i < props.length; i++) {
@@ -822,6 +834,9 @@ function isFragmentTemplate({ tag, props }: ElementNode): boolean {
   return false
 }
 
+/**
+ * 判断一个元素在当前平台配置下是否应被视为组件。
+ */
 function isComponent({ tag, props }: ElementNode): boolean {
   if (currentOptions.isCustomElement(tag)) {
     return false
@@ -872,11 +887,17 @@ function isComponent({ tag, props }: ElementNode): boolean {
   return false
 }
 
+/**
+ * 判断字符码是否是大写英文字母。
+ */
 function isUpperCase(c: number) {
   return c > 64 && c < 91
 }
 
 const windowsNewlineRE = /\r\n/g
+/**
+ * 按编译选项压缩并清理子节点列表里的空白文本。
+ */
 function condenseWhitespace(nodes: TemplateChildNode[]): TemplateChildNode[] {
   const shouldCondense = currentOptions.whitespace !== 'preserve'
   let removedWhitespace = false
@@ -925,6 +946,9 @@ function condenseWhitespace(nodes: TemplateChildNode[]): TemplateChildNode[] {
   return removedWhitespace ? nodes.filter(Boolean) : nodes
 }
 
+/**
+ * 判断整段字符串是否全部由空白字符组成。
+ */
 function isAllWhitespace(str: string) {
   for (let i = 0; i < str.length; i++) {
     if (!isWhitespace(str.charCodeAt(i))) {
@@ -934,6 +958,9 @@ function isAllWhitespace(str: string) {
   return true
 }
 
+/**
+ * 判断字符串里是否包含换行字符。
+ */
 function hasNewlineChar(str: string) {
   for (let i = 0; i < str.length; i++) {
     const c = str.charCodeAt(i)
@@ -944,6 +971,9 @@ function hasNewlineChar(str: string) {
   return false
 }
 
+/**
+ * 把连续空白压缩成单个空格。
+ */
 function condense(str: string) {
   let ret = ''
   let prevCharIsWhitespace = false
@@ -961,10 +991,16 @@ function condense(str: string) {
   return ret
 }
 
+/**
+ * 把新节点挂到当前父节点下。
+ */
 function addNode(node: TemplateChildNode) {
   ;(stack[0] || currentRoot).children.push(node)
 }
 
+/**
+ * 根据起止 offset 构造源码位置信息对象。
+ */
 function getLoc(start: number, end?: number): SourceLocation {
   return {
     start: tokenizer.getPos(start),
@@ -975,15 +1011,24 @@ function getLoc(start: number, end?: number): SourceLocation {
   }
 }
 
+/**
+ * 复制一份新的位置信息对象。
+ */
 export function cloneLoc(loc: SourceLocation): SourceLocation {
   return getLoc(loc.start.offset, loc.end.offset)
 }
 
+/**
+ * 补齐一个位置对象的结束位置与源码切片。
+ */
 function setLocEnd(loc: SourceLocation, end: number) {
   loc.end = tokenizer.getPos(end)
   loc.source = getSlice(loc.start.offset, end)
 }
 
+/**
+ * 把指令节点临时还原成属性节点，供 compat / 解析流程复用。
+ */
 function dirToAttr(dir: DirectiveNode): AttributeNode {
   const attr: AttributeNode = {
     type: NodeTypes.ATTRIBUTE,
@@ -1067,6 +1112,9 @@ function createExp(
   return exp
 }
 
+/**
+ * 统一发出解析阶段错误。
+ */
 function emitError(code: ErrorCodes, index: number, message?: string) {
   currentOptions.onError(
     createCompilerError(code, getLoc(index, index), undefined, message),

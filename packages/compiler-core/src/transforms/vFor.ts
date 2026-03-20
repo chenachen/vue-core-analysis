@@ -1,3 +1,9 @@
+/**
+ * `v-for` transform。
+ *
+ * 它负责解析 `source / value / key / index`，并把节点改写成 `renderList()`
+ * 调用加 block/fragment 包装的循环渲染结构。
+ */
 import {
   type NodeTransform,
   type TransformContext,
@@ -50,6 +56,9 @@ import { validateBrowserExpression } from '../validateExpression'
 import { PatchFlags } from '@vue/shared'
 import { transformBindShorthand } from './vBind'
 
+/**
+ * 结构型 `v-for` transform 入口。
+ */
 export const transformFor: NodeTransform = createStructuralDirectiveTransform(
   'for',
   (node, dir, context) => {
@@ -258,6 +267,9 @@ export const transformFor: NodeTransform = createStructuralDirectiveTransform(
 )
 
 // target-agnostic transform used for both Client and SSR
+/**
+ * 解析并改写单个 `v-for` 指令。
+ */
 export function processFor(
   node: ElementNode,
   dir: DirectiveNode,
@@ -321,6 +333,9 @@ export function processFor(
   }
 }
 
+/**
+ * 在 prefixIdentifiers 模式下，为 `v-for` 解析结果补齐表达式处理和作用域信息。
+ */
 export function finalizeForParseResult(
   result: ForParseResult,
   context: TransformContext,
@@ -381,6 +396,9 @@ export function finalizeForParseResult(
   result.finalized = true
 }
 
+/**
+ * 根据 `v-for` 解析结果创建 renderList 回调参数列表。
+ */
 export function createForLoopParams(
   { value, key, index }: ForParseResult,
   memoArgs: ExpressionNode[] = [],
@@ -388,6 +406,9 @@ export function createForLoopParams(
   return createParamsList([value, key, index, ...memoArgs])
 }
 
+/**
+ * 过滤空参数，并用占位符补齐中间缺失的位置。
+ */
 function createParamsList(
   args: (ExpressionNode | undefined)[],
 ): ExpressionNode[] {

@@ -402,6 +402,9 @@ export function processExpression(
   return ret
 }
 
+/**
+ * 判断一个标识符在当前上下文下是否允许被自动加前缀。
+ */
 function canPrefix(id: Identifier) {
   // skip whitelisted globals
   if (isGloballyAllowed(id.name)) {
@@ -414,6 +417,9 @@ function canPrefix(id: Identifier) {
   return true
 }
 
+/**
+ * 把表达式节点重新序列化回字符串。
+ */
 export function stringifyExpression(exp: ExpressionNode | string): string {
   if (isString(exp)) {
     return exp
@@ -426,6 +432,9 @@ export function stringifyExpression(exp: ExpressionNode | string): string {
   }
 }
 
+/**
+ * 判断某个 binding 类型是否可视为常量。
+ */
 function isConst(type: unknown) {
   return (
     type === BindingTypes.SETUP_CONST || type === BindingTypes.LITERAL_CONST

@@ -329,6 +329,9 @@ export function createTransformContext(
     context.filters = new Set()
   }
 
+  /**
+   * 增加某个 helper 的引用计数，并返回它本身。
+   */
   function addId(id: string) {
     const { identifiers } = context
     if (identifiers[id] === undefined) {
@@ -337,6 +340,9 @@ export function createTransformContext(
     identifiers[id]!++
   }
 
+  /**
+   * 减少某个作用域标识符的引用计数。
+   */
   function removeId(id: string) {
     context.identifiers[id]!--
   }
