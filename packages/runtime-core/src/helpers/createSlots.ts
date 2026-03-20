@@ -1,3 +1,6 @@
+/**
+ * 文件说明：编译器运行时助手，用于创建和合并动态插槽对象。
+ */
 import { isArray } from '@vue/shared'
 import type { VNode } from '../vnode'
 

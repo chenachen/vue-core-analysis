@@ -1,3 +1,6 @@
+/**
+ * 文件说明：解析和规范化组件 props，负责类型检查、默认值和 attrs fallthrough 的边界划分。
+ */
 import {
   TriggerOpTypes,
   shallowReactive,
@@ -57,10 +60,12 @@ export interface PropOptions<T = any, D = T> {
   required?: boolean
   default?: D | DefaultFactory<D> | null | undefined | object
   validator?(value: unknown, props: Data): boolean
+
   /**
    * @internal
    */
   skipCheck?: boolean
+
   /**
    * @internal
    */
@@ -190,6 +195,12 @@ type NormalizedProp = PropOptions & {
 export type NormalizedProps = Record<string, NormalizedProp>
 export type NormalizedPropsOptions = [NormalizedProps, string[]] | []
 
+/**
+ * 初始化组件的 props 与 attrs。
+ *
+ * 入口会先把原始传入值拆分成“命中声明的 props”和“其余透传 attrs”，再补齐缺省键、
+ * 做开发期校验，并根据组件类型决定 props 是否需要变成 shallowReactive。
+ */
 export function initProps(
   instance: ComponentInternalInstance,
   rawProps: Data | null,
@@ -230,6 +241,10 @@ export function initProps(
   instance.attrs = attrs
 }
 
+/**
+ * 判断当前是否满足`in``hmr`上下文。
+ */
+
 function isInHmrContext(instance: ComponentInternalInstance | null) {
   while (instance) {
     if (instance.type.__hmrId) return true
@@ -237,6 +252,12 @@ function isInHmrContext(instance: ComponentInternalInstance | null) {
   }
 }
 
+/**
+ * 在组件更新时同步 props / attrs。
+ *
+ * 编译产物提供了 patchFlag 时优先走动态 props 快路径；否则退回全量对比，
+ * 同时负责删除旧键、重新触发 `$attrs` 依赖，并补做开发期校验。
+ */
 export function updateProps(
   instance: ComponentInternalInstance,
   rawProps: Data | null,
@@ -371,6 +392,12 @@ export function updateProps(
   }
 }
 
+/**
+ * 执行一次完整的 props/attrs 拆分。
+ *
+ * 它会遍历原始传参，把声明过的 key 写入 props，未声明但也不是 emit 监听器的 key
+ * 写入 attrs；需要布尔转换或默认值处理的字段会留到第二轮统一计算。
+ */
 function setFullProps(
   instance: ComponentInternalInstance,
   rawProps: Data | null,
@@ -448,6 +475,12 @@ function setFullProps(
   return hasAttrsChanged
 }
 
+/**
+ * 计算单个 prop 的最终值。
+ *
+ * 这里集中处理默认值工厂、Boolean prop 强制转换，以及自定义元素对默认值的同步，
+ * 确保实例读取到的 props 始终是运行时可直接消费的形态。
+ */
 function resolvePropValue(
   options: NormalizedProps,
   props: Data,
@@ -506,6 +539,12 @@ function resolvePropValue(
 
 const mixinPropsCache = new WeakMap<ConcreteComponent, NormalizedPropsOptions>()
 
+/**
+ * 把组件声明的 props 选项标准化成内部结构。
+ *
+ * 标准化结果会统一成 camelCase key，并额外记录哪些字段需要默认值/Boolean 转换，
+ * 以便后续 init/update props 时走更快的分支。
+ */
 export function normalizePropsOptions(
   comp: ConcreteComponent,
   appContext: AppContext,
@@ -525,6 +564,10 @@ export function normalizePropsOptions(
   // apply mixin/extends props
   let hasExtends = false
   if (__FEATURE_OPTIONS_API__ && !isFunction(comp)) {
+    /**
+     * 封装 `extendProps` 辅助逻辑。
+     */
+
     const extendProps = (raw: ComponentOptions) => {
       if (__COMPAT__ && isFunction(raw)) {
         raw = raw.options
@@ -613,6 +656,10 @@ export function normalizePropsOptions(
   }
   return res
 }
+
+/**
+ * 校验prop`name`。
+ */
 
 function validatePropName(key: string) {
   if (key[0] !== '$' && !isReservedProp(key)) {
@@ -712,9 +759,9 @@ function validateProp(
   }
 }
 
-const isSimpleType = /*@__PURE__*/ makeMap(
-  'String,Number,Boolean,Function,Symbol,BigInt',
-)
+const isSimpleType =
+  /*@__PURE__*/
+  makeMap('String,Number,Boolean,Function,Symbol,BigInt')
 
 type AssertionResult = {
   valid: boolean

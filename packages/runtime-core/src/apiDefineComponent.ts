@@ -1,3 +1,6 @@
+/**
+ * 文件说明：提供类型友好的组件定义 API，帮助选项式和组合式组件获得更好的类型推导。
+ */
 import type {
   ComponentInjectOptions,
   ComponentOptions,

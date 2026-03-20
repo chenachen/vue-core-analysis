@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现热模块替换运行时接口，支持开发环境下的组件热更新。
+ */
 /* eslint-disable no-restricted-globals */
 import {
   type ClassComponent,
@@ -49,6 +52,10 @@ const map: Map<
   }
 > = new Map()
 
+/**
+ * 注册`hmr`。
+ */
+
 export function registerHMR(instance: ComponentInternalInstance): void {
   const id = instance.type.__hmrId!
   let record = map.get(id)
@@ -59,9 +66,17 @@ export function registerHMR(instance: ComponentInternalInstance): void {
   record.instances.add(instance)
 }
 
+/**
+ * 封装 `unregisterHMR` 辅助逻辑。
+ */
+
 export function unregisterHMR(instance: ComponentInternalInstance): void {
   map.get(instance.type.__hmrId!)!.instances.delete(instance)
 }
+
+/**
+ * 创建`record`。
+ */
 
 function createRecord(id: string, initialDef: HMRComponent): boolean {
   if (map.has(id)) {
@@ -74,9 +89,17 @@ function createRecord(id: string, initialDef: HMRComponent): boolean {
   return true
 }
 
+/**
+ * 规范化class组件。
+ */
+
 function normalizeClassComponent(component: HMRComponent): ComponentOptions {
   return isClassComponent(component) ? component.__vccOpts : component
 }
+
+/**
+ * 封装 `rerender` 辅助逻辑。
+ */
 
 function rerender(id: string, newRender?: Function): void {
   const record = map.get(id)
@@ -100,6 +123,10 @@ function rerender(id: string, newRender?: Function): void {
     isHmrUpdating = false
   })
 }
+
+/**
+ * 封装 `reload` 辅助逻辑。
+ */
 
 function reload(id: string, newComp: HMRComponent): void {
   const record = map.get(id)
@@ -174,6 +201,10 @@ function reload(id: string, newComp: HMRComponent): void {
   })
 }
 
+/**
+ * 更新组件定义。
+ */
+
 function updateComponentDef(
   oldComp: ComponentOptions,
   newComp: ComponentOptions,
@@ -185,6 +216,10 @@ function updateComponentDef(
     }
   }
 }
+
+/**
+ * 封装 `tryWrap` 辅助逻辑。
+ */
 
 function tryWrap(fn: (id: string, arg: any) => any): Function {
   return (id: string, arg: any) => {

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现任务调度器，管理批量更新、异步任务队列和前后置渲染效果。
+ */
 import { ErrorCodes, callWithErrorHandling, handleError } from './errorHandling'
 import { NOOP, isArray } from '@vue/shared'
 import { type ComponentInternalInstance, getComponentName } from './component'
@@ -5,6 +8,7 @@ import { type ComponentInternalInstance, getComponentName } from './component'
 export enum SchedulerJobFlags {
   QUEUED = 1 << 0,
   PRE = 1 << 1,
+
   /**
    * Indicates whether the effect is allowed to recursively trigger itself
    * when managed by the scheduler.
@@ -26,11 +30,13 @@ export enum SchedulerJobFlags {
 
 export interface SchedulerJob extends Function {
   id?: number
+
   /**
    * flags can technically be undefined, but it can still be used in bitwise
    * operations just like 0.
    */
   flags?: SchedulerJobFlags
+
   /**
    * Attached by renderer.ts when setting up a component's render effect
    * Used to obtain component information when reporting max recursive updates.
@@ -53,6 +59,12 @@ let currentFlushPromise: Promise<void> | null = null
 const RECURSION_LIMIT = 100
 type CountMap = Map<SchedulerJob, number>
 
+/**
+ * 返回当前调度刷新结束后的 Promise。
+ *
+ * 如果此时已经有一次 flush 在排队，就复用那次 flush 对应的 Promise；否则退回到
+ * 一个已 resolve 的微任务 Promise，让调用方在下一轮微任务里继续执行。
+ */
 export function nextTick<T = void, R = void>(
   this: T,
   fn?: (this: T) => R,
@@ -70,6 +82,13 @@ export function nextTick<T = void, R = void>(
 // A pre watcher will have the same id as its component's update job. The
 // watcher should be inserted immediately before the update job. This allows
 // watchers to be skipped if the component is unmounted by the parent update.
+
+/**
+ * 在主队列中找到 job 应插入的位置。
+ *
+ * 队列始终按 id 递增排序，父组件更新 job 的 id 小于子组件，因此这个二分查找
+ * 能保证刷新顺序稳定，同时让 pre watcher 插在所属组件更新之前。
+ */
 function findInsertionIndex(id: number) {
   let start = flushIndex + 1
   let end = queue.length
@@ -91,6 +110,12 @@ function findInsertionIndex(id: number) {
   return start
 }
 
+/**
+ * 把一个主更新 job 放入调度队列。
+ *
+ * 该函数负责去重、按 id 插入正确位置，并在首次入队时触发一次微任务级别的
+ * flush 安排。
+ */
 export function queueJob(job: SchedulerJob): void {
   if (!(job.flags! & SchedulerJobFlags.QUEUED)) {
     const jobId = getId(job)
@@ -111,12 +136,22 @@ export function queueJob(job: SchedulerJob): void {
   }
 }
 
+/**
+ * 把`flush`加入调度队列。
+ */
+
 function queueFlush() {
   if (!currentFlushPromise) {
     currentFlushPromise = resolvedPromise.then(flushJobs)
   }
 }
 
+/**
+ * 把 post-flush 回调加入队列。
+ *
+ * post 队列主要承载 mounted/updated 等需要等 DOM patch 完成后再执行的逻辑；
+ * 数组形式的生命周期钩子已经由主队列去重，因此这里可以直接批量压入。
+ */
 export function queuePostFlushCb(cb: SchedulerJobs): void {
   if (!isArray(cb)) {
     if (activePostFlushCbs && cb.id === -1) {
@@ -134,6 +169,12 @@ export function queuePostFlushCb(cb: SchedulerJobs): void {
   queueFlush()
 }
 
+/**
+ * 提前执行队列里标记为 PRE 的任务。
+ *
+ * 这一步通常发生在组件重新渲染之前，用来运行 flush:'pre' 的 watcher，
+ * 让它们有机会在 render 之前先修正状态。
+ */
 export function flushPreFlushCbs(
   instance?: ComponentInternalInstance,
   seen?: CountMap,
@@ -165,6 +206,12 @@ export function flushPreFlushCbs(
   }
 }
 
+/**
+ * 执行一轮 post-flush 回调。
+ *
+ * 回调会先去重再按 id 排序，这样既能避免重复 mounted/updated，也能保持与主
+ * 队列一致的父先子后顺序。
+ */
 export function flushPostFlushCbs(seen?: CountMap): void {
   if (pendingPostFlushCbs.length) {
     const deduped = [...new Set(pendingPostFlushCbs)].sort(
@@ -203,9 +250,19 @@ export function flushPostFlushCbs(seen?: CountMap): void {
   }
 }
 
+/**
+ * 读取标识。
+ */
+
 const getId = (job: SchedulerJob): number =>
   job.id == null ? (job.flags! & SchedulerJobFlags.PRE ? -1 : Infinity) : job.id
 
+/**
+ * 刷新主调度队列。
+ *
+ * 它按顺序执行所有 job，并在 finally 中清理队列状态、继续冲刷 post 队列；
+ * 如果 flush 过程中又塞入了新 job，会递归继续执行，直到两个队列都清空。
+ */
 function flushJobs(seen?: CountMap) {
   if (__DEV__) {
     seen = seen || new Map()
@@ -261,6 +318,10 @@ function flushJobs(seen?: CountMap) {
     }
   }
 }
+
+/**
+ * 封装 `checkRecursiveUpdates` 辅助逻辑。
+ */
 
 function checkRecursiveUpdates(seen: CountMap, fn: SchedulerJob) {
   const count = seen.get(fn) || 0

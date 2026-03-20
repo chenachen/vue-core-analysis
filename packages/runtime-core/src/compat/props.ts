@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 props 默认值工厂函数的 this 上下文行为。
+ */
 import { isArray } from '@vue/shared'
 import { inject } from '../apiInject'
 import type { ComponentInternalInstance, Data } from '../component'
@@ -7,6 +10,10 @@ import {
 } from '../componentOptions'
 import { DeprecationTypes, warnDeprecation } from './compatConfig'
 
+/**
+ * 创建props`default``this`。
+ */
+
 export function createPropsDefaultThis(
   instance: ComponentInternalInstance,
   rawProps: Data,
@@ -15,6 +22,10 @@ export function createPropsDefaultThis(
   return new Proxy(
     {},
     {
+      /**
+       * 读取目标值。
+       */
+
       get(_, key: string) {
         __DEV__ &&
           warnDeprecation(DeprecationTypes.PROPS_DEFAULT_THIS, null, propKey)

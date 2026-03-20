@@ -1,3 +1,6 @@
+/**
+ * 文件说明：runtime-dom 主入口，创建 DOM 渲染器并导出应用创建接口、内置指令和组件。
+ */
 import {
   type App,
   type CreateAppFunction,
@@ -73,12 +76,20 @@ let renderer: Renderer<Element | ShadowRoot> | HydrationRenderer
 
 let enabledHydration = false
 
+/**
+ * 确保渲染器已准备就绪。
+ */
+
 function ensureRenderer() {
   return (
     renderer ||
     (renderer = createRenderer<Node, Element | ShadowRoot>(rendererOptions))
   )
 }
+
+/**
+ * 确保水合渲染器已准备就绪。
+ */
 
 function ensureHydrationRenderer() {
   renderer = enabledHydration
@@ -182,6 +193,10 @@ export const createSSRApp = ((...args) => {
   return app
 }) as CreateAppFunction<Element>
 
+/**
+ * 解析并确定根节点命名空间。
+ */
+
 function resolveRootNamespace(
   container: Element | ShadowRoot,
 ): ElementNamespace {
@@ -196,10 +211,18 @@ function resolveRootNamespace(
   }
 }
 
+/**
+ * 注入`native``tag``check`。
+ */
+
 function injectNativeTagCheck(app: App) {
   // Inject `isNativeTag`
   // this is used for component name validation (dev only)
   Object.defineProperty(app.config, 'isNativeTag', {
+    /**
+     * 封装 `value` 分支逻辑。
+     */
+
     value: (tag: string) => isHTMLTag(tag) || isSVGTag(tag) || isMathMLTag(tag),
     writable: false,
   })
@@ -210,9 +233,17 @@ function injectCompilerOptionsCheck(app: App) {
   if (isRuntimeOnly()) {
     const isCustomElement = app.config.isCustomElement
     Object.defineProperty(app.config, 'isCustomElement', {
+      /**
+       * 读取目标值。
+       */
+
       get() {
         return isCustomElement
       },
+
+      /**
+       * 写入目标值。
+       */
       set() {
         warn(
           `The \`isCustomElement\` config option is deprecated. Use ` +
@@ -232,10 +263,18 @@ function injectCompilerOptionsCheck(app: App) {
       `- For vite: pass it via @vitejs/plugin-vue options. See https://github.com/vitejs/vite-plugin-vue/tree/main/packages/plugin-vue#example-for-passing-options-to-vuecompiler-sfc`
 
     Object.defineProperty(app.config, 'compilerOptions', {
+      /**
+       * 读取目标值。
+       */
+
       get() {
         warn(msg)
         return compilerOptions
       },
+
+      /**
+       * 写入目标值。
+       */
       set() {
         warn(msg)
       },

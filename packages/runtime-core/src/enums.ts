@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义生命周期钩子等运行时枚举常量。
+ */
 export enum LifecycleHooks {
   BEFORE_CREATE = 'bc',
   CREATED = 'c',

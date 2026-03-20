@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理 Vue 2 组件向 Vue 3 组件格式的兼容转换。
+ */
 import { isFunction, isObject } from '@vue/shared'
 import type { Component, ComponentInternalInstance } from '../component'
 import {
@@ -7,6 +10,10 @@ import {
 } from './compatConfig'
 import { convertLegacyAsyncComponent } from './componentAsync'
 import { convertLegacyFunctionalComponent } from './componentFunctional'
+
+/**
+ * 封装 `convertLegacyComponent` 辅助逻辑。
+ */
 
 export function convertLegacyComponent(
   comp: any,

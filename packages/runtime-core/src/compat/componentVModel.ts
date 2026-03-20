@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 的 v-model 语法和模型选项。
+ */
 import { ShapeFlags, extend } from '@vue/shared'
 import type { ComponentInternalInstance, ComponentOptions } from '../component'
 import { ErrorCodes, callWithErrorHandling } from '../errorHandling'
@@ -12,6 +15,10 @@ import {
 export const compatModelEventPrefix = `onModelCompat:`
 
 const warnedTypes = new WeakSet()
+
+/**
+ * 封装 `convertLegacyVModelProps` 辅助逻辑。
+ */
 
 export function convertLegacyVModelProps(vnode: VNode): void {
   const { type, shapeFlag, props, dynamicProps } = vnode
@@ -55,6 +62,10 @@ export function convertLegacyVModelProps(vnode: VNode): void {
   }
 }
 
+/**
+ * 应用v-model`from``mixins`。
+ */
+
 function applyModelFromMixins(model: any, mixins?: ComponentOptions[]) {
   if (mixins) {
     mixins.forEach(m => {
@@ -63,6 +74,10 @@ function applyModelFromMixins(model: any, mixins?: ComponentOptions[]) {
     })
   }
 }
+
+/**
+ * 封装 `compatModelEmit` 辅助逻辑。
+ */
 
 export function compatModelEmit(
   instance: ComponentInternalInstance,

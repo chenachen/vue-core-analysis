@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义组件公开实例代理，让模板和用户代码按统一规则访问公开属性。
+ */
 import {
   type Component,
   type ComponentInternalInstance,
@@ -365,25 +368,86 @@ const getPublicInstance = (
 export const publicPropertiesMap: PublicPropertiesMap =
   // Move PURE marker to new line to workaround compiler discarding it
   // due to type annotation
-  /*@__PURE__*/ extend(Object.create(null), {
+  /*@__PURE__*/
+  extend(Object.create(null), {
+    /**
+     * 封装 `$` 分支逻辑。
+     */
+
     $: i => i,
+
+    /**
+     * 封装 `$el` 分支逻辑。
+     */
     $el: i => i.vnode.el,
+
+    /**
+     * 封装 `$data` 分支逻辑。
+     */
     $data: i => i.data,
+
+    /**
+     * 封装 `$props` 分支逻辑。
+     */
     $props: i => (__DEV__ ? shallowReadonly(i.props) : i.props),
+
+    /**
+     * 封装 `$attrs` 分支逻辑。
+     */
     $attrs: i => (__DEV__ ? shallowReadonly(i.attrs) : i.attrs),
+
+    /**
+     * 封装 `$slots` 分支逻辑。
+     */
     $slots: i => (__DEV__ ? shallowReadonly(i.slots) : i.slots),
+
+    /**
+     * 封装 `$refs` 分支逻辑。
+     */
     $refs: i => (__DEV__ ? shallowReadonly(i.refs) : i.refs),
+
+    /**
+     * 封装 `$parent` 分支逻辑。
+     */
     $parent: i => getPublicInstance(i.parent),
+
+    /**
+     * 封装 `$root` 分支逻辑。
+     */
     $root: i => getPublicInstance(i.root),
+
+    /**
+     * 封装 `$host` 分支逻辑。
+     */
     $host: i => i.ce,
+
+    /**
+     * 封装 `$emit` 分支逻辑。
+     */
     $emit: i => i.emit,
+
+    /**
+     * 封装 `$options` 分支逻辑。
+     */
     $options: i => (__FEATURE_OPTIONS_API__ ? resolveMergedOptions(i) : i.type),
+
+    /**
+     * 封装 `$forceUpdate` 分支逻辑。
+     */
     $forceUpdate: i =>
       i.f ||
       (i.f = () => {
         queueJob(i.update)
       }),
+
+    /**
+     * 封装 `$nextTick` 分支逻辑。
+     */
     $nextTick: i => i.n || (i.n = nextTick.bind(i.proxy!)),
+
+    /**
+     * 封装 `$watch` 分支逻辑。
+     */
     $watch: i => (__FEATURE_OPTIONS_API__ ? instanceWatch.bind(i) : NOOP),
   } as PublicPropertiesMap)
 
@@ -404,13 +468,25 @@ export interface ComponentRenderContext {
   _: ComponentInternalInstance
 }
 
+/**
+ * 判断当前是否满足`reserved``prefix`。
+ */
+
 export const isReservedPrefix = (key: string): key is '_' | '$' =>
   key === '_' || key === '$'
+
+/**
+ * 判断是否存在`setup``binding`。
+ */
 
 const hasSetupBinding = (state: Data, key: string) =>
   state !== EMPTY_OBJ && !state.__isScriptSetup && hasOwn(state, key)
 
 export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
+  /**
+   * 读取目标值。
+   */
+
   get({ _: instance }: ComponentRenderContext, key: string) {
     if (key === ReactiveFlags.SKIP) {
       return true
@@ -529,6 +605,9 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
     }
   },
 
+  /**
+   * 写入目标值。
+   */
   set(
     { _: instance }: ComponentRenderContext,
     key: string,
@@ -573,6 +652,9 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
     return true
   },
 
+  /**
+   * 判断是否存在目标条件。
+   */
   has(
     {
       _: { data, setupState, accessCache, ctx, appContext, propsOptions },
@@ -591,6 +673,9 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
     )
   },
 
+  /**
+   * 封装 `defineProperty` 辅助逻辑。
+   */
   defineProperty(
     target: ComponentRenderContext,
     key: string,
@@ -617,7 +702,12 @@ if (__DEV__ && !__TEST__) {
 }
 
 export const RuntimeCompiledPublicInstanceProxyHandlers: ProxyHandler<any> =
-  /*@__PURE__*/ extend({}, PublicInstanceProxyHandlers, {
+  /*@__PURE__*/
+  extend({}, PublicInstanceProxyHandlers, {
+    /**
+     * 读取目标值。
+     */
+
     get(target: ComponentRenderContext, key: string) {
       // fast path for unscopables when using `with` block
       if ((key as any) === Symbol.unscopables) {
@@ -625,6 +715,10 @@ export const RuntimeCompiledPublicInstanceProxyHandlers: ProxyHandler<any> =
       }
       return PublicInstanceProxyHandlers.get!(target, key, target)
     },
+
+    /**
+     * 判断是否存在目标条件。
+     */
     has(_: ComponentRenderContext, key: string) {
       const has = key[0] !== '_' && !isGloballyAllowed(key)
       if (__DEV__ && !has && PublicInstanceProxyHandlers.has!(_, key)) {
@@ -649,6 +743,10 @@ export function createDevRenderContext(instance: ComponentInternalInstance) {
   Object.defineProperty(target, `_`, {
     configurable: true,
     enumerable: false,
+
+    /**
+     * 封装 `get` 分支逻辑。
+     */
     get: () => instance,
   })
 
@@ -657,6 +755,10 @@ export function createDevRenderContext(instance: ComponentInternalInstance) {
     Object.defineProperty(target, key, {
       configurable: true,
       enumerable: false,
+
+      /**
+       * 封装 `get` 分支逻辑。
+       */
       get: () => publicPropertiesMap[key](instance),
       // intercepted by the proxy so no need for implementation,
       // but needed to prevent set errors
@@ -680,6 +782,10 @@ export function exposePropsOnRenderContext(
       Object.defineProperty(ctx, key, {
         enumerable: true,
         configurable: true,
+
+        /**
+         * 封装 `get` 分支逻辑。
+         */
         get: () => instance.props[key],
         set: NOOP,
       })
@@ -706,6 +812,10 @@ export function exposeSetupStateOnRenderContext(
       Object.defineProperty(ctx, key, {
         enumerable: true,
         configurable: true,
+
+        /**
+         * 封装 `get` 分支逻辑。
+         */
         get: () => setupState[key],
         set: NOOP,
       })

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 自定义指令钩子名称到 Vue 3 生命周期名称的映射。
+ */
 import { isArray } from '@vue/shared'
 import type { ComponentInternalInstance } from '../component'
 import type { DirectiveHook, ObjectDirective } from '../directives'
@@ -22,6 +25,10 @@ const legacyDirectiveHookMap: Partial<
   updated: ['update', 'componentUpdated'],
   unmounted: 'unbind',
 }
+
+/**
+ * 封装 `mapCompatDirectiveHook` 辅助逻辑。
+ */
 
 export function mapCompatDirectiveHook(
   name: keyof ObjectDirective,

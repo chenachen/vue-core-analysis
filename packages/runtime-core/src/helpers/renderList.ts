@@ -1,3 +1,6 @@
+/**
+ * 文件说明：编译器运行时助手，用于 v-for 指令的列表渲染。
+ */
 import type { VNode, VNodeChild } from '../vnode'
 import {
   isReactive,

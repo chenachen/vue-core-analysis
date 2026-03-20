@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 Teleport 组件，把子树渲染到当前 DOM 树之外的目标容器。
+ */
 import type { ComponentInternalInstance } from '../component'
 import type { SuspenseBoundary } from './Suspense'
 import {
@@ -25,19 +28,43 @@ export interface TeleportProps {
 
 export const TeleportEndKey: unique symbol = Symbol('_vte')
 
+/**
+ * 判断当前是否满足`teleport`。
+ */
+
 export const isTeleport = (type: any): boolean => type.__isTeleport
+
+/**
+ * 判断当前是否满足`teleport``disabled`。
+ */
 
 const isTeleportDisabled = (props: VNode['props']): boolean =>
   props && (props.disabled || props.disabled === '')
 
+/**
+ * 判断当前是否满足`teleport``deferred`。
+ */
+
 const isTeleportDeferred = (props: VNode['props']): boolean =>
   props && (props.defer || props.defer === '')
+
+/**
+ * 判断当前是否满足`target``svg`。
+ */
 
 const isTargetSVG = (target: RendererElement): boolean =>
   typeof SVGElement !== 'undefined' && target instanceof SVGElement
 
+/**
+ * 判断当前是否满足`target``math``ml`。
+ */
+
 const isTargetMathML = (target: RendererElement): boolean =>
   typeof MathMLElement === 'function' && target instanceof MathMLElement
+
+/**
+ * 解析并确定`target`。
+ */
 
 const resolveTarget = <T = RendererElement>(
   props: TeleportProps | null,
@@ -75,6 +102,10 @@ const resolveTarget = <T = RendererElement>(
 export const TeleportImpl = {
   name: 'Teleport',
   __isTeleport: true,
+
+  /**
+   * 处理当前分支。
+   */
   process(
     n1: TeleportVNode | null,
     n2: TeleportVNode,
@@ -115,6 +146,10 @@ export const TeleportImpl = {
       insert(placeholder, container, anchor)
       insert(mainAnchor, container, anchor)
 
+      /**
+       * 挂载当前节点。
+       */
+
       const mount = (container: RendererElement, anchor: RendererNode) => {
         // Teleport *always* has Array children. This is enforced in both the
         // compiler and vnode children normalization.
@@ -134,6 +169,10 @@ export const TeleportImpl = {
           )
         }
       }
+
+      /**
+       * 挂载`to``target`。
+       */
 
       const mountToTarget = () => {
         const target = (n2.target = resolveTarget(n2.props, querySelector))
@@ -293,6 +332,9 @@ export const TeleportImpl = {
     }
   },
 
+  /**
+   * 移除目标内容。
+   */
   remove(
     vnode: VNode,
     parentComponent: ComponentInternalInstance | null,
@@ -342,6 +384,10 @@ export enum TeleportMoveTypes {
   REORDER, // moved in the main view
 }
 
+/**
+ * 移动`teleport`。
+ */
+
 function moveTeleport(
   vnode: VNode,
   container: RendererElement,
@@ -385,6 +431,10 @@ interface TeleportTargetElement extends Element {
   // last teleport target
   _lpa?: Node | null
 }
+
+/**
+ * 封装 `hydrateTeleport` 辅助逻辑。
+ */
 
 function hydrateTeleport(
   node: Node,
@@ -485,6 +535,10 @@ export const Teleport = TeleportImpl as unknown as {
   }
 }
 
+/**
+ * 更新CSSCSS 变量。
+ */
+
 function updateCssVars(vnode: VNode, isDisabled: boolean) {
   // presence of .ut method indicates owner component uses css vars.
   // code path here can assume browser environment.
@@ -505,6 +559,10 @@ function updateCssVars(vnode: VNode, isDisabled: boolean) {
     ctx.ut()
   }
 }
+
+/**
+ * 封装 `prepareAnchor` 辅助逻辑。
+ */
 
 function prepareAnchor(
   target: RendererElement | null,

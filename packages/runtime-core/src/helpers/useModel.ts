@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 v-model 双向绑定的组合式 API。
+ */
 import { type Ref, customRef, ref } from '@vue/reactivity'
 import { EMPTY_OBJ, camelize, hasChanged, hyphenate } from '@vue/shared'
 import type { DefineModelOptions, ModelRef } from '../apiSetupHelpers'
@@ -17,6 +20,11 @@ export function useModel<
   name: K,
   options?: DefineModelOptions<T[K], G, S>,
 ): ModelRef<T[K], M, G, S>
+
+/**
+ * 提供v-model的组合式入口。
+ */
+
 export function useModel(
   props: Record<string, any>,
   name: string,
@@ -51,11 +59,18 @@ export function useModel(
     })
 
     return {
+      /**
+       * 读取目标值。
+       */
+
       get() {
         track()
         return options.get ? options.get(localValue) : localValue
       },
 
+      /**
+       * 写入目标值。
+       */
       set(value) {
         const emittedValue = options.set ? options.set(value) : value
         if (
@@ -104,6 +119,10 @@ export function useModel(
   res[Symbol.iterator] = () => {
     let i = 0
     return {
+      /**
+       * 推进后续流程。
+       */
+
       next() {
         if (i < 2) {
           return { value: i++ ? modifiers || EMPTY_OBJ : res, done: false }
@@ -116,6 +135,10 @@ export function useModel(
 
   return res
 }
+
+/**
+ * 读取v-model修饰符。
+ */
 
 export const getModelModifiers = (
   props: Record<string, any>,

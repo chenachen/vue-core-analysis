@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 render 函数语法，对 h 等能力做包装。
+ */
 import {
   ShapeFlags,
   extend,
@@ -38,6 +41,10 @@ import {
   isCompatEnabled,
 } from './compatConfig'
 import { compatModelEventPrefix } from './componentVModel'
+
+/**
+ * 封装 `convertLegacyRenderFn` 辅助逻辑。
+ */
 
 export function convertLegacyRenderFn(
   instance: ComponentInternalInstance,
@@ -119,6 +126,10 @@ export function compatH(
   children?: LegacyVNodeChildren,
 ): VNode
 
+/**
+ * 封装 `compatH` 辅助逻辑。
+ */
+
 export function compatH(
   type: any,
   propsOrChildren?: any,
@@ -172,9 +183,13 @@ export function compatH(
   }
 }
 
-const skipLegacyRootLevelProps = /*@__PURE__*/ makeMap(
-  'staticStyle,staticClass,directives,model,hook',
-)
+const skipLegacyRootLevelProps =
+  /*@__PURE__*/
+  makeMap('staticStyle,staticClass,directives,model,hook')
+
+/**
+ * 封装 `convertLegacyProps` 辅助逻辑。
+ */
 
 function convertLegacyProps(
   legacyProps: LegacyVNodeProps | undefined,
@@ -226,6 +241,10 @@ function convertLegacyProps(
   return converted
 }
 
+/**
+ * 封装 `convertLegacyEventKey` 辅助逻辑。
+ */
+
 function convertLegacyEventKey(event: string): string {
   // normalize v2 event prefixes
   if (event[0] === '&') {
@@ -239,6 +258,10 @@ function convertLegacyEventKey(event: string): string {
   }
   return toHandlerKey(event)
 }
+
+/**
+ * 封装 `convertLegacyDirectives` 辅助逻辑。
+ */
 
 function convertLegacyDirectives(
   vnode: VNode,
@@ -259,6 +282,10 @@ function convertLegacyDirectives(
   }
   return vnode
 }
+
+/**
+ * 封装 `convertLegacySlots` 辅助逻辑。
+ */
 
 function convertLegacySlots(vnode: VNode): VNode {
   const { props, children } = vnode
@@ -305,6 +332,10 @@ function convertLegacySlots(vnode: VNode): VNode {
   return vnode
 }
 
+/**
+ * 封装 `defineLegacyVNodeProperties` 辅助逻辑。
+ */
+
 export function defineLegacyVNodeProperties(vnode: VNode): void {
   /* v8 ignore start */
   if (
@@ -320,17 +351,56 @@ export function defineLegacyVNodeProperties(vnode: VNode): void {
     )
   ) {
     const context = currentRenderingInstance
+
+    /**
+     * 读取实例。
+     */
+
     const getInstance = () => vnode.component && vnode.component.proxy
     let componentOptions: any
     Object.defineProperties(vnode, {
-      tag: { get: () => vnode.type },
-      data: { get: () => vnode.props || {}, set: p => (vnode.props = p) },
-      elm: { get: () => vnode.el },
+      tag: {
+        /**
+         * 封装 `get` 分支逻辑。
+         */
+        get: () => vnode.type,
+      },
+      data: {
+        /**
+         * 封装 `get` 分支逻辑。
+         */
+        get: () => vnode.props || {},
+
+        /**
+         * 封装 `set` 分支逻辑。
+         */
+        set: p => (vnode.props = p),
+      },
+      elm: {
+        /**
+         * 封装 `get` 分支逻辑。
+         */
+        get: () => vnode.el,
+      },
       componentInstance: { get: getInstance },
       child: { get: getInstance },
-      text: { get: () => (isString(vnode.children) ? vnode.children : null) },
-      context: { get: () => context && context.proxy },
+      text: {
+        /**
+         * 封装 `get` 分支逻辑。
+         */
+        get: () => (isString(vnode.children) ? vnode.children : null),
+      },
+      context: {
+        /**
+         * 封装 `get` 分支逻辑。
+         */
+        get: () => context && context.proxy,
+      },
       componentOptions: {
+        /**
+         * 封装 `get` 分支逻辑。
+         */
+
         get: () => {
           if (vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
             if (componentOptions) {

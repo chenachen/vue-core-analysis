@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义组件内部实例、组件选项和组件创建更新的核心逻辑，是组件系统的主入口之一。
+ */
 import { type VNode, type VNodeChild, isVNode } from './vnode'
 import {
   EffectScope,
@@ -193,22 +196,27 @@ export interface ComponentInternalOptions {
    * @internal
    */
   __scopeId?: string
+
   /**
    * @internal
    */
   __cssModules?: Data
+
   /**
    * @internal
    */
   __hmrId?: string
+
   /**
    * Compat build only, for bailing out of certain compatibility behavior
    */
   __isBuiltIn?: boolean
+
   /**
    * This one should be exposed so that devtools can make use of it
    */
   __file?: string
+
   /**
    * name inferred from filename
    */
@@ -322,46 +330,56 @@ export interface ComponentInternalInstance {
   parent: ComponentInternalInstance | null
   root: ComponentInternalInstance
   appContext: AppContext
+
   /**
    * Vnode representing this component in its parent's vdom tree
    */
   vnode: VNode
+
   /**
    * The pending new vnode from parent updates
    * @internal
    */
   next: VNode | null
+
   /**
    * Root vnode of this component's own vdom tree
    */
   subTree: VNode
+
   /**
    * Render effect instance
    */
   effect: ReactiveEffect
+
   /**
    * Force update render effect
    */
   update: () => void
+
   /**
    * Render effect job to be passed to scheduler (checks if dirty)
    */
   job: SchedulerJob
+
   /**
    * The render function that returns vdom tree.
    * @internal
    */
   render: InternalRenderFunction | null
+
   /**
    * SSR render function
    * @internal
    */
   ssrRender?: Function | null
+
   /**
    * Object containing values this component provides for its descendants
    * @internal
    */
   provides: Data
+
   /**
    * for tracking useId()
    * first element is the current boundary prefix
@@ -369,17 +387,20 @@ export interface ComponentInternalInstance {
    * @internal
    */
   ids: [string, number, number]
+
   /**
    * Tracking reactive effects (e.g. watchers) associated with this component
    * so that they can be automatically stopped on component unmount
    * @internal
    */
   scope: EffectScope
+
   /**
    * cache for proxy access type to avoid hasOwnProperty calls
    * @internal
    */
   accessCache: Data | null
+
   /**
    * cache for render function values that rely on _ctx but won't need updates
    * after initialized (e.g. inline handlers)
@@ -392,41 +413,49 @@ export interface ComponentInternalInstance {
    * @internal
    */
   components: Record<string, ConcreteComponent> | null
+
   /**
    * Resolved directive registry, only for components with mixins or extends
    * @internal
    */
   directives: Record<string, Directive> | null
+
   /**
    * Resolved filters registry, v2 compat only
    * @internal
    */
   filters?: Record<string, Function>
+
   /**
    * resolved props options
    * @internal
    */
   propsOptions: NormalizedPropsOptions
+
   /**
    * resolved emits options
    * @internal
    */
   emitsOptions: ObjectEmitsOptions | null
+
   /**
    * resolved inheritAttrs options
    * @internal
    */
   inheritAttrs?: boolean
+
   /**
    * Custom Element instance (if component is created by defineCustomElement)
    * @internal
    */
   ce?: ComponentCustomElementInterface
+
   /**
    * is custom element? (kept only for compatibility)
    * @internal
    */
   isCE?: boolean
+
   /**
    * custom element specific HMR method
    * @internal
@@ -448,6 +477,7 @@ export interface ComponentInternalInstance {
    * @internal
    */
   withProxy: ComponentPublicInstance | null
+
   /**
    * This is the target for the public instance proxy. It also holds properties
    * injected by user options (computed, methods etc.) and user-attached
@@ -469,22 +499,26 @@ export interface ComponentInternalInstance {
    * @internal
    */
   emitted: Record<string, boolean> | null
+
   /**
    * used for caching the value returned from props default factory functions to
    * avoid unnecessary watcher trigger
    * @internal
    */
   propsDefaults: Data
+
   /**
    * setup related
    * @internal
    */
   setupState: Data
+
   /**
    * devtools access to additional info
    * @internal
    */
   devtoolsRawSetupState?: any
+
   /**
    * @internal
    */
@@ -495,15 +529,18 @@ export interface ComponentInternalInstance {
    * @internal
    */
   suspense: SuspenseBoundary | null
+
   /**
    * suspense pending batch id
    * @internal
    */
   suspenseId: number
+
   /**
    * @internal
    */
   asyncDep: Promise<any> | null
+
   /**
    * @internal
    */
@@ -513,58 +550,72 @@ export interface ComponentInternalInstance {
   isMounted: boolean
   isUnmounted: boolean
   isDeactivated: boolean
+
   /**
    * @internal
    */
   [LifecycleHooks.BEFORE_CREATE]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.CREATED]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.BEFORE_MOUNT]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.MOUNTED]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.BEFORE_UPDATE]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.UPDATED]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.BEFORE_UNMOUNT]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.UNMOUNTED]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.RENDER_TRACKED]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.RENDER_TRIGGERED]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.ACTIVATED]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.DEACTIVATED]: LifecycleHook
+
   /**
    * @internal
    */
   [LifecycleHooks.ERROR_CAPTURED]: LifecycleHook
+
   /**
    * @internal
    */
@@ -575,11 +626,13 @@ export interface ComponentInternalInstance {
    * @internal
    */
   f?: () => void
+
   /**
    * For caching bound $nextTick on public proxy access
    * @internal
    */
   n?: () => Promise<void>
+
   /**
    * `updateTeleportCssVars`
    * For updating css vars on contained teleports
@@ -604,6 +657,12 @@ const emptyAppContext = createAppContext()
 
 let uid = 0
 
+/**
+ * 创建组件实例对象。
+ *
+ * 这一步只负责准备组件运行期需要的各种槽位和默认状态，还不会执行 setup / render。
+ * renderer 后续会继续填充这些字段，把实例从“空壳”推进到可渲染状态。
+ */
 export function createComponentInstance(
   vnode: VNode,
   parent: ComponentInternalInstance | null,
@@ -710,6 +769,10 @@ export function createComponentInstance(
 
 export let currentInstance: ComponentInternalInstance | null = null
 
+/**
+ * 读取`current`实例。
+ */
+
 export const getCurrentInstance: () => ComponentInternalInstance | null = () =>
   currentInstance || currentRenderingInstance
 
@@ -733,6 +796,11 @@ let setInSSRSetupState: (state: boolean) => void
 if (__SSR__) {
   type Setter = (v: any) => void
   const g = getGlobalThis()
+
+  /**
+   * 注册`global``setter`。
+   */
+
   const registerGlobalSetter = (key: string, setter: Setter) => {
     let setters: Setter[]
     if (!(setters = g[key])) setters = g[key] = []
@@ -763,6 +831,12 @@ if (__SSR__) {
   }
 }
 
+/**
+ * 设置当前正在执行的组件实例，并激活它的 effect scope。
+ *
+ * 返回的 reset 函数用于在 setup/render 结束后恢复旧实例，保证嵌套组件、
+ * 生命周期钩子与组合式 API 都能读到正确的 `currentInstance`。
+ */
 export const setCurrentInstance = (instance: ComponentInternalInstance) => {
   const prev = currentInstance
   internalSetCurrentInstance(instance)
@@ -773,12 +847,20 @@ export const setCurrentInstance = (instance: ComponentInternalInstance) => {
   }
 }
 
+/**
+ * 封装 `unsetCurrentInstance` 辅助逻辑。
+ */
+
 export const unsetCurrentInstance = (): void => {
   currentInstance && currentInstance.scope.off()
   internalSetCurrentInstance(null)
 }
 
 const isBuiltInTag = /*@__PURE__*/ makeMap('slot,component')
+
+/**
+ * 校验组件`name`。
+ */
 
 export function validateComponentName(
   name: string,
@@ -791,6 +873,10 @@ export function validateComponentName(
   }
 }
 
+/**
+ * 判断当前是否满足`stateful`组件。
+ */
+
 export function isStatefulComponent(
   instance: ComponentInternalInstance,
 ): number {
@@ -799,6 +885,12 @@ export function isStatefulComponent(
 
 export let isInSSRComponentSetup = false
 
+/**
+ * 初始化组件输入侧状态。
+ *
+ * 无论是有状态组件还是函数式组件，都会先在这里解析 props / slots；只有
+ * 有状态组件才会继续进入 `setupStatefulComponent`。
+ */
 export function setupComponent(
   instance: ComponentInternalInstance,
   isSSR = false,
@@ -819,6 +911,12 @@ export function setupComponent(
   return setupResult
 }
 
+/**
+ * 初始化有状态组件。
+ *
+ * 这里会建立公开实例代理、执行用户的 `setup()`，并把同步或异步返回值交给
+ * `handleSetupResult` 统一收口。
+ */
 function setupStatefulComponent(
   instance: ComponentInternalInstance,
   isSSR: boolean,
@@ -919,6 +1017,12 @@ function setupStatefulComponent(
   }
 }
 
+/**
+ * 归一化 setup() 的返回结果。
+ *
+ * setup 可以返回 render 函数、状态对象，或在异常场景下返回其它值；这里把这些
+ * 分支整理成实例上的 `render` / `setupState`，然后继续完成组件安装。
+ */
 export function handleSetupResult(
   instance: ComponentInternalInstance,
   setupResult: unknown,
@@ -983,6 +1087,12 @@ export function registerRuntimeCompiler(_compile: any): void {
 // dev only
 export const isRuntimeOnly = (): boolean => !compile
 
+/**
+ * 完成组件安装的最后一步。
+ *
+ * 如果实例还没有 render，会在这里尝试模板编译与 render 归一化；随后再执行
+ * Options API 相关的 data/computed/watch/lifecycle 合并逻辑。
+ */
 export function finishComponentSetup(
   instance: ComponentInternalInstance,
   isSSR: boolean,
@@ -1089,21 +1199,37 @@ export function finishComponentSetup(
 
 const attrsProxyHandlers = __DEV__
   ? {
+      /**
+       * 读取目标值。
+       */
+
       get(target: Data, key: string) {
         markAttrsAccessed()
         track(target, TrackOpTypes.GET, '')
         return target[key]
       },
+
+      /**
+       * 写入目标值。
+       */
       set() {
         warn(`setupContext.attrs is readonly.`)
         return false
       },
+
+      /**
+       * 封装 `deleteProperty` 辅助逻辑。
+       */
       deleteProperty() {
         warn(`setupContext.attrs is readonly.`)
         return false
       },
     }
   : {
+      /**
+       * 读取目标值。
+       */
+
       get(target: Data, key: string) {
         track(target, TrackOpTypes.GET, '')
         return target[key]
@@ -1115,6 +1241,10 @@ const attrsProxyHandlers = __DEV__
  */
 function getSlotsProxy(instance: ComponentInternalInstance): Slots {
   return new Proxy(instance.slots, {
+    /**
+     * 读取目标值。
+     */
+
     get(target, key: string) {
       track(instance, TrackOpTypes.GET, '$slots')
       return target[key]
@@ -1122,9 +1252,19 @@ function getSlotsProxy(instance: ComponentInternalInstance): Slots {
   })
 }
 
+/**
+ * 创建传给 setup() 的上下文对象。
+ *
+ * 它把 `attrs`、`slots`、`emit`、`expose` 打包成一个只读入口，避免用户直接
+ * 操作内部实例，同时保留运行时追踪 attrs/slots 访问的能力。
+ */
 export function createSetupContext(
   instance: ComponentInternalInstance,
 ): SetupContext {
+  /**
+   * 封装 `expose` 辅助逻辑。
+   */
+
   const expose: SetupContext['expose'] = exposed => {
     if (__DEV__) {
       if (instance.exposed) {
@@ -1155,15 +1295,27 @@ export function createSetupContext(
     let attrsProxy: Data
     let slotsProxy: Slots
     return Object.freeze({
+      /**
+       * 读取attrs。
+       */
+
       get attrs() {
         return (
           attrsProxy ||
           (attrsProxy = new Proxy(instance.attrs, attrsProxyHandlers))
         )
       },
+
+      /**
+       * 读取插槽。
+       */
       get slots() {
         return slotsProxy || (slotsProxy = getSlotsProxy(instance))
       },
+
+      /**
+       * 读取`emit`。
+       */
       get emit() {
         return (event: string, ...args: any[]) => instance.emit(event, ...args)
       },
@@ -1179,6 +1331,12 @@ export function createSetupContext(
   }
 }
 
+/**
+ * 获取暴露给模板 ref / 外部调用方的公共实例。
+ *
+ * 如果组件调用了 `expose()`，这里优先返回暴露对象代理；否则回退到常规的
+ * `instance.proxy`，也就是模板和用户最常见的组件公开实例。
+ */
 export function getComponentPublicInstance(
   instance: ComponentInternalInstance,
 ): ComponentPublicInstance | ComponentInternalInstance['exposed'] | null {
@@ -1186,6 +1344,10 @@ export function getComponentPublicInstance(
     return (
       instance.exposeProxy ||
       (instance.exposeProxy = new Proxy(proxyRefs(markRaw(instance.exposed)), {
+        /**
+         * 读取目标值。
+         */
+
         get(target, key: string) {
           if (key in target) {
             return target[key]
@@ -1193,6 +1355,10 @@ export function getComponentPublicInstance(
             return publicPropertiesMap[key](instance)
           }
         },
+
+        /**
+         * 判断是否存在目标条件。
+         */
         has(target, key: string) {
           return key in target || key in publicPropertiesMap
         },
@@ -1204,8 +1370,17 @@ export function getComponentPublicInstance(
 }
 
 const classifyRE = /(?:^|[-_])(\w)/g
+
+/**
+ * 封装 `classify` 辅助逻辑。
+ */
+
 const classify = (str: string): string =>
   str.replace(classifyRE, c => c.toUpperCase()).replace(/[-_]/g, '')
+
+/**
+ * 读取组件`name`。
+ */
 
 export function getComponentName(
   Component: ConcreteComponent,
@@ -1216,6 +1391,12 @@ export function getComponentName(
     : Component.name || (includeInferred && Component.__name)
 }
 
+/**
+ * 生成用于 warning / devtools / 调试输出的组件名。
+ *
+ * 名称优先来自显式 `name`，其次回退到文件名或注册表反查结果，最终保证日志里
+ * 能尽量显示出可读的组件标识。
+ */
 export function formatComponentName(
   instance: ComponentInternalInstance | null,
   Component: ConcreteComponent,
@@ -1248,6 +1429,10 @@ export function formatComponentName(
   return name ? classify(name) : isRoot ? `App` : `Anonymous`
 }
 
+/**
+ * 判断当前是否满足class组件。
+ */
+
 export function isClassComponent(value: unknown): value is ClassComponent {
   return isFunction(value) && '__vccOpts' in value
 }
@@ -1257,10 +1442,12 @@ export interface ComponentCustomElementInterface {
    * @internal
    */
   _injectChildStyle(type: ConcreteComponent): void
+
   /**
    * @internal
    */
   _removeChildStyle(type: ConcreteComponent): void
+
   /**
    * @internal
    */
@@ -1270,6 +1457,7 @@ export interface ComponentCustomElementInterface {
     shouldReflect?: boolean,
     shouldUpdate?: boolean,
   ): void
+
   /**
    * @internal attached by the nested Teleport when shadowRoot is false.
    */

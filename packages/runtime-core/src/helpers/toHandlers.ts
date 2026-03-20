@@ -1,3 +1,6 @@
+/**
+ * 文件说明：辅助函数，把对象键转换为 onXxx 形式的事件处理器名称。
+ */
 import { isObject, toHandlerKey } from '@vue/shared'
 import { warn } from '../warning'
 

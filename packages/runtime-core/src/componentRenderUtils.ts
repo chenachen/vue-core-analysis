@@ -1,3 +1,6 @@
+/**
+ * 文件说明：提供组件渲染辅助逻辑，如根节点筛选、attrs 透传和 HOC 宿主元素更新。
+ */
 import {
   type ComponentInternalInstance,
   type Data,
@@ -36,11 +39,19 @@ import { setTransitionHooks } from './components/BaseTransition'
  */
 let accessedAttrs: boolean = false
 
+/**
+ * 封装 `markAttrsAccessed` 辅助逻辑。
+ */
+
 export function markAttrsAccessed(): void {
   accessedAttrs = true
 }
 
 type SetRootFn = ((root: VNode) => void) | undefined
+
+/**
+ * 渲染组件根节点。
+ */
 
 export function renderComponentRoot(
   instance: ComponentInternalInstance,
@@ -80,6 +91,10 @@ export function renderComponentRoot(
       const thisProxy =
         __DEV__ && setupState.__isScriptSetup
           ? new Proxy(proxyToUse!, {
+              /**
+               * 读取目标值。
+               */
+
               get(target, key, receiver) {
                 warn(
                   `Property '${String(
@@ -115,6 +130,10 @@ export function renderComponentRoot(
               __DEV__ ? shallowReadonly(props) : props,
               __DEV__
                 ? {
+                    /**
+                     * 读取attrs。
+                     */
+
                     get attrs() {
                       markAttrsAccessed()
                       return shallowReadonly(attrs)
@@ -289,6 +308,11 @@ const getChildRoot = (vnode: VNode): [VNode, SetRootFn] => {
 
   const index = rawChildren.indexOf(childRoot)
   const dynamicIndex = dynamicChildren ? dynamicChildren.indexOf(childRoot) : -1
+
+  /**
+   * 写入根节点。
+   */
+
   const setRoot: SetRootFn = (updatedRoot: VNode) => {
     rawChildren[index] = updatedRoot
     if (dynamicChildren) {
@@ -302,7 +326,13 @@ const getChildRoot = (vnode: VNode): [VNode, SetRootFn] => {
   return [normalizeVNode(childRoot), setRoot]
 }
 
-//
+/**
+ * 在开发环境的 Fragment 根节点中提取唯一的有效根节点。
+ *
+ * 模板根部的注释、`v-if` 生成的占位注释，都会让结果看起来像一个 Fragment。
+ * 这里会跳过普通注释，并在需要时递归钻取 DEV_ROOT_FRAGMENT，最终找到真正用于
+ * attrs 透传、scopeId 处理和指令/过渡校验的单一根节点。
+ */
 export function filterSingleRoot(
   children: VNodeArrayChildren,
   recurse = true,
@@ -313,7 +343,7 @@ export function filterSingleRoot(
     if (isVNode(child)) {
       // ignore user comment
       if (child.type !== Comment || child.children === 'v-if') {
-        // 如果存在多个非注释子节点，直接返回undefined
+        // 已经找到过一个有效根节点，再遇到新的有效根节点就说明不是单根
         if (singleRoot) {
           // has more than 1 non-comment child, return now
           return
@@ -321,7 +351,7 @@ export function filterSingleRoot(
           singleRoot = child
           if (
             __DEV__ &&
-            // 允许递归查找
+            // 继续向下钻取开发环境额外包裹出来的根 Fragment
             recurse &&
             singleRoot.patchFlag > 0 &&
             singleRoot.patchFlag & PatchFlags.DEV_ROOT_FRAGMENT
@@ -337,6 +367,10 @@ export function filterSingleRoot(
   return singleRoot
 }
 
+/**
+ * 读取`functional``fallthrough`。
+ */
+
 const getFunctionalFallthrough = (attrs: Data): Data | undefined => {
   let res: Data | undefined
   for (const key in attrs) {
@@ -347,6 +381,10 @@ const getFunctionalFallthrough = (attrs: Data): Data | undefined => {
   return res
 }
 
+/**
+ * 封装 `filterModelListeners` 辅助逻辑。
+ */
+
 const filterModelListeners = (attrs: Data, props: NormalizedProps): Data => {
   const res: Data = {}
   for (const key in attrs) {
@@ -356,6 +394,10 @@ const filterModelListeners = (attrs: Data, props: NormalizedProps): Data => {
   }
   return res
 }
+
+/**
+ * 判断当前是否满足元素根节点。
+ */
 
 const isElementRoot = (vnode: VNode) => {
   return (
@@ -454,6 +496,10 @@ export function shouldUpdateComponent(
 
   return false
 }
+
+/**
+ * 判断是否存在props`changed`。
+ */
 
 function hasPropsChanged(
   prevProps: Data,

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义错误代码和统一错误处理流程，支持同步与异步错误捕获。
+ */
 import { pauseTracking, resetTracking } from '@vue/reactivity'
 import type { VNode } from './vnode'
 import type { ComponentInternalInstance } from './component'
@@ -67,6 +70,10 @@ export const ErrorTypeStrings: Record<ErrorTypes, string> = {
 
 export type ErrorTypes = LifecycleHooks | ErrorCodes | WatchErrorCodes
 
+/**
+ * 调用`with`错误`handling`。
+ */
+
 export function callWithErrorHandling(
   fn: Function,
   instance: ComponentInternalInstance | null | undefined,
@@ -126,6 +133,10 @@ export function callWithAsyncErrorHandling(
   }
 }
 
+/**
+ * 处理错误。
+ */
+
 export function handleError(
   err: unknown,
   instance: ComponentInternalInstance | null | undefined,
@@ -171,6 +182,10 @@ export function handleError(
   }
   logError(err, type, contextVNode, throwInDev, throwUnhandledErrorInProduction)
 }
+
+/**
+ * 封装 `logError` 辅助逻辑。
+ */
 
 function logError(
   err: unknown,

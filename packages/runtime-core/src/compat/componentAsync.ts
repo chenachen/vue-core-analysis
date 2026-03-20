@@ -1,3 +1,6 @@
+/**
+ * 文件说明：兼容 Vue 2 异步组件格式，并把它们转换到 Vue 3 的异步组件实现。
+ */
 import { isArray, isObject, isPromise } from '@vue/shared'
 import { defineAsyncComponent } from '../apiAsyncComponent'
 import type { Component } from '../component'
@@ -23,6 +26,10 @@ const normalizedAsyncComponentMap = new WeakMap<
   Component
 >()
 
+/**
+ * 封装 `convertLegacyAsyncComponent` 辅助逻辑。
+ */
+
 export function convertLegacyAsyncComponent(
   comp: LegacyAsyncComponent,
 ): Component {
@@ -45,6 +52,10 @@ export function convertLegacyAsyncComponent(
     converted = defineAsyncComponent(() => res)
   } else if (isObject(res) && !isVNode(res) && !isArray(res)) {
     converted = defineAsyncComponent({
+      /**
+       * 封装 `loader` 分支逻辑。
+       */
+
       loader: () => res.component,
       loadingComponent: res.loading,
       errorComponent: res.error,

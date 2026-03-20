@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 h 渲染函数，是 createVNode 面向用户的更友好包装。
+ */
 import {
   type Comment,
   type Fragment,

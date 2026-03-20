@@ -1,3 +1,6 @@
+/**
+ * 文件说明：运行时资源解析函数，用于动态查找组件、指令等已注册资源。
+ */
 import {
   type ComponentOptions,
   type ConcreteComponent,
@@ -129,6 +132,10 @@ function resolveAsset(
     )
   }
 }
+
+/**
+ * 解析并确定目标结果。
+ */
 
 function resolve(registry: Record<string, any> | undefined, name: string) {
   return (

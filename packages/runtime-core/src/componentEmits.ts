@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理组件事件发射和验证，支持事件类型检查与 emit 函数创建。
+ */
 import {
   EMPTY_OBJ,
   type OverloadParameters,
@@ -107,6 +110,10 @@ export type EmitFn<
                 : (event: key, ...args: any[]) => void
           }[Event]
         >
+
+/**
+ * 封装 `emit` 辅助逻辑。
+ */
 
 export function emit(
   instance: ComponentInternalInstance,
@@ -232,6 +239,10 @@ export function emit(
   }
 }
 
+/**
+ * 规范化emits 配置选项。
+ */
+
 export function normalizeEmitsOptions(
   comp: ConcreteComponent,
   appContext: AppContext,
@@ -249,6 +260,10 @@ export function normalizeEmitsOptions(
   // apply mixin/extends props
   let hasExtends = false
   if (__FEATURE_OPTIONS_API__ && !isFunction(comp)) {
+    /**
+     * 封装 `extendEmits` 辅助逻辑。
+     */
+
     const extendEmits = (raw: ComponentOptions) => {
       const normalizedFromExtend = normalizeEmitsOptions(raw, appContext, true)
       if (normalizedFromExtend) {

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：提供 setup 相关的运行时辅助能力和配套类型定义。
+ */
 import {
   type IfAny,
   type LooseRequired,
@@ -210,14 +213,17 @@ export function defineOptions<
      * props should be defined via defineProps().
      */
     props?: never
+
     /**
      * emits should be defined via defineEmits().
      */
     emits?: never
+
     /**
      * expose should be defined via defineExpose().
      */
     expose?: never
+
     /**
      * slots should be defined via defineSlots().
      */
@@ -228,6 +234,10 @@ export function defineOptions<
     warnRuntimeUsage(`defineOptions`)
   }
 }
+
+/**
+ * 封装 `defineSlots` 辅助逻辑。
+ */
 
 export function defineSlots<
   S extends Record<string, any> = Record<string, any>,
@@ -303,6 +313,10 @@ export function defineModel<T, M extends PropertyKey = string, G = T, S = T>(
   name: string,
   options?: PropOptions<T> & DefineModelOptions<T, G, S>,
 ): ModelRef<T | undefined, M, G | undefined, S | undefined>
+
+/**
+ * 封装 `defineModel` 辅助逻辑。
+ */
 
 export function defineModel(): any {
   if (__DEV__) {
@@ -381,13 +395,25 @@ export function withDefaults<
   return null as any
 }
 
+/**
+ * 提供插槽的组合式入口。
+ */
+
 export function useSlots(): SetupContext['slots'] {
   return getContext('useSlots').slots
 }
 
+/**
+ * 提供attrs的组合式入口。
+ */
+
 export function useAttrs(): SetupContext['attrs'] {
   return getContext('useAttrs').attrs
 }
+
+/**
+ * 读取上下文。
+ */
 
 function getContext(calledFunctionName: string): SetupContext {
   const i = getCurrentInstance()!
@@ -470,6 +496,10 @@ export function createPropsRestProxy(
     if (!excludedKeys.includes(key)) {
       Object.defineProperty(ret, key, {
         enumerable: true,
+
+        /**
+         * 封装 `get` 分支逻辑。
+         */
         get: () => props[key],
       })
     }

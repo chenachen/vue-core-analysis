@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 Vue 应用实例的创建和配置，包括全局注册、插件安装和挂载卸载流程。
+ */
 import {
   type Component,
   type ComponentInternalInstance,
@@ -65,14 +68,17 @@ export interface App<HostElement = any> {
   ): this
   mount(
     rootContainer: HostElement | string,
+
     /**
      * @internal
      */
     isHydrate?: boolean,
+
     /**
      * @internal
      */
     namespace?: boolean | ElementNamespace,
+
     /**
      * @internal
      */
@@ -183,21 +189,25 @@ export interface AppContext {
    * @internal
    */
   optionsCache: WeakMap<ComponentOptions, MergedComponentOptions>
+
   /**
    * Cache for normalized props options
    * @internal
    */
   propsCache: WeakMap<ConcreteComponent, NormalizedPropsOptions>
+
   /**
    * Cache for normalized emits options
    * @internal
    */
   emitsCache: WeakMap<ConcreteComponent, ObjectEmitsOptions | null>
+
   /**
    * HMR only
    * @internal
    */
   reload?: () => void
+
   /**
    * v2 compat only
    * @internal
@@ -220,6 +230,10 @@ export type Plugin<
   // TODO: in next major Options extends unknown[] and remove P
   P extends unknown[] = Options extends unknown[] ? Options : [Options],
 > = FunctionPlugin<P> | ObjectPlugin<P>
+
+/**
+ * 创建应用上下文。
+ */
 
 export function createAppContext(): AppContext {
   return {
@@ -249,6 +263,10 @@ export type CreateAppFunction<HostElement> = (
 ) => App<HostElement>
 
 let uid = 0
+
+/**
+ * 创建应用`api`。
+ */
 
 export function createAppAPI<HostElement>(
   render: RootRenderFunction<HostElement>,
@@ -321,6 +339,9 @@ export function createAppAPI<HostElement>(
         return app
       },
 
+      /**
+       * 封装 `mixin` 辅助逻辑。
+       */
       mixin(mixin: ComponentOptions) {
         // __FEATURE_OPTIONS_API__ ： 编译时标记，是否支持选项API
         if (__FEATURE_OPTIONS_API__) {
@@ -358,6 +379,9 @@ export function createAppAPI<HostElement>(
         return app
       },
 
+      /**
+       * 封装 `directive` 辅助逻辑。
+       */
       directive(name: string, directive?: Directive) {
         // 和注册组件类似
         if (__DEV__) {
@@ -374,6 +398,9 @@ export function createAppAPI<HostElement>(
         return app
       },
 
+      /**
+       * 挂载当前节点。
+       */
       mount(
         rootContainer: HostElement,
         isHydrate?: boolean,
@@ -437,6 +464,9 @@ export function createAppAPI<HostElement>(
         }
       },
 
+      /**
+       * 封装 `onUnmount` 辅助逻辑。
+       */
       onUnmount(cleanupFn: () => void) {
         // 注册卸载时的回调函数
         if (__DEV__ && typeof cleanupFn !== 'function') {
@@ -448,6 +478,9 @@ export function createAppAPI<HostElement>(
         pluginCleanupFns.push(cleanupFn)
       },
 
+      /**
+       * 卸载当前节点。
+       */
       unmount() {
         // 如果已经挂载，则进行卸载
         if (isMounted) {
@@ -467,6 +500,9 @@ export function createAppAPI<HostElement>(
         }
       },
 
+      /**
+       * 封装 `provide` 辅助逻辑。
+       */
       provide(key, value) {
         if (__DEV__ && (key as string | symbol) in context.provides) {
           if (hasOwn(context.provides, key as string | symbol)) {
@@ -488,6 +524,9 @@ export function createAppAPI<HostElement>(
         return app
       },
 
+      /**
+       * 封装 `runWithContext` 辅助逻辑。
+       */
       runWithContext(fn) {
         const lastApp = currentApp
         currentApp = app

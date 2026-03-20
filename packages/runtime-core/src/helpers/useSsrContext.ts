@@ -1,7 +1,14 @@
+/**
+ * 文件说明：提供获取服务端渲染上下文的组合式 API。
+ */
 import { inject } from '../apiInject'
 import { warn } from '../warning'
 
 export const ssrContextKey: unique symbol = Symbol.for('v-scx')
+
+/**
+ * 提供`ssrcontext`的组合式入口。
+ */
 
 export const useSSRContext = <T = Record<string, any>>(): T | undefined => {
   if (!__GLOBAL__) {

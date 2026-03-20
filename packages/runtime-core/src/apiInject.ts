@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现依赖注入机制，提供 provide 和 inject 的运行时行为。
+ */
 import { isFunction } from '@vue/shared'
 import { currentInstance, getCurrentInstance } from './component'
 import { currentApp } from './apiCreateApp'
@@ -6,6 +9,10 @@ import { warn } from './warning'
 interface InjectionConstraint<T> {}
 
 export type InjectionKey<T> = symbol & InjectionConstraint<T>
+
+/**
+ * 封装 `provide` 辅助逻辑。
+ */
 
 export function provide<T, K = InjectionKey<T> | string | number>(
   key: K,
@@ -43,6 +50,11 @@ export function inject<T>(
   defaultValue: T | (() => T),
   treatDefaultAsFactory: true,
 ): T
+
+/**
+ * 注入目标能力。
+ */
+
 export function inject(
   key: InjectionKey<any> | string,
   defaultValue?: unknown,

@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理模板引用的设置与管理，兼顾组件、元素和异步边界场景。
+ */
 import type { SuspenseBoundary } from './components/Suspense'
 import type { VNode, VNodeNormalizedRef, VNodeNormalizedRefAtom } from './vnode'
 import {
@@ -113,6 +116,10 @@ export function setRef(
     const _isRef = isRef(ref)
 
     if (_isString || _isRef) {
+      /**
+       * 封装 `doSet` 辅助逻辑。
+       */
+
       const doSet = () => {
         if (rawRef.f) {
           const existing = _isString

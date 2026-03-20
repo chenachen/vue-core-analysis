@@ -1,5 +1,12 @@
+/**
+ * 文件说明：兼容 Vue 2 data 选项的深度合并逻辑。
+ */
 import { isPlainObject } from '@vue/shared'
 import { DeprecationTypes, warnDeprecation } from './compatConfig'
+
+/**
+ * 封装 `deepMergeData` 辅助逻辑。
+ */
 
 export function deepMergeData(to: any, from: any): any {
   for (const key in from) {

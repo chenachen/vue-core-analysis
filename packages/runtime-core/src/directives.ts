@@ -1,4 +1,8 @@
 /**
+ * 文件说明：定义自定义指令接口，并负责把指令绑定到 VNode 与对应生命周期钩子上。
+ */
+
+/**
 Runtime helper for applying directives to a vnode. Example usage:
 
 const comp = resolveComponent('comp')
@@ -115,6 +119,10 @@ export type DirectiveModifiers<K extends string = string> = Partial<
   Record<K, boolean>
 >
 
+/**
+ * 校验指令`name`。
+ */
+
 export function validateDirectiveName(name: string): void {
   if (isBuiltInDirective(name)) {
     warn('Do not use built-in directive ids as custom directive id: ' + name)
@@ -166,6 +174,10 @@ export function withDirectives<T extends VNode>(
   }
   return vnode
 }
+
+/**
+ * 调用指令钩子。
+ */
 
 export function invokeDirectiveHook(
   vnode: VNode,

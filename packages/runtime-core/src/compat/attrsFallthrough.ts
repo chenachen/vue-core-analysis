@@ -1,6 +1,13 @@
+/**
+ * 文件说明：处理 Vue 2 兼容模式下 attrs fallthrough 的特殊规则。
+ */
 import { isOn } from '@vue/shared'
 import type { ComponentInternalInstance } from '../component'
 import { DeprecationTypes, isCompatEnabled } from './compatConfig'
+
+/**
+ * 判断是否应当执行`skip`属性。
+ */
 
 export function shouldSkipAttr(
   key: string,

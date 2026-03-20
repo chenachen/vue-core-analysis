@@ -1,3 +1,6 @@
+/**
+ * 文件说明：管理当前渲染实例、作用域 ID 和渲染期间共享的上下文状态。
+ */
 import type { ComponentInternalInstance } from './component'
 import { devtoolsComponentUpdated } from './devtools'
 import { setBlockTracking } from './vnode'
@@ -78,6 +81,10 @@ export function withCtx(
   if ((fn as ContextualRenderFn)._n) {
     return fn
   }
+
+  /**
+   * 渲染`fn``with`上下文。
+   */
 
   const renderFnWithContext: ContextualRenderFn = (...args: any[]) => {
     // If a user calls a compiled slot inside a template expression (#1745), it

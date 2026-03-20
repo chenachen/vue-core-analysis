@@ -1,3 +1,6 @@
+/**
+ * 文件说明：注册组合式 API 生命周期钩子，并把它们挂到组件内部实例上。
+ */
 import {
   type ComponentInternalInstance,
   currentInstance,
@@ -16,6 +19,10 @@ import {
 import { LifecycleHooks } from './enums'
 
 export { onActivated, onDeactivated } from './components/KeepAlive'
+
+/**
+ * 注入钩子。
+ */
 
 export function injectHook(
   type: LifecycleHooks,
@@ -63,6 +70,10 @@ export function injectHook(
   }
 }
 
+/**
+ * 创建钩子。
+ */
+
 const createHook =
   <T extends Function = () => any>(lifecycle: LifecycleHooks) =>
   (
@@ -107,6 +118,10 @@ export type ErrorCapturedHook<TError = unknown> = (
   instance: ComponentPublicInstance | null,
   info: string,
 ) => boolean | void
+
+/**
+ * 封装 `onErrorCaptured` 辅助逻辑。
+ */
 
 export function onErrorCaptured<TError = Error>(
   hook: ErrorCapturedHook<TError>,

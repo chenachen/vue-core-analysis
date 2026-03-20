@@ -1,3 +1,6 @@
+/**
+ * 文件说明：定义 runtime-dom 使用的 JSX 类型系统，包括元素属性、事件和样式相关类型。
+ */
 // Note: this file is auto concatenated to the end of the bundled d.ts during
 // build.
 

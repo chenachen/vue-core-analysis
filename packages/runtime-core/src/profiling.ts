@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现性能测量和分析能力，给开发工具和调试场景提供打点支持。
+ */
 /* eslint-disable no-restricted-globals */
 import {
   type ComponentInternalInstance,
@@ -7,6 +10,10 @@ import { devtoolsPerfEnd, devtoolsPerfStart } from './devtools'
 
 let supported: boolean
 let perf: Performance
+
+/**
+ * 封装 `startMeasure` 辅助逻辑。
+ */
 
 export function startMeasure(
   instance: ComponentInternalInstance,
@@ -20,6 +27,10 @@ export function startMeasure(
     devtoolsPerfStart(instance, type, isSupported() ? perf.now() : Date.now())
   }
 }
+
+/**
+ * 封装 `endMeasure` 辅助逻辑。
+ */
 
 export function endMeasure(
   instance: ComponentInternalInstance,
@@ -42,6 +53,10 @@ export function endMeasure(
     devtoolsPerfEnd(instance, type, isSupported() ? perf.now() : Date.now())
   }
 }
+
+/**
+ * 判断当前是否满足`supported`。
+ */
 
 function isSupported() {
   if (supported !== undefined) {

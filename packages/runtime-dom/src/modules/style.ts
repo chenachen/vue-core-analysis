@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理内联样式的 patch 模块，支持对象和字符串两种样式格式。
+ */
 import { capitalize, hyphenate, isArray, isString } from '@vue/shared'
 import { camelize, warn } from '@vue/runtime-core'
 import {
@@ -10,6 +13,10 @@ import { CSS_VAR_TEXT } from '../helpers/useCssVars'
 type Style = string | Record<string, string | string[]> | null
 
 const displayRE = /(^|;)\s*display\s*:/
+
+/**
+ * 同步样式到最新运行时状态。
+ */
 
 export function patchStyle(el: Element, prev: Style, next: Style): void {
   const style = (el as HTMLElement).style
@@ -67,6 +74,10 @@ export function patchStyle(el: Element, prev: Style, next: Style): void {
 const semicolonRE = /[^\\];\s*$/
 const importantRE = /\s*!important$/
 
+/**
+ * 写入样式。
+ */
+
 function setStyle(
   style: CSSStyleDeclaration,
   name: string,
@@ -104,6 +115,10 @@ function setStyle(
 
 const prefixes = ['Webkit', 'Moz', 'ms']
 const prefixCache: Record<string, string> = {}
+
+/**
+ * 封装 `autoPrefix` 辅助逻辑。
+ */
 
 function autoPrefix(style: CSSStyleDeclaration, rawName: string): string {
   const cached = prefixCache[rawName]

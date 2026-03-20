@@ -1,3 +1,6 @@
+/**
+ * 文件说明：规范化和合并组件选项，处理 data、methods、computed、watch 等 Options API 能力。
+ */
 import {
   type Component,
   type ComponentInternalInstance,
@@ -195,11 +198,13 @@ export interface ComponentOptionsBase<
    * @internal
    */
   __asyncLoader?: () => Promise<ConcreteComponent>
+
   /**
    * the inner component resolved by the AsyncComponentWrapper
    * @internal
    */
   __asyncResolved?: ConcreteComponent
+
   /**
    * Exposed for lazy hydration
    * @internal
@@ -424,9 +429,11 @@ interface LegacyOptions<
   updated?(): any
   activated?(): any
   deactivated?(): any
+
   /** @deprecated use `beforeUnmount` instead */
   beforeDestroy?(): any
   beforeUnmount?(): any
+
   /** @deprecated use `unmounted` instead */
   destroyed?(): any
   unmounted?(): any
@@ -465,9 +472,11 @@ export type MergedComponentOptionsOverride = {
   updated?: MergedHook
   activated?: MergedHook
   deactivated?: MergedHook
+
   /** @deprecated use `beforeUnmount` instead */
   beforeDestroy?: MergedHook
   beforeUnmount?: MergedHook
+
   /** @deprecated use `unmounted` instead */
   destroyed?: MergedHook
   unmounted?: MergedHook
@@ -502,6 +511,12 @@ enum OptionTypes {
   INJECT = 'Inject',
 }
 
+/**
+ * 创建一个开发期重复键检查器。
+ *
+ * Options API 允许 props / data / methods / computed / inject 等来源共同暴露到
+ * 组件实例上，这里用一个轻量缓存提醒“同名字段后定义覆盖先定义”的情况。
+ */
 function createDuplicateChecker() {
   const cache = Object.create(null)
   return (type: OptionTypes, key: string) => {
@@ -515,6 +530,12 @@ function createDuplicateChecker() {
 
 export let shouldCacheAccess = true
 
+/**
+ * 把 Options API 配置真正安装到组件实例上。
+ *
+ * 它按照 Vue 2 保持兼容的顺序依次处理 inject、methods、data、computed、watch、
+ * provide 和各类生命周期钩子，让 `this.xxx` 与组合式 API 共存于同一实例上。
+ */
 export function applyOptions(instance: ComponentInternalInstance): void {
   const options = resolveMergedOptions(instance)
   const publicThis = instance.proxy! as any
@@ -642,6 +663,10 @@ export function applyOptions(instance: ComponentInternalInstance): void {
             Object.defineProperty(ctx, key, {
               configurable: true,
               enumerable: true,
+
+              /**
+               * 封装 `get` 分支逻辑。
+               */
               get: () => data[key],
               set: NOOP,
             })
@@ -682,7 +707,15 @@ export function applyOptions(instance: ComponentInternalInstance): void {
       Object.defineProperty(ctx, key, {
         enumerable: true,
         configurable: true,
+
+        /**
+         * 封装 `get` 分支逻辑。
+         */
         get: () => c.value,
+
+        /**
+         * 封装 `set` 分支逻辑。
+         */
         set: v => (c.value = v),
       })
       if (__DEV__) {
@@ -709,6 +742,10 @@ export function applyOptions(instance: ComponentInternalInstance): void {
   if (created) {
     callHook(created, instance, LifecycleHooks.CREATED)
   }
+
+  /**
+   * 注册`lifecycle`钩子。
+   */
 
   function registerLifecycleHook(
     register: Function,
@@ -754,7 +791,15 @@ export function applyOptions(instance: ComponentInternalInstance): void {
       const exposed = instance.exposed || (instance.exposed = {})
       expose.forEach(key => {
         Object.defineProperty(exposed, key, {
+          /**
+           * 封装 `get` 分支逻辑。
+           */
+
           get: () => publicThis[key],
+
+          /**
+           * 封装 `set` 分支逻辑。
+           */
           set: val => (publicThis[key] = val),
           enumerable: true,
         })
@@ -789,6 +834,12 @@ export function applyOptions(instance: ComponentInternalInstance): void {
   }
 }
 
+/**
+ * 解析并注入 inject 选项。
+ *
+ * 这里既处理对象/数组两种声明形式，也负责把注入进来的 ref 在实例代理上自动解包，
+ * 让 Options API 中通过 `this.foo` 访问 inject 时保持直观体验。
+ */
 export function resolveInjections(
   injectOptions: ComponentInjectOptions,
   ctx: any,
@@ -818,7 +869,15 @@ export function resolveInjections(
       Object.defineProperty(ctx, key, {
         enumerable: true,
         configurable: true,
+
+        /**
+         * 封装 `get` 分支逻辑。
+         */
         get: () => (injected as Ref).value,
+
+        /**
+         * 封装 `set` 分支逻辑。
+         */
         set: v => ((injected as Ref).value = v),
       })
     } else {
@@ -829,6 +888,10 @@ export function resolveInjections(
     }
   }
 }
+
+/**
+ * 调用钩子。
+ */
 
 function callHook(
   hook: Function,
@@ -844,6 +907,12 @@ function callHook(
   )
 }
 
+/**
+ * 把单个 watch 选项转换成真正的运行时 watch 调用。
+ *
+ * watch 选项既可能是字符串方法名、函数、对象配置，也可能是这些形式的数组；
+ * 这里统一把它们规范化成 getter + handler + options 的组合。
+ */
 export function createWatcher(
   raw: ComponentWatchOptionItem,
   ctx: Data,
@@ -922,6 +991,13 @@ export function createWatcher(
  * This is done only once per-component since the merging does not involve
  * instances.
  */
+
+/**
+ * 解析组件最终可用的合并后选项，并做按组件级别缓存。
+ *
+ * 由于 mixins / extends / 全局 mixins 的合并结果与实例状态无关，所以同一个组件类型
+ * 只需要计算一次，后续实例可以直接复用缓存结果。
+ */
 export function resolveMergedOptions(
   instance: ComponentInternalInstance,
 ): MergedComponentOptions {
@@ -964,6 +1040,12 @@ export function resolveMergedOptions(
   return resolved
 }
 
+/**
+ * 递归合并一个组件及其 extends / mixins 链上的选项。
+ *
+ * 具体字段如何合并交给 merge strategy 决定：生命周期会拼数组、对象型选项会浅合并，
+ * props/emits/watch 则有各自的专用策略。
+ */
 export function mergeOptions(
   to: any,
   from: any,
@@ -1036,6 +1118,10 @@ if (__COMPAT__) {
   internalOptionMergeStrats.filters = mergeObjectOptions
 }
 
+/**
+ * 合并数据`fn`。
+ */
+
 function mergeDataFn(to: any, from: any) {
   if (!from) {
     return to
@@ -1055,12 +1141,20 @@ function mergeDataFn(to: any, from: any) {
   }
 }
 
+/**
+ * 合并`inject`。
+ */
+
 function mergeInject(
   to: ComponentInjectOptions | undefined,
   from: ComponentInjectOptions,
 ) {
   return mergeObjectOptions(normalizeInject(to), normalizeInject(from))
 }
+
+/**
+ * 规范化`inject`。
+ */
 
 function normalizeInject(
   raw: ComponentInjectOptions | undefined,
@@ -1075,9 +1169,17 @@ function normalizeInject(
   return raw
 }
 
+/**
+ * 合并`as``array`。
+ */
+
 function mergeAsArray<T = Function>(to: T[] | T | undefined, from: T | T[]) {
   return to ? [...new Set([].concat(to as any, from as any))] : from
 }
+
+/**
+ * 合并`object`选项。
+ */
 
 function mergeObjectOptions(to: Object | undefined, from: Object | undefined) {
   return to ? extend(Object.create(null), to, from) : from
@@ -1091,6 +1193,11 @@ function mergeEmitsOrPropsOptions(
   to: ComponentPropsOptions | undefined,
   from: ComponentPropsOptions | undefined,
 ): ComponentPropsOptions | undefined
+
+/**
+ * 合并emits 配置`or`props选项。
+ */
+
 function mergeEmitsOrPropsOptions(
   to: ComponentPropsOptions | EmitsOptions | undefined,
   from: ComponentPropsOptions | EmitsOptions | undefined,
@@ -1108,6 +1215,10 @@ function mergeEmitsOrPropsOptions(
     return from
   }
 }
+
+/**
+ * 合并侦听选项。
+ */
 
 function mergeWatchOptions(
   to: ComponentWatchOptions | undefined,
@@ -1169,10 +1280,12 @@ export type ComponentOptionsWithoutProps<
   Provide
 > & {
   props?: never
+
   /**
    * @private for language-tools use only
    */
   __typeProps?: Props
+
   /**
    * @private for language-tools use only
    */

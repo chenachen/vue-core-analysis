@@ -1,3 +1,6 @@
+/**
+ * 文件说明：作为 DOM 属性分发总入口，根据属性类型把更新路由到 class、style、事件、attr 或 prop 模块。
+ */
 import { patchClass } from './modules/class'
 import { patchStyle } from './modules/style'
 import { patchAttr } from './modules/attrs'
@@ -27,6 +30,12 @@ const isNativeOn = (key: string) =>
 
 type DOMRendererOptions = RendererOptions<Node, Element>
 
+/**
+ * DOM 平台的属性分发入口。
+ *
+ * runtime-core 只知道“某个 prop 需要更新了”，至于它应该走 class、style、事件、
+ * DOM property 还是普通 attribute，交给 runtime-dom 在这里按浏览器语义做分派。
+ */
 export const patchProp: DOMRendererOptions['patchProp'] = (
   el,
   key,
@@ -84,6 +93,12 @@ export const patchProp: DOMRendererOptions['patchProp'] = (
   }
 }
 
+/**
+ * 判断当前 key 在浏览器中应走 DOM property 还是 attribute 语义。
+ *
+ * 这个判断函数把平台差异集中收口：一旦判错，更新结果就可能出现类型强转、只读属性
+ * 失败或 SVG 行为异常，因此这里保存了大量“看似零散、实际上很关键”的分支。
+ */
 function shouldSetAsProp(
   el: Element,
   key: string,

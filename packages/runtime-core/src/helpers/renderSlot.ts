@@ -1,3 +1,6 @@
+/**
+ * 文件说明：编译器运行时助手，用于渲染插槽内容和 fallback 分支。
+ */
 import type { Data } from '../component'
 import type { RawSlots, Slots } from '../componentSlots'
 import {
@@ -98,6 +101,10 @@ export function renderSlot(
   }
   return rendered
 }
+
+/**
+ * 确保`valid`VNode已准备就绪。
+ */
 
 export function ensureValidVNode(
   vnodes: VNodeArrayChildren,

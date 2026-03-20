@@ -1,3 +1,6 @@
+/**
+ * 文件说明：处理事件监听的 patch 模块，负责监听器的绑定、更新和移除。
+ */
 import { NOOP, hyphenate, isArray, isFunction } from '@vue/shared'
 import {
   type ComponentInternalInstance,
@@ -13,6 +16,10 @@ interface Invoker extends EventListener {
 
 type EventValue = Function | Function[]
 
+/**
+ * 添加事件监听器。
+ */
+
 export function addEventListener(
   el: Element,
   event: string,
@@ -21,6 +28,10 @@ export function addEventListener(
 ): void {
   el.addEventListener(event, handler, options)
 }
+
+/**
+ * 移除事件监听器。
+ */
 
 export function removeEventListener(
   el: Element,
@@ -32,6 +43,10 @@ export function removeEventListener(
 }
 
 const veiKey: unique symbol = Symbol('_vei')
+
+/**
+ * 同步事件到最新运行时状态。
+ */
 
 export function patchEvent(
   el: Element & { [veiKey]?: Record<string, Invoker | undefined> },
@@ -69,6 +84,10 @@ export function patchEvent(
 
 const optionsModifierRE = /(?:Once|Passive|Capture)$/
 
+/**
+ * 解析`name`。
+ */
+
 function parseName(name: string): [string, EventListenerOptions | undefined] {
   let options: EventListenerOptions | undefined
   if (optionsModifierRE.test(name)) {
@@ -87,13 +106,26 @@ function parseName(name: string): [string, EventListenerOptions | undefined] {
 // and use the same timestamp for all event listeners attached in the same tick.
 let cachedNow: number = 0
 const p = /*@__PURE__*/ Promise.resolve()
+
+/**
+ * 读取`now`。
+ */
+
 const getNow = () =>
   cachedNow || (p.then(() => (cachedNow = 0)), (cachedNow = Date.now()))
+
+/**
+ * 创建调用器。
+ */
 
 function createInvoker(
   initialValue: EventValue,
   instance: ComponentInternalInstance | null,
 ) {
+  /**
+   * 封装 `invoker` 辅助逻辑。
+   */
+
   const invoker: Invoker = (e: Event & { _vts?: number }) => {
     // async edge case vuejs/vue#6566
     // inner click event triggers patch, event handler
@@ -124,6 +156,10 @@ function createInvoker(
   return invoker
 }
 
+/**
+ * 封装 `sanitizeEventValue` 辅助逻辑。
+ */
+
 function sanitizeEventValue(value: unknown, propName: string): EventValue {
   if (isFunction(value) || isArray(value)) {
     return value as EventValue
@@ -134,6 +170,10 @@ function sanitizeEventValue(value: unknown, propName: string): EventValue {
   )
   return NOOP
 }
+
+/**
+ * 同步`stop``immediate``propagation`到最新运行时状态。
+ */
 
 function patchStopImmediatePropagation(
   e: Event,

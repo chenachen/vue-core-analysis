@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现水合算法，把服务端输出的 HTML 与客户端组件树连接起来。
+ */
 import {
   Fragment,
   Static,
@@ -56,6 +59,11 @@ export enum DOMNodeTypes {
 }
 
 let hasLoggedMismatchError = false
+
+/**
+ * 封装 `logMismatchError` 辅助逻辑。
+ */
+
 const logMismatchError = () => {
   if (__TEST__ || hasLoggedMismatchError) {
     return
@@ -65,12 +73,24 @@ const logMismatchError = () => {
   hasLoggedMismatchError = true
 }
 
+/**
+ * 判断当前是否满足`svgcontainer`。
+ */
+
 const isSVGContainer = (container: Element) =>
   container.namespaceURI!.includes('svg') &&
   container.tagName !== 'foreignObject'
 
+/**
+ * 判断当前是否满足`math``mlcontainer`。
+ */
+
 const isMathMLContainer = (container: Element) =>
   container.namespaceURI!.includes('MathML')
+
+/**
+ * 读取`container`类型。
+ */
 
 const getContainerType = (
   container: Element | ShadowRoot,
@@ -81,6 +101,10 @@ const getContainerType = (
   return undefined
 }
 
+/**
+ * 判断当前是否满足`comment`。
+ */
+
 export const isComment = (node: Node): node is Comment =>
   node.nodeType === DOMNodeTypes.COMMENT
 
@@ -89,6 +113,13 @@ export const isComment = (node: Node): node is Comment =>
 // it out creates a ton of unnecessary complexity.
 // Hydration also depends on some renderer internal logic which needs to be
 // passed in via arguments.
+
+/**
+ * 基于 renderer internals 生成水合入口。
+ *
+ * hydration 与常规 patch 共用大量核心逻辑，但起点不是“创建新 DOM”，而是
+ * “尝试认领现有 DOM”。因此这里会返回一组专门沿着现有节点向前扫描的函数。
+ */
 export function createHydrationFunctions(
   rendererInternals: RendererInternals<Node, Element>,
 ): [
@@ -116,6 +147,12 @@ export function createHydrationFunctions(
     },
   } = rendererInternals
 
+  /**
+   * 从根容器开始执行水合。
+   *
+   * 如果服务端容器意外为空，就直接退回普通挂载；否则从第一个子节点开始，把
+   * 现有 DOM 与根 vnode 递归对齐。
+   */
   const hydrate: RootHydrateFunction = (vnode, container) => {
     if (!container.hasChildNodes()) {
       ;(__DEV__ || __FEATURE_PROD_HYDRATION_MISMATCH_DETAILS__) &&
@@ -134,6 +171,12 @@ export function createHydrationFunctions(
     container._vnode = vnode
   }
 
+  /**
+   * 认领单个现有 DOM 节点，并把它与目标 vnode 对齐。
+   *
+   * 它是水合阶段的总分发入口：先判断当前 DOM 类型是否匹配，再递归进入文本、
+   * 注释、静态节点、片段、元素或组件各自的水合分支。
+   */
   const hydrateNode = (
     node: Node,
     vnode: VNode,
@@ -144,6 +187,11 @@ export function createHydrationFunctions(
   ): Node | null => {
     optimized = optimized || !!vnode.dynamicChildren
     const isFragmentStart = isComment(node) && node.data === '['
+
+    /**
+     * 封装 `onMismatch` 辅助逻辑。
+     */
+
     const onMismatch = () =>
       handleMismatch(
         node,
@@ -365,6 +413,12 @@ export function createHydrationFunctions(
     return nextNode
   }
 
+  /**
+   * 水合普通元素。
+   *
+   * 元素水合的核心工作是：校验标签与关键属性是否匹配、递归处理子节点，并在
+   * 必要时补打 props、事件、指令和 ref，使客户端状态与服务端 DOM 对齐。
+   */
   const hydrateElement = (
     el: Element,
     vnode: VNode,
@@ -551,6 +605,12 @@ export function createHydrationFunctions(
     return el.nextSibling
   }
 
+  /**
+   * 顺序水合一组子节点。
+   *
+   * children 的遍历依赖服务端输出的实际 DOM 顺序，因此这里会一边前进真实节点
+   * 指针，一边把每个 vnode 交给 `hydrateNode` 或 mismatch 兜底逻辑处理。
+   */
   const hydrateChildren = (
     node: Node | null,
     parentVNode: VNode,
@@ -632,6 +692,12 @@ export function createHydrationFunctions(
     return node
   }
 
+  /**
+   * 水合 Fragment。
+   *
+   * Fragment 在 DOM 中由注释锚点包裹，所以这里需要从起始注释开始认领内部子树，
+   * 并确保最终能找到与之配对的结束锚点。
+   */
   const hydrateFragment = (
     node: Comment,
     vnode: VNode,
@@ -670,6 +736,12 @@ export function createHydrationFunctions(
     }
   }
 
+  /**
+   * 处理服务端 DOM 与客户端 vnode 不匹配的场景。
+   *
+   * 策略是先尽量记录并跳过错误的现有 DOM，再退回常规 `patch(null, vnode, ...)`
+   * 挂载客户端期望的内容，保证应用最终仍然可用。
+   */
   const handleMismatch = (
     node: Node,
     vnode: VNode,
@@ -732,6 +804,13 @@ export function createHydrationFunctions(
   }
 
   // looks ahead for a start and closing comment node
+
+  /**
+   * 向后扫描并定位片段/Teleport 的结束锚点。
+   *
+   * 水合时无法依赖组件 render 结果立即可用，所以需要直接在现有 DOM 中做一次
+   * 线性扫描，找到与起始注释对应的闭合位置。
+   */
   const locateClosingAnchor = (
     node: Node | null,
     open = '[',
@@ -754,6 +833,10 @@ export function createHydrationFunctions(
     return node
   }
 
+  /**
+   * 封装 `replaceNode` 辅助逻辑。
+   */
+
   const replaceNode = (
     newNode: Node,
     oldNode: Node,
@@ -775,6 +858,10 @@ export function createHydrationFunctions(
     }
   }
 
+  /**
+   * 判断当前是否满足模板节点。
+   */
+
   const isTemplateNode = (node: Node): node is HTMLTemplateElement => {
     return (
       node.nodeType === DOMNodeTypes.ELEMENT &&
@@ -786,7 +873,11 @@ export function createHydrationFunctions(
 }
 
 /**
- * Dev only
+ * 检查单个属性在服务端 DOM 与客户端 vnode 之间是否存在不可接受的不一致。
+ *
+ * Dev only。
+ * 这里会对 class、style、布尔属性和普通 attribute 做差异化比较，并结合
+ * `data-allow-mismatch` 配置决定是否需要报警。
  */
 function propHasMismatch(
   el: Element & { $cls?: string },
@@ -869,6 +960,10 @@ function propHasMismatch(
   }
 
   if (mismatchType != null && !isMismatchAllowed(el, mismatchType)) {
+    /**
+     * 封装 `format` 辅助逻辑。
+     */
+
     const format = (v: any) =>
       v === false ? `(not rendered)` : `${mismatchKey}="${v}"`
     const preSegment = `Hydration ${MismatchTypeString[mismatchType]} mismatch on`
@@ -890,9 +985,17 @@ function propHasMismatch(
   return false
 }
 
+/**
+ * 封装 `toClassSet` 辅助逻辑。
+ */
+
 function toClassSet(str: string): Set<string> {
   return new Set(str.trim().split(/\s+/))
 }
+
+/**
+ * 判断当前是否满足`set``equal`。
+ */
 
 function isSetEqual(a: Set<string>, b: Set<string>): boolean {
   if (a.size !== b.size) {
@@ -905,6 +1008,10 @@ function isSetEqual(a: Set<string>, b: Set<string>): boolean {
   }
   return true
 }
+
+/**
+ * 封装 `toStyleMap` 辅助逻辑。
+ */
 
 function toStyleMap(str: string): Map<string, string> {
   const styleMap: Map<string, string> = new Map()
@@ -919,6 +1026,10 @@ function toStyleMap(str: string): Map<string, string> {
   return styleMap
 }
 
+/**
+ * 判断当前是否满足`map``equal`。
+ */
+
 function isMapEqual(a: Map<string, string>, b: Map<string, string>): boolean {
   if (a.size !== b.size) {
     return false
@@ -931,6 +1042,12 @@ function isMapEqual(a: Map<string, string>, b: Map<string, string>): boolean {
   return true
 }
 
+/**
+ * 解析组件树中透传到当前根节点的 CSS 变量。
+ *
+ * 水合时需要用客户端计算出来的 CSS vars 去校验服务端 style，因此这里会沿着
+ * 组件子树向下找到真正提供变量的实例并展开其结果。
+ */
 function resolveCssVars(
   instance: ComponentInternalInstance,
   vnode: VNode,
@@ -973,6 +1090,12 @@ const MismatchTypeString: Record<MismatchTypes, string> = {
   [MismatchTypes.ATTRIBUTE]: 'attribute',
 } as const
 
+/**
+ * 判断当前节点是否允许忽略某类 mismatch。
+ *
+ * `data-allow-mismatch` 支持按文本、子节点、class、style、attribute 等维度
+ * 放宽校验，方便用户在可接受的不一致场景下降低水合噪音。
+ */
 function isMismatchAllowed(
   el: Element | null,
   allowedType: MismatchTypes,

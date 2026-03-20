@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 TransitionGroup 组件，为列表中的元素应用过渡和移动动画效果。
+ */
 import {
   type ElementWithTransition,
   type TransitionProps,
@@ -53,89 +56,122 @@ const decorate = (t: typeof TransitionGroupImpl) => {
   return t
 }
 
-const TransitionGroupImpl: ComponentOptions = /*@__PURE__*/ decorate({
-  name: 'TransitionGroup',
+const TransitionGroupImpl: ComponentOptions =
+  /*@__PURE__*/
+  decorate({
+    name: 'TransitionGroup',
 
-  props: /*@__PURE__*/ extend({}, TransitionPropsValidators, {
-    tag: String,
-    moveClass: String,
-  }),
+    /*@__PURE__*/
+    props: extend({}, TransitionPropsValidators, {
+      tag: String,
+      moveClass: String,
+    }),
 
-  setup(props: TransitionGroupProps, { slots }: SetupContext) {
-    const instance = getCurrentInstance()!
-    const state = useTransitionState()
-    let prevChildren: VNode[]
-    let children: VNode[]
+    /**
+     * 建立运行时上下文的初始化流程。
+     */
+    setup(props: TransitionGroupProps, { slots }: SetupContext) {
+      const instance = getCurrentInstance()!
+      const state = useTransitionState()
+      let prevChildren: VNode[]
+      let children: VNode[]
 
-    onUpdated(() => {
-      // children is guaranteed to exist after initial render
-      if (!prevChildren.length) {
-        return
-      }
-      const moveClass = props.moveClass || `${props.name || 'v'}-move`
+      onUpdated(() => {
+        // children is guaranteed to exist after initial render
+        if (!prevChildren.length) {
+          return
+        }
+        const moveClass = props.moveClass || `${props.name || 'v'}-move`
 
-      if (
-        !hasCSSTransform(
-          prevChildren[0].el as ElementWithTransition,
-          instance.vnode.el as Node,
-          moveClass,
-        )
-      ) {
-        prevChildren = []
-        return
-      }
+        if (
+          !hasCSSTransform(
+            prevChildren[0].el as ElementWithTransition,
+            instance.vnode.el as Node,
+            moveClass,
+          )
+        ) {
+          prevChildren = []
+          return
+        }
 
-      // we divide the work into three loops to avoid mixing DOM reads and writes
-      // in each iteration - which helps prevent layout thrashing.
-      prevChildren.forEach(callPendingCbs)
-      prevChildren.forEach(recordPosition)
-      const movedChildren = prevChildren.filter(applyTranslation)
+        // we divide the work into three loops to avoid mixing DOM reads and writes
+        // in each iteration - which helps prevent layout thrashing.
+        prevChildren.forEach(callPendingCbs)
+        prevChildren.forEach(recordPosition)
+        const movedChildren = prevChildren.filter(applyTranslation)
 
-      // force reflow to put everything in position
-      forceReflow()
+        // force reflow to put everything in position
+        forceReflow()
 
-      movedChildren.forEach(c => {
-        const el = c.el as ElementWithTransition
-        const style = el.style
-        addTransitionClass(el, moveClass)
-        style.transform = style.webkitTransform = style.transitionDuration = ''
-        const cb = ((el as any)[moveCbKey] = (e: TransitionEvent) => {
-          if (e && e.target !== el) {
-            return
-          }
-          if (!e || /transform$/.test(e.propertyName)) {
-            el.removeEventListener('transitionend', cb)
-            ;(el as any)[moveCbKey] = null
-            removeTransitionClass(el, moveClass)
-          }
+        movedChildren.forEach(c => {
+          const el = c.el as ElementWithTransition
+          const style = el.style
+          addTransitionClass(el, moveClass)
+          style.transform =
+            style.webkitTransform =
+            style.transitionDuration =
+              ''
+          const cb = ((el as any)[moveCbKey] = (e: TransitionEvent) => {
+            if (e && e.target !== el) {
+              return
+            }
+            if (!e || /transform$/.test(e.propertyName)) {
+              el.removeEventListener('transitionend', cb)
+              ;(el as any)[moveCbKey] = null
+              removeTransitionClass(el, moveClass)
+            }
+          })
+          el.addEventListener('transitionend', cb)
         })
-        el.addEventListener('transitionend', cb)
+        prevChildren = []
       })
-      prevChildren = []
-    })
 
-    return () => {
-      const rawProps = toRaw(props)
-      const cssTransitionProps = resolveTransitionProps(rawProps)
-      let tag = rawProps.tag || Fragment
+      return () => {
+        const rawProps = toRaw(props)
+        const cssTransitionProps = resolveTransitionProps(rawProps)
+        let tag = rawProps.tag || Fragment
 
-      if (
-        __COMPAT__ &&
-        !rawProps.tag &&
-        compatUtils.checkCompatEnabled(
-          DeprecationTypes.TRANSITION_GROUP_ROOT,
-          instance.parent,
-        )
-      ) {
-        tag = 'span'
-      }
+        if (
+          __COMPAT__ &&
+          !rawProps.tag &&
+          compatUtils.checkCompatEnabled(
+            DeprecationTypes.TRANSITION_GROUP_ROOT,
+            instance.parent,
+          )
+        ) {
+          tag = 'span'
+        }
 
-      prevChildren = []
-      if (children) {
+        prevChildren = []
+        if (children) {
+          for (let i = 0; i < children.length; i++) {
+            const child = children[i]
+            if (child.el && child.el instanceof Element) {
+              prevChildren.push(child)
+              setTransitionHooks(
+                child,
+                resolveTransitionHooks(
+                  child,
+                  cssTransitionProps,
+                  state,
+                  instance,
+                ),
+              )
+              positionMap.set(
+                child,
+                (child.el as Element).getBoundingClientRect(),
+              )
+            }
+          }
+        }
+
+        children = slots.default
+          ? getTransitionRawChildren(slots.default())
+          : []
+
         for (let i = 0; i < children.length; i++) {
           const child = children[i]
-          if (child.el && child.el instanceof Element) {
-            prevChildren.push(child)
+          if (child.key != null) {
             setTransitionHooks(
               child,
               resolveTransitionHooks(
@@ -145,38 +181,25 @@ const TransitionGroupImpl: ComponentOptions = /*@__PURE__*/ decorate({
                 instance,
               ),
             )
-            positionMap.set(
-              child,
-              (child.el as Element).getBoundingClientRect(),
-            )
+          } else if (__DEV__ && child.type !== Text) {
+            warn(`<TransitionGroup> children must be keyed.`)
           }
         }
+
+        return createVNode(tag, null, children)
       }
-
-      children = slots.default ? getTransitionRawChildren(slots.default()) : []
-
-      for (let i = 0; i < children.length; i++) {
-        const child = children[i]
-        if (child.key != null) {
-          setTransitionHooks(
-            child,
-            resolveTransitionHooks(child, cssTransitionProps, state, instance),
-          )
-        } else if (__DEV__ && child.type !== Text) {
-          warn(`<TransitionGroup> children must be keyed.`)
-        }
-      }
-
-      return createVNode(tag, null, children)
-    }
-  },
-})
+    },
+  })
 
 export const TransitionGroup = TransitionGroupImpl as unknown as {
   new (): {
     $props: TransitionGroupProps
   }
 }
+
+/**
+ * 调用待处理状态`cbs`。
+ */
 
 function callPendingCbs(c: VNode) {
   const el = c.el as any
@@ -188,9 +211,17 @@ function callPendingCbs(c: VNode) {
   }
 }
 
+/**
+ * 记录位置。
+ */
+
 function recordPosition(c: VNode) {
   newPositionMap.set(c, (c.el as Element).getBoundingClientRect())
 }
+
+/**
+ * 应用`translation`。
+ */
 
 function applyTranslation(c: VNode): VNode | undefined {
   const oldPos = positionMap.get(c)!
@@ -204,6 +235,10 @@ function applyTranslation(c: VNode): VNode | undefined {
     return c
   }
 }
+
+/**
+ * 判断是否存在`csstransform`。
+ */
 
 function hasCSSTransform(
   el: ElementWithTransition,

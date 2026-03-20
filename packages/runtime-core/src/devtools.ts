@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 Vue DevTools 集成接口和钩子管理。
+ */
 /* eslint-disable no-restricted-globals */
 import type { App } from './apiCreateApp'
 import { Comment, Fragment, Static, Text } from './vnode'
@@ -28,6 +31,7 @@ export interface DevtoolsHook {
   once: (event: string, handler: Function) => void
   off: (event: string, handler: Function) => void
   appRecords: AppRecord[]
+
   /**
    * Added at https://github.com/vuejs/devtools/commit/f2ad51eea789006ab66942e5a27c0f0986a257f9
    * Returns whether the arg was buffered or not
@@ -41,6 +45,10 @@ let buffer: { event: string; args: any[] }[] = []
 
 let devtoolsNotInstalled = false
 
+/**
+ * 封装 `emit` 辅助逻辑。
+ */
+
 function emit(event: string, ...args: any[]) {
   if (devtools) {
     devtools.emit(event, ...args)
@@ -48,6 +56,10 @@ function emit(event: string, ...args: any[]) {
     buffer.push({ event, args })
   }
 }
+
+/**
+ * 写入`devtools`钩子。
+ */
 
 export function setDevtoolsHook(hook: DevtoolsHook, target: any): void {
   devtools = hook
@@ -87,6 +99,10 @@ export function setDevtoolsHook(hook: DevtoolsHook, target: any): void {
   }
 }
 
+/**
+ * 封装 `devtoolsInitApp` 辅助逻辑。
+ */
+
 export function devtoolsInitApp(app: App, version: string): void {
   emit(DevtoolsHooks.APP_INIT, app, version, {
     Fragment,
@@ -96,19 +112,29 @@ export function devtoolsInitApp(app: App, version: string): void {
   })
 }
 
+/**
+ * 封装 `devtoolsUnmountApp` 辅助逻辑。
+ */
+
 export function devtoolsUnmountApp(app: App): void {
   emit(DevtoolsHooks.APP_UNMOUNT, app)
 }
 
 export const devtoolsComponentAdded: DevtoolsComponentHook =
-  /*@__PURE__*/ createDevtoolsComponentHook(DevtoolsHooks.COMPONENT_ADDED)
+  /*@__PURE__*/
+  createDevtoolsComponentHook(DevtoolsHooks.COMPONENT_ADDED)
 
 export const devtoolsComponentUpdated: DevtoolsComponentHook =
-  /*@__PURE__*/ createDevtoolsComponentHook(DevtoolsHooks.COMPONENT_UPDATED)
+  /*@__PURE__*/
+  createDevtoolsComponentHook(DevtoolsHooks.COMPONENT_UPDATED)
 
-const _devtoolsComponentRemoved = /*@__PURE__*/ createDevtoolsComponentHook(
-  DevtoolsHooks.COMPONENT_REMOVED,
-)
+const _devtoolsComponentRemoved =
+  /*@__PURE__*/
+  createDevtoolsComponentHook(DevtoolsHooks.COMPONENT_REMOVED)
+
+/**
+ * 封装 `devtoolsComponentRemoved` 辅助逻辑。
+ */
 
 export const devtoolsComponentRemoved = (
   component: ComponentInternalInstance,
@@ -141,16 +167,23 @@ function createDevtoolsComponentHook(
 }
 
 export const devtoolsPerfStart: DevtoolsPerformanceHook =
-  /*@__PURE__*/ createDevtoolsPerformanceHook(DevtoolsHooks.PERFORMANCE_START)
+  /*@__PURE__*/
+  createDevtoolsPerformanceHook(DevtoolsHooks.PERFORMANCE_START)
 
 export const devtoolsPerfEnd: DevtoolsPerformanceHook =
-  /*@__PURE__*/ createDevtoolsPerformanceHook(DevtoolsHooks.PERFORMANCE_END)
+  /*@__PURE__*/
+  createDevtoolsPerformanceHook(DevtoolsHooks.PERFORMANCE_END)
 
 type DevtoolsPerformanceHook = (
   component: ComponentInternalInstance,
   type: string,
   time: number,
 ) => void
+
+/**
+ * 创建`devtools``performance`钩子。
+ */
+
 function createDevtoolsPerformanceHook(
   hook: DevtoolsHooks,
 ): DevtoolsPerformanceHook {
@@ -158,6 +191,10 @@ function createDevtoolsPerformanceHook(
     emit(hook, component.appContext.app, component.uid, component, type, time)
   }
 }
+
+/**
+ * 封装 `devtoolsComponentEmit` 辅助逻辑。
+ */
 
 export function devtoolsComponentEmit(
   component: ComponentInternalInstance,

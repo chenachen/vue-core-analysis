@@ -1,8 +1,15 @@
+/**
+ * 文件说明：兼容 Vue 2 的 $children 属性访问。
+ */
 import { ShapeFlags } from '@vue/shared'
 import type { ComponentInternalInstance } from '../component'
 import type { ComponentPublicInstance } from '../componentPublicInstance'
 import type { VNode } from '../vnode'
 import { DeprecationTypes, assertCompatEnabled } from './compatConfig'
+
+/**
+ * 读取`compat`子节点。
+ */
 
 export function getCompatChildren(
   instance: ComponentInternalInstance,
@@ -15,6 +22,10 @@ export function getCompatChildren(
   }
   return children
 }
+
+/**
+ * 封装 `walk` 辅助逻辑。
+ */
 
 function walk(vnode: VNode, children: ComponentPublicInstance[]) {
   if (vnode.component) {

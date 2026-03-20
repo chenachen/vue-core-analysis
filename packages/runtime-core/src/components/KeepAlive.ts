@@ -1,3 +1,6 @@
+/**
+ * 文件说明：实现 KeepAlive 内置组件，负责缓存和复用动态切换的组件实例。
+ */
 import {
   type ComponentInternalInstance,
   type ComponentOptions,
@@ -73,6 +76,10 @@ export interface KeepAliveContext extends ComponentRenderContext {
   deactivate: (vnode: VNode) => void
 }
 
+/**
+ * 判断当前是否满足`keep``alive`。
+ */
+
 export const isKeepAlive = (vnode: VNode): boolean =>
   (vnode.type as any).__isKeepAlive
 
@@ -90,6 +97,9 @@ const KeepAliveImpl: ComponentOptions = {
     max: [String, Number],
   },
 
+  /**
+   * 建立运行时上下文的初始化流程。
+   */
   setup(props: KeepAliveProps, { slots }: SetupContext) {
     const instance = getCurrentInstance()!
     // KeepAlive communicates with the instantiated renderer via the
@@ -194,11 +204,19 @@ const KeepAliveImpl: ComponentOptions = {
       }
     }
 
+    /**
+     * 卸载当前节点。
+     */
+
     function unmount(vnode: VNode) {
       // reset the shapeFlag so it can be properly unmounted
       resetShapeFlag(vnode)
       _unmount(vnode, instance, parentSuspense, true)
     }
+
+    /**
+     * 封装 `pruneCache` 辅助逻辑。
+     */
 
     function pruneCache(filter: (name: string) => boolean) {
       cache.forEach((vnode, key) => {
@@ -208,6 +226,10 @@ const KeepAliveImpl: ComponentOptions = {
         }
       })
     }
+
+    /**
+     * 封装 `pruneCacheEntry` 辅助逻辑。
+     */
 
     function pruneCacheEntry(key: CacheKey) {
       const cached = cache.get(key) as VNode
@@ -235,6 +257,11 @@ const KeepAliveImpl: ComponentOptions = {
 
     // cache sub tree after render
     let pendingCacheKey: CacheKey | null = null
+
+    /**
+     * 封装 `cacheSubtree` 辅助逻辑。
+     */
+
     const cacheSubtree = () => {
       // fix #1621, the pendingCacheKey could be 0
       if (pendingCacheKey != null) {
@@ -367,6 +394,10 @@ const KeepAliveImpl: ComponentOptions = {
   },
 }
 
+/**
+ * 封装 `decorate` 辅助逻辑。
+ */
+
 const decorate = (t: typeof KeepAliveImpl) => {
   t.__isBuiltIn = true
   return t
@@ -375,7 +406,8 @@ const decorate = (t: typeof KeepAliveImpl) => {
 // export the public type for h/tsx inference
 // also to avoid inline import() in generated d.ts files
 export const KeepAlive = (__COMPAT__
-  ? /*@__PURE__*/ decorate(KeepAliveImpl)
+  ? /*@__PURE__*/
+    decorate(KeepAliveImpl)
   : KeepAliveImpl) as any as {
   __isKeepAlive: true
   new (): {
@@ -385,6 +417,10 @@ export const KeepAlive = (__COMPAT__
     }
   }
 }
+
+/**
+ * 封装 `matches` 辅助逻辑。
+ */
 
 function matches(pattern: MatchPattern, name: string): boolean {
   if (isArray(pattern)) {
@@ -399,6 +435,10 @@ function matches(pattern: MatchPattern, name: string): boolean {
   return false
 }
 
+/**
+ * 封装 `onActivated` 辅助逻辑。
+ */
+
 export function onActivated(
   hook: Function,
   target?: ComponentInternalInstance | null,
@@ -406,12 +446,20 @@ export function onActivated(
   registerKeepAliveHook(hook, LifecycleHooks.ACTIVATED, target)
 }
 
+/**
+ * 封装 `onDeactivated` 辅助逻辑。
+ */
+
 export function onDeactivated(
   hook: Function,
   target?: ComponentInternalInstance | null,
 ): void {
   registerKeepAliveHook(hook, LifecycleHooks.DEACTIVATED, target)
 }
+
+/**
+ * 注册`keep``alive`钩子。
+ */
 
 function registerKeepAliveHook(
   hook: Function & { __wdc?: Function },
@@ -451,6 +499,10 @@ function registerKeepAliveHook(
   }
 }
 
+/**
+ * 注入`to``keep``alive`根节点。
+ */
+
 function injectToKeepAliveRoot(
   hook: Function & { __weh?: Function },
   type: LifecycleHooks,
@@ -465,11 +517,19 @@ function injectToKeepAliveRoot(
   }, target)
 }
 
+/**
+ * 封装 `resetShapeFlag` 辅助逻辑。
+ */
+
 function resetShapeFlag(vnode: VNode) {
   // bitwise operations to remove keep alive flags
   vnode.shapeFlag &= ~ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE
   vnode.shapeFlag &= ~ShapeFlags.COMPONENT_KEPT_ALIVE
 }
+
+/**
+ * 读取`inner``child`。
+ */
 
 function getInnerChild(vnode: VNode) {
   return vnode.shapeFlag & ShapeFlags.SUSPENSE ? vnode.ssContent! : vnode
