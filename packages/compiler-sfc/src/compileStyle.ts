@@ -1,3 +1,13 @@
+/**
+ * SFC `<style>` 编译入口。
+ *
+ * 它围绕 PostCSS 组织样式编译流程，并按需接入：
+ * - 预处理器（sass/less/stylus 等）
+ * - `v-bind()` CSS 变量注入
+ * - scoped 样式重写
+ * - CSS Modules
+ * - source map 与依赖追踪
+ */
 import postcss, {
   type LazyResult,
   type Message,
@@ -68,6 +78,9 @@ export interface SFCStyleCompileResults {
   dependencies: Set<string>
 }
 
+/**
+ * 同步样式编译入口。
+ */
 export function compileStyle(
   options: SFCStyleCompileOptions,
 ): SFCStyleCompileResults {
@@ -77,6 +90,11 @@ export function compileStyle(
   }) as SFCStyleCompileResults
 }
 
+/**
+ * 异步样式编译入口。
+ *
+ * 某些能力（如 CSS Modules）依赖异步处理，因此单独暴露 async 版本。
+ */
 export function compileStyleAsync(
   options: SFCAsyncStyleCompileOptions,
 ): Promise<SFCStyleCompileResults> {
@@ -86,6 +104,12 @@ export function compileStyleAsync(
   }) as Promise<SFCStyleCompileResults>
 }
 
+/**
+ * 样式编译主流程。
+ *
+ * 这里会先做可选预处理，再依次组装 PostCSS 插件链，最后返回编译结果、
+ * source map、模块导出与依赖文件集合。
+ */
 export function doCompileStyle(
   options: SFCAsyncStyleCompileOptions,
 ): SFCStyleCompileResults | Promise<SFCStyleCompileResults> {
@@ -219,6 +243,9 @@ export function doCompileStyle(
   }
 }
 
+/**
+ * 执行样式预处理器，并把结果统一整理成后续 PostCSS 可继续消费的结构。
+ */
 function preprocess(
   options: SFCStyleCompileOptions,
   preprocessor: StylePreprocessor,

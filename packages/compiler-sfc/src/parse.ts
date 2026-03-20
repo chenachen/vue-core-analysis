@@ -1,3 +1,10 @@
+/**
+ * `.vue` 单文件组件解析器。
+ *
+ * 它首先复用 `compiler-dom.parse()` 把整个 SFC 当成一种特殊模板来解析，
+ * 再把顶层的 `<template>` / `<script>` / `<style>` / 自定义块拆成描述符，
+ * 并补齐源码切片、属性、 source map、HMR 对比信息等 SFC 专属元数据。
+ */
 import {
   type BindingMetadata,
   type CodegenSourceMapGenerator,
@@ -104,6 +111,12 @@ export const parseCache:
   | Map<string, SFCParseResult>
   | LRUCache<string, SFCParseResult> = createCache<SFCParseResult>()
 
+/**
+ * 把完整的 `.vue` 文件源码解析成 `SFCDescriptor`。
+ *
+ * 这个阶段只负责“拆块”和收集元信息，不会真正编译每个 block。
+ * 后续 `compileTemplate` / `compileScript` / `compileStyle` 会在描述符基础上继续工作。
+ */
 export function parse(
   source: string,
   options: SFCParseOptions = {},
@@ -298,6 +311,9 @@ export function parse(
   return result
 }
 
+/**
+ * 构造“同类 block 重复定义”的语法错误。
+ */
 function createDuplicateBlockError(
   node: ElementNode,
   isScriptSetup = false,
@@ -311,6 +327,12 @@ function createDuplicateBlockError(
   return err
 }
 
+/**
+ * 把顶层元素节点转换成 SFC block 描述对象。
+ *
+ * 这里会保留块内容、属性、语言、`src`、源码位置，以及可选的 source map，
+ * 供后续 template / script / style 编译阶段继续复用。
+ */
 function createBlock(
   node: ElementNode,
   source: string,
@@ -354,6 +376,9 @@ const splitRE = /\r?\n/g
 const emptyRE = /^(?:\/\/)?\s*$/
 const replaceRE = /./g
 
+/**
+ * 为 block 内容生成从“块内部”到“整份 SFC 源码”的映射关系。
+ */
 function generateSourceMap(
   filename: string,
   source: string,
@@ -389,6 +414,9 @@ function generateSourceMap(
   return map.toJSON()
 }
 
+/**
+ * 通过插入空白或换行，让 block 内容在后续独立编译时仍能尽量保持原始行号。
+ */
 function padContent(
   content: string,
   block: SFCBlock,
@@ -404,6 +432,9 @@ function padContent(
   }
 }
 
+/**
+ * 检查 block 是否声明了 `src` 属性。
+ */
 function hasSrc(node: ElementNode) {
   return node.props.some(p => {
     if (p.type !== NodeTypes.ATTRIBUTE) {
@@ -414,8 +445,7 @@ function hasSrc(node: ElementNode) {
 }
 
 /**
- * Returns true if the node has no children
- * once the empty text nodes (trimmed content) have been filtered out.
+ * 判断一个顶层 block 在过滤空白文本后是否已经没有实际内容。
  */
 function isEmpty(node: ElementNode) {
   for (let i = 0; i < node.children.length; i++) {
@@ -428,9 +458,10 @@ function isEmpty(node: ElementNode) {
 }
 
 /**
- * Note: this comparison assumes the prev/next script are already identical,
- * and only checks the special case where <script setup lang="ts"> unused import
- * pruning result changes due to template changes.
+ * 根据模板与 import 使用情况，判断 HMR 是否需要升级为整组件 reload。
+ *
+ * 这里默认前后 script 内容本身已经保持一致，只处理 `<script setup lang="ts">`
+ * 下“模板引用变化导致未使用 import 被重新启用”的特殊场景。
  */
 export function hmrShouldReload(
   prevImports: Record<string, ImportBinding>,
@@ -457,10 +488,7 @@ export function hmrShouldReload(
 }
 
 /**
- * Dedent a string.
- *
- * This removes any whitespace that is common to all lines in the string from
- * each line in the string.
+ * 去掉模板内容共有的前导缩进，并返回列偏移量。
  */
 function dedent(s: string): [string, number] {
   const lines = s.split('\n')

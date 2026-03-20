@@ -1,3 +1,12 @@
+/**
+ * AST transform 调度层。
+ *
+ * 这一层是 Vue 编译器最关键的“语义改写中心”：
+ * - 它把 parser 产出的模板 AST 深度遍历一遍
+ * - 在遍历过程中依次执行 node/directive transform
+ * - 收集 helpers、components、directives、hoists、imports 等元信息
+ * - 最终给根节点挂上 `codegenNode`，供 `codegen.ts` 直接输出 render 函数
+ */
 import type { TransformOptions } from './options'
 import {
   type ArrayExpression,
@@ -123,6 +132,13 @@ export interface TransformContext
   filters?: Set<string>
 }
 
+/**
+ * 创建一次 transform 过程共享的上下文对象。
+ *
+ * 这个上下文既保存编译选项，也保存遍历过程中不断累积的状态：
+ * 例如 helpers 引用计数、组件/指令依赖、静态提升结果、当前父子节点关系等。
+ * 绝大多数 transform 都是通过它来互相协作的。
+ */
 export function createTransformContext(
   root: RootNode,
   {
@@ -328,6 +344,14 @@ export function createTransformContext(
   return context
 }
 
+/**
+ * 对整棵 AST 执行 transform。
+ *
+ * 这个函数相当于 transform 阶段的总入口：
+ * - 先从根节点开始 DFS 遍历
+ * - 再执行可选的静态提升
+ * - 最后收束所有 transform 收集到的元信息，写回根节点
+ */
 export function transform(root: RootNode, options: TransformOptions): void {
   const context = createTransformContext(root, options)
   traverseNode(root, context)
@@ -352,6 +376,14 @@ export function transform(root: RootNode, options: TransformOptions): void {
   }
 }
 
+/**
+ * 为根节点生成 codegen 入口表达式。
+ *
+ * transform 结束后，根节点需要有一个“从哪里开始生成 render 代码”的起点：
+ * - 单根元素尽量直接复用该元素的 `codegenNode`
+ * - 多根节点则包装成 `Fragment`
+ * - 空模板则保持空，由 codegen 输出 `null`
+ */
 function createRootCodegen(root: RootNode, context: TransformContext) {
   const { helper } = context
   const { children } = root
@@ -400,6 +432,12 @@ function createRootCodegen(root: RootNode, context: TransformContext) {
   }
 }
 
+/**
+ * 深度遍历某个父节点的所有子节点。
+ *
+ * 遍历时会不断刷新 `parent / grandParent / childIndex` 等上下文状态，
+ * 这样 transform 才能在需要时替换、删除或重排当前节点。
+ */
 export function traverseChildren(
   parent: ParentNode,
   context: TransformContext,
@@ -419,6 +457,13 @@ export function traverseChildren(
   }
 }
 
+/**
+ * 遍历单个节点并执行注册的 transform。
+ *
+ * 这里采用“进入时执行 + 退出时回调”的两段式设计：
+ * - 进入阶段适合做结构改写、记录上下文、决定是否继续向下遍历
+ * - 退出阶段适合在子节点都处理完以后，回头组装当前节点的 codegen 结果
+ */
 export function traverseNode(
   node: RootNode | TemplateChildNode,
   context: TransformContext,
@@ -482,6 +527,13 @@ export function traverseNode(
   }
 }
 
+/**
+ * 创建结构型指令 transform。
+ *
+ * `v-if` / `v-for` 这类指令会改变整段子树结构，而不是仅仅生成一组 props，
+ * 所以它们会在这里先从元素上摘掉原始 directive，再交给专门的处理函数把
+ * 元素改写成 `IF` / `FOR` 等新的 AST 结构。
+ */
 export function createStructuralDirectiveTransform(
   name: string | RegExp,
   fn: StructuralDirectiveTransform,

@@ -1,6 +1,15 @@
+/**
+ * `compiler-core` 是 Vue 编译器的最内层：
+ * - `parser` 把模板源码解析成 AST
+ * - `transform` 在 AST 上执行一轮轮平台无关的语义变换
+ * - `codegen` 把最终 AST 生成 render 函数字符串
+ *
+ * `compiler-dom`、`compiler-ssr` 与 `compiler-sfc` 都是在这里暴露的能力之上
+ * 做平台或文件格式层面的扩展，因此阅读编译器源码时通常从本文件导出的入口开始。
+ */
 export { baseCompile } from './compile'
 
-// Also expose lower level APIs & types
+// 继续导出 parse / transform / generate 等低层能力，方便上层编译器按需复用。
 export {
   type CompilerOptions,
   type ParserOptions,
@@ -41,6 +50,7 @@ export * from './utils'
 export * from './babelUtils'
 export * from './runtimeHelpers'
 
+// 暴露内置 transform，方便上层编译器增删改默认行为。
 export { getBaseTransformPreset, type TransformPreset } from './compile'
 export { transformModel } from './transforms/vModel'
 export { transformOn } from './transforms/vOn'
@@ -70,7 +80,7 @@ export { processSlotOutlet } from './transforms/transformSlotOutlet'
 export { getConstantType } from './transforms/cacheStatic'
 export { generateCodeFrame } from '@vue/shared'
 
-// v2 compat only
+// 2.x 兼容编译分支仅在 compat 模式下使用。
 export {
   checkCompatEnabled,
   warnDeprecation,

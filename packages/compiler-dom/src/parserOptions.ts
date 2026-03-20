@@ -1,3 +1,11 @@
+/**
+ * DOM 平台专用 parser 选项。
+ *
+ * `compiler-core` 的 parser 是平台无关的，而这里把 HTML 语义补了进去：
+ * - 哪些标签是 void tag / 原生标签 / 内建组件
+ * - 何时切换 HTML、SVG、MathML 命名空间
+ * - 浏览器构建下如何解码 HTML entity
+ */
 import { Namespaces, NodeTypes, type ParserOptions } from '@vue/compiler-core'
 import { isHTMLTag, isMathMLTag, isSVGTag, isVoidTag } from '@vue/shared'
 import { TRANSITION, TRANSITION_GROUP } from './runtimeHelpers'
@@ -11,6 +19,7 @@ export const parserOptions: ParserOptions = {
   isIgnoreNewlineTag: tag => tag === 'pre' || tag === 'textarea',
   decodeEntities: __BROWSER__ ? decodeHtmlBrowser : undefined,
 
+  // 把编译期会特殊处理的内建组件映射到对应 runtime helper。
   isBuiltInComponent: tag => {
     if (tag === 'Transition' || tag === 'transition') {
       return TRANSITION
@@ -20,6 +29,7 @@ export const parserOptions: ParserOptions = {
   },
 
   // https://html.spec.whatwg.org/multipage/parsing.html#tree-construction-dispatcher
+  // 根据当前父节点所在命名空间，推导子节点应该使用 HTML / SVG / MathML 中的哪一种。
   getNamespace(tag, parent, rootNamespace) {
     let ns = parent ? parent.ns : rootNamespace
     if (parent && ns === Namespaces.MATH_ML) {
