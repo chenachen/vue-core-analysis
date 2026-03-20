@@ -1,3 +1,8 @@
+/**
+ * `defineProps` 响应式解构支持。
+ *
+ * 这里负责登记解构绑定，并把 setup 代码里对局部变量的访问重写回 `__props.xxx`。
+ */
 import type {
   BlockStatement,
   Expression,
@@ -24,6 +29,9 @@ import { isCallOf, resolveObjectKey } from './utils'
 import type { ScriptCompileContext } from './context'
 import { DEFINE_PROPS } from './defineProps'
 
+/**
+ * 解析 `const { ... } = defineProps()` 结构，登记别名、默认值与 rest 标识符。
+ */
 export function processPropsDestructure(
   ctx: ScriptCompileContext,
   declId: ObjectPattern,
@@ -95,6 +103,9 @@ export function processPropsDestructure(
  */
 type Scope = Record<string, boolean>
 
+/**
+ * 遍历 `<script setup>` AST，把解构 props 的局部引用改写回 `__props` 访问。
+ */
 export function transformDestructuredProps(
   ctx: ScriptCompileContext,
   vueImportAliases: Record<string, string>,
@@ -116,15 +127,24 @@ export function transformDestructuredProps(
     propsLocalToPublicMap[local] = key
   }
 
+  /**
+   * 进入一个新的词法作用域。
+   */
   function pushScope() {
     scopeStack.push((currentScope = Object.create(currentScope)))
   }
 
+  /**
+   * 退出当前词法作用域。
+   */
   function popScope() {
     scopeStack.pop()
     currentScope = scopeStack[scopeStack.length - 1] || null
   }
 
+  /**
+   * 把标识符登记为当前作用域中的本地绑定，避免被误判为 props 引用。
+   */
   function registerLocalBinding(id: Identifier) {
     excludedIds.add(id)
     if (currentScope) {
@@ -137,6 +157,9 @@ export function transformDestructuredProps(
     }
   }
 
+  /**
+   * 预扫描一个 block / program 中声明出的本地变量。
+   */
   function walkScope(node: Program | BlockStatement, isRoot = false) {
     for (const stmt of node.body) {
       if (stmt.type === 'VariableDeclaration') {
@@ -167,6 +190,9 @@ export function transformDestructuredProps(
     }
   }
 
+  /**
+   * 处理变量声明中的标识符提取与 defineProps 特殊排除逻辑。
+   */
   function walkVariableDeclaration(stmt: VariableDeclaration, isRoot = false) {
     if (stmt.declare) {
       return
@@ -186,6 +212,9 @@ export function transformDestructuredProps(
     }
   }
 
+  /**
+   * 把对解构 prop 的读取重写成 `__props.xxx`。
+   */
   function rewriteId(id: Identifier, parent: Node, parentStack: Node[]) {
     if (
       (parent.type === 'AssignmentExpression' && id === parent.left) ||
@@ -217,6 +246,9 @@ export function transformDestructuredProps(
     }
   }
 
+  /**
+   * 校验某些 API（如 `watch` / `toRef`）没有直接拿到解构 prop 值。
+   */
   function checkUsage(node: Node, method: string, alias = method) {
     if (isCallOf(node, alias)) {
       const arg = unwrapTSNode(node.arguments[0])

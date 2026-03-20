@@ -1,3 +1,6 @@
+/**
+ * 处理 `<script setup>` 中的 `defineModel` 宏，并生成对应的 props / emits 元数据。
+ */
 import type { LVal, Node, TSType } from '@babel/types'
 import type { ScriptCompileContext } from './context'
 import { inferRuntimeType } from './resolveType'
@@ -13,6 +16,9 @@ export interface ModelDecl {
   runtimeOptionNodes: Node[]
 }
 
+/**
+ * 识别 `defineModel()`，登记 model 声明，并把调用改写为 `useModel()`。
+ */
 export function processDefineModel(
   ctx: ScriptCompileContext,
   node: Node,
@@ -114,6 +120,9 @@ export function processDefineModel(
   return true
 }
 
+/**
+ * 根据已收集的 model 声明生成运行时 props 定义。
+ */
 export function genModelProps(ctx: ScriptCompileContext) {
   if (!ctx.hasDefineModelCall) return
 

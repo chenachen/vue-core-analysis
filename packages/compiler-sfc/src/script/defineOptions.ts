@@ -1,3 +1,6 @@
+/**
+ * 处理 `<script setup>` 中的 `defineOptions` 宏。
+ */
 import type { Node } from '@babel/types'
 import { unwrapTSNode } from '@vue/compiler-dom'
 import type { ScriptCompileContext } from './context'
@@ -9,6 +12,9 @@ import { DEFINE_SLOTS } from './defineSlots'
 
 export const DEFINE_OPTIONS = 'defineOptions'
 
+/**
+ * 识别 `defineOptions()`，并校验其中没有与专用宏重复的配置项。
+ */
 export function processDefineOptions(
   ctx: ScriptCompileContext,
   node: Node,

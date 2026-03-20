@@ -1,3 +1,6 @@
+/**
+ * 处理 `<script setup>` 中的 `defineProps` / `withDefaults` 宏。
+ */
 import type {
   Expression,
   LVal,
@@ -44,6 +47,9 @@ export type PropsDestructureBindings = Record<
   }
 >
 
+/**
+ * 识别 `defineProps()` 调用，并记录运行时声明、类型声明与解构信息。
+ */
 export function processDefineProps(
   ctx: ScriptCompileContext,
   node: Node,
@@ -92,6 +98,9 @@ export function processDefineProps(
   return true
 }
 
+/**
+ * 处理包裹在 `withDefaults()` 中的 `defineProps()` 声明。
+ */
 function processWithDefaults(
   ctx: ScriptCompileContext,
   node: Node,
@@ -138,6 +147,9 @@ function processWithDefaults(
   return true
 }
 
+/**
+ * 生成最终运行时 `props` 选项代码，并按需合并 model props。
+ */
 export function genRuntimeProps(ctx: ScriptCompileContext): string | undefined {
   let propsDecls: undefined | string
 
@@ -176,6 +188,9 @@ export function genRuntimeProps(ctx: ScriptCompileContext): string | undefined {
   }
 }
 
+/**
+ * 从类型声明 props 中推导运行时 `props` 选项对象。
+ */
 export function extractRuntimeProps(
   ctx: TypeResolveContext,
 ): string | undefined {
@@ -208,6 +223,9 @@ export function extractRuntimeProps(
   return propsDecls
 }
 
+/**
+ * 把类型节点解析成每个 prop 的运行时类型数据。
+ */
 function resolveRuntimePropsFromType(
   ctx: TypeResolveContext,
   node: Node,
@@ -237,6 +255,9 @@ function resolveRuntimePropsFromType(
   return props
 }
 
+/**
+ * 把单个 prop 的类型信息序列化为运行时 props 选项片段。
+ */
 function genRuntimePropFromType(
   ctx: TypeResolveContext,
   { key, required, type, skipCheck }: PropTypeData,
@@ -323,6 +344,9 @@ function hasStaticWithDefaults(ctx: TypeResolveContext) {
   )
 }
 
+/**
+ * 读取 props 解构默认值，并判断是否需要工厂包装或跳过工厂。
+ */
 function genDestructuredDefaultValue(
   ctx: TypeResolveContext,
   key: string,
@@ -372,6 +396,9 @@ function genDestructuredDefaultValue(
 // non-comprehensive, best-effort type infernece for a runtime value
 // this is used to catch default value / type declaration mismatches
 // when using props destructure.
+/**
+ * 尽力从默认值 AST 推导其运行时类型，用于校验与类型声明是否匹配。
+ */
 function inferValueType(node: Node): string | undefined {
   switch (node.type) {
     case 'StringLiteral':

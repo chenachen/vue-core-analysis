@@ -193,6 +193,9 @@ export function doCompileStyle(
     errors.push(...preProcessedSource.errors)
   }
 
+  /**
+   * 从 PostCSS 消息里提取普通 CSS 依赖文件。
+   */
   const recordPlainCssDependencies = (messages: Message[]) => {
     messages.forEach(msg => {
       if (msg.type === 'dependency') {

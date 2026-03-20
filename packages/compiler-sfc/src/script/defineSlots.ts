@@ -1,9 +1,15 @@
+/**
+ * 处理 `<script setup>` 中的 `defineSlots` 宏。
+ */
 import type { LVal, Node } from '@babel/types'
 import { isCallOf } from './utils'
 import type { ScriptCompileContext } from './context'
 
 export const DEFINE_SLOTS = 'defineSlots'
 
+/**
+ * 识别 `defineSlots()`，并在有接收变量时改写成 `useSlots()`。
+ */
 export function processDefineSlots(
   ctx: ScriptCompileContext,
   node: Node,

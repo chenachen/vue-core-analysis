@@ -276,6 +276,9 @@ export function parse(
   }
 
   if (sourceMap) {
+    /**
+     * 为单个 block 生成相对整份 SFC 的 source map。
+     */
     const genMap = (block: SFCBlock | null, columnOffset = 0) => {
       if (block && !block.src) {
         block.map = generateSourceMap(

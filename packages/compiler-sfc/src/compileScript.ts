@@ -276,6 +276,9 @@ export function compileScript(
     }
   }
 
+  /**
+   * 校验会被提升到模块作用域的宏参数没有引用 setup 内局部变量。
+   */
   function checkInvalidScopeReference(node: Node | undefined, method: string) {
     if (!node) return
     walkIdentifiers(node, id => {
@@ -326,6 +329,9 @@ export function compileScript(
 
       // dedupe imports
       let removed = 0
+      /**
+       * 删除当前 import specifier，并正确处理逗号与前后片段。
+       */
       const removeSpecifier = (i: number) => {
         const removeLeft = i > removed
         removed++
@@ -1347,6 +1353,9 @@ export function mergeSourceMaps(
   templateLineOffset: number,
 ): RawSourceMap {
   const generator = new SourceMapGenerator()
+  /**
+   * 把一份 source map 的 mappings 搬运到合并生成器上，并可选平移行号。
+   */
   const addMapping = (map: RawSourceMap, lineOffset = 0) => {
     const consumer = new SourceMapConsumer(map)
     ;(consumer as any).sources.forEach((sourceFile: string) => {

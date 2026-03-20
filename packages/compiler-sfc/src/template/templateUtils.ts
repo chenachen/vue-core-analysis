@@ -1,17 +1,29 @@
+/**
+ * 模板资源 URL 处理工具。
+ */
 import { type UrlWithStringQuery, parse as uriParse } from 'url'
 import { isString } from '@vue/shared'
 
+/**
+ * 判断 URL 是否为相对路径资源。
+ */
 export function isRelativeUrl(url: string): boolean {
   const firstChar = url.charAt(0)
   return firstChar === '.' || firstChar === '~' || firstChar === '@'
 }
 
 const externalRE = /^(https?:)?\/\//
+/**
+ * 判断 URL 是否为外部网络地址。
+ */
 export function isExternalUrl(url: string): boolean {
   return externalRE.test(url)
 }
 
 const dataUrlRE = /^\s*data:/i
+/**
+ * 判断 URL 是否为 data URI。
+ */
 export function isDataUrl(url: string): boolean {
   return dataUrlRE.test(url)
 }

@@ -1,3 +1,6 @@
+/**
+ * 处理 SFC `<style>` 中的 `v-bind()` CSS 变量注入。
+ */
 import {
   type BindingMetadata,
   NodeTypes,
@@ -14,6 +17,9 @@ import { getEscapedCssVarName } from '@vue/shared'
 
 export const CSS_VARS_HELPER = `useCssVars`
 
+/**
+ * 根据变量列表生成 `useCssVars` 运行时对象字面量。
+ */
 export function genCssVarsFromList(
   vars: string[],
   id: string,
@@ -33,6 +39,9 @@ export function genCssVarsFromList(
     .join(',\n  ')}\n}`
 }
 
+/**
+ * 生成当前 CSS 变量在样式输出中的最终名字。
+ */
 function genVarName(
   id: string,
   raw: string,
@@ -49,6 +58,9 @@ function genVarName(
   }
 }
 
+/**
+ * 去掉 `v-bind()` 参数外围多余引号与空白。
+ */
 function normalizeExpression(exp: string) {
   exp = exp.trim()
   if (
@@ -62,6 +74,9 @@ function normalizeExpression(exp: string) {
 
 const vBindRE = /v-bind\s*\(/g
 
+/**
+ * 扫描整个 SFC 的 style blocks，收集出现过的 `v-bind()` 变量。
+ */
 export function parseCssVars(sfc: SFCDescriptor): string[] {
   const vars: string[] = []
   sfc.styles.forEach(style => {
@@ -89,6 +104,9 @@ enum LexerState {
   inDoubleQuoteString,
 }
 
+/**
+ * 从 `v-bind(` 起点向后词法扫描，找到匹配的右括号。
+ */
 function lexBinding(content: string, start: number): number | null {
   let state: LexerState = LexerState.inParens
   let parenDepth = 0
@@ -132,6 +150,9 @@ export interface CssVarsPluginOptions {
   isProd: boolean
 }
 
+/**
+ * PostCSS 插件：把 CSS 中的 `v-bind()` 改写成实际 CSS 变量引用。
+ */
 export const cssVarsPlugin: PluginCreator<CssVarsPluginOptions> = opts => {
   const { id, isProd } = opts!
   return {
@@ -162,6 +183,9 @@ export const cssVarsPlugin: PluginCreator<CssVarsPluginOptions> = opts => {
 }
 cssVarsPlugin.postcss = true
 
+/**
+ * 生成 `<script setup>` 场景下的 `useCssVars` 注入代码。
+ */
 export function genCssVarsCode(
   vars: string[],
   bindings: BindingMetadata,
@@ -192,6 +216,9 @@ export function genCssVarsCode(
 
 // <script setup> already gets the calls injected as part of the transform
 // this is only for single normal <script>
+/**
+ * 为普通 `<script>` 生成 CSS 变量注入包装代码。
+ */
 export function genNormalScriptCssVarsCode(
   cssVars: string[],
   bindings: BindingMetadata,

@@ -1,3 +1,8 @@
+/**
+ * 普通 `<script>` 编译辅助。
+ *
+ * 它负责处理非 setup 脚本下的默认导出重写、绑定分析与 CSS 变量注入。
+ */
 import { analyzeScriptBindings } from './analyzeScriptBindings'
 import type { ScriptCompileContext } from './context'
 import MagicString from 'magic-string'
@@ -7,6 +12,9 @@ import type { SFCScriptBlock } from '../parse'
 
 export const normalScriptDefaultVar = `__default__`
 
+/**
+ * 处理只有普通 `<script>` 的 SFC。
+ */
 export function processNormalScript(
   ctx: ScriptCompileContext,
   scopeId: string,

@@ -1,3 +1,8 @@
+/**
+ * SFC 样式预处理器适配层。
+ *
+ * 统一包装 sass / less / stylus 的调用方式，并把结果整理成编译器统一结构。
+ */
 import merge from 'merge-source-map'
 import type { RawSourceMap } from '@vue/compiler-core'
 import type { SFCStyleCompileOptions } from '../compileStyle'
@@ -22,6 +27,9 @@ export interface StylePreprocessorResults {
 }
 
 // .scss/.sass processor
+/**
+ * 调用 Sass / SCSS 预处理器，并在需要时合并 source map。
+ */
 const scss: StylePreprocessor = (source, map, options, load = require) => {
   const nodeSass: typeof import('sass') = load('sass')
   const { compileString, renderSync } = nodeSass
@@ -70,6 +78,9 @@ const scss: StylePreprocessor = (source, map, options, load = require) => {
   }
 }
 
+/**
+ * 以缩进语法模式复用 `scss` 预处理逻辑。
+ */
 const sass: StylePreprocessor = (source, map, options, load) =>
   scss(
     source,
@@ -82,6 +93,9 @@ const sass: StylePreprocessor = (source, map, options, load) =>
   )
 
 // .less
+/**
+ * 调用 Less 预处理器。
+ */
 const less: StylePreprocessor = (source, map, options, load = require) => {
   const nodeLess = load('less')
 
@@ -115,6 +129,9 @@ const less: StylePreprocessor = (source, map, options, load = require) => {
 }
 
 // .styl
+/**
+ * 调用 Stylus 预处理器。
+ */
 const styl: StylePreprocessor = (source, map, options, load = require) => {
   const nodeStylus = load('stylus')
   try {
@@ -138,6 +155,9 @@ const styl: StylePreprocessor = (source, map, options, load = require) => {
   }
 }
 
+/**
+ * 把附加前置代码拼接到原始样式源码前。
+ */
 function getSource(
   source: string,
   filename: string,
