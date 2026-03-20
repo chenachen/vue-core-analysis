@@ -1,3 +1,9 @@
+/**
+ * 编译器 compat 配置表。
+ *
+ * compat 模式允许 Vue 3 编译器在特定语法点上保留 Vue 2 兼容行为，
+ * 这里统一维护开关读取、启用判断与弃用警告输出逻辑。
+ */
 import type { SourceLocation } from '../ast'
 import type { CompilerError } from '../errors'
 import type { MergedParserOptions } from '../parser'
@@ -91,6 +97,9 @@ const deprecationData: Record<CompilerDeprecationTypes, DeprecationData> = {
   },
 }
 
+/**
+ * 从 parser/transform 上下文里读取某个 compat 配置项的最终值。
+ */
 function getCompatValue(
   key: CompilerDeprecationTypes | 'MODE',
   { compatConfig }: MergedParserOptions | TransformContext,
@@ -103,6 +112,9 @@ function getCompatValue(
   }
 }
 
+/**
+ * 判断某个兼容分支在当前上下文中是否处于启用状态。
+ */
 export function isCompatEnabled(
   key: CompilerDeprecationTypes,
   context: MergedParserOptions | TransformContext,
@@ -114,6 +126,9 @@ export function isCompatEnabled(
   return mode === 3 ? value === true : value !== false
 }
 
+/**
+ * 检查 compat 功能是否启用，并在开发环境需要时发出弃用警告。
+ */
 export function checkCompatEnabled(
   key: CompilerDeprecationTypes,
   context: MergedParserOptions | TransformContext,
@@ -127,6 +142,9 @@ export function checkCompatEnabled(
   return enabled
 }
 
+/**
+ * 为某个 compat 语法点构造并发出弃用警告。
+ */
 export function warnDeprecation(
   key: CompilerDeprecationTypes,
   context: MergedParserOptions | TransformContext,

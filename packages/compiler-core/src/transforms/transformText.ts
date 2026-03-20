@@ -1,3 +1,9 @@
+/**
+ * 文本合并 transform。
+ *
+ * 它会把相邻的文本节点与插值合并成更紧凑的复合表达式，
+ * 并在需要时预生成 `createTextVNode()` 调用，减少运行时归一化开销。
+ */
 import type { NodeTransform } from '../transform'
 import {
   type CallExpression,
@@ -15,6 +21,9 @@ import { getConstantType } from './cacheStatic'
 
 // Merge adjacent text nodes and expressions into a single expression
 // e.g. <div>abc {{ d }} {{ e }}</div> should have a single expression node as child.
+/**
+ * 合并相邻文本 / 插值节点，并把最终文本片段转换成 `TEXT_CALL`。
+ */
 export const transformText: NodeTransform = (node, context) => {
   if (
     node.type === NodeTypes.ROOT ||

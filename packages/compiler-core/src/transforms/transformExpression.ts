@@ -1,3 +1,10 @@
+/**
+ * 表达式 transform。
+ *
+ * 它负责把模板中的简单 JS 表达式升级成更适合 codegen 的结构，
+ * 同时在 `prefixIdentifiers` 模式下把裸标识符改写成 `_ctx.xxx`、`$setup.xxx`
+ * 等更精确的访问形式。
+ */
 // - Parse expressions in templates into compound expressions so that each
 //   identifier gets more accurate source-map locations.
 //
@@ -46,6 +53,9 @@ import { BindingTypes } from '../options'
 
 const isLiteralWhitelisted = /*@__PURE__*/ makeMap('true,false,null,this')
 
+/**
+ * 处理插值、动态参数和指令表达式中的标识符改写。
+ */
 export const transformExpression: NodeTransform = (node, context) => {
   if (node.type === NodeTypes.INTERPOLATION) {
     node.content = processExpression(
@@ -101,6 +111,9 @@ interface PrefixMeta {
 // Important: since this function uses Node.js only dependencies, it should
 // always be used with a leading !__BROWSER__ check so that it can be
 // tree-shaken from the browser build.
+/**
+ * 把一个简单表达式改写成带上下文前缀的表达式节点。
+ */
 export function processExpression(
   node: SimpleExpressionNode,
   context: TransformContext,

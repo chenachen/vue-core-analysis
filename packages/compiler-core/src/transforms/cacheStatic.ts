@@ -1,3 +1,9 @@
+/**
+ * 静态缓存与静态提升分析。
+ *
+ * 这一层会遍历 transform 后的 AST，判断哪些节点、props、slot 返回值
+ * 可以被缓存到 `_hoisted_x` 或 `_cache[x]`，从而减少运行时重复创建成本。
+ */
 import {
   type CacheExpression,
   type CallExpression,
@@ -40,6 +46,9 @@ import {
   OPEN_BLOCK,
 } from '../runtimeHelpers'
 
+/**
+ * 从根节点开始执行静态缓存分析。
+ */
 export function cacheStatic(root: RootNode, context: TransformContext): void {
   walk(
     root,
@@ -51,6 +60,9 @@ export function cacheStatic(root: RootNode, context: TransformContext): void {
   )
 }
 
+/**
+ * 获取根节点下唯一有效的元素子节点，忽略注释。
+ */
 export function getSingleElementRoot(
   root: RootNode,
 ): PlainElementNode | ComponentNode | TemplateNode | null {
@@ -62,6 +74,9 @@ export function getSingleElementRoot(
     : null
 }
 
+/**
+ * 深度遍历父节点，分析其子树中哪些节点、props 或 slot 返回值可缓存。
+ */
 function walk(
   node: ParentNode,
   parent: ParentNode | undefined,

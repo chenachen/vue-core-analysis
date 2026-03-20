@@ -38,6 +38,13 @@ import {
   htmlDecodeTree,
 } from 'entities/lib/decode.js'
 
+/**
+ * 模板词法分析器。
+ *
+ * parser 并不自己逐字符理解模板，而是先由 tokenizer 识别文本、标签、属性、
+ * 插值和注释等 token，再通过回调把这些片段交给 parser 组装 AST。
+ */
+
 export enum ParseMode {
   BASE,
   HTML,
@@ -148,6 +155,9 @@ function isTagStartChar(c: number): boolean {
   )
 }
 
+/**
+ * 判断字符是否属于 HTML 空白字符集合。
+ */
 export function isWhitespace(c: number): boolean {
   return (
     c === CharCodes.Space ||
@@ -162,6 +172,9 @@ function isEndOfTagSection(c: number): boolean {
   return c === CharCodes.Slash || c === CharCodes.Gt || isWhitespace(c)
 }
 
+/**
+ * 把字符串转成对应的字符码数组，便于状态机按字节比较。
+ */
 export function toCharCodes(str: string): Uint8Array {
   const ret = new Uint8Array(str.length)
   for (let i = 0; i < str.length; i++) {
@@ -262,6 +275,9 @@ export default class Tokenizer {
     return this.mode === ParseMode.SFC && this.stack.length === 0
   }
 
+  /**
+   * 创建 tokenizer，并在非浏览器构建下准备 HTML entity 解码器。
+   */
   constructor(
     private readonly stack: ElementNode[],
     private readonly cbs: Callbacks,
@@ -274,6 +290,9 @@ export default class Tokenizer {
     }
   }
 
+  /**
+   * 重置 tokenizer 的状态，供新的 parse 周期复用。
+   */
   public reset(): void {
     this.state = State.Text
     this.mode = ParseMode.BASE
@@ -312,10 +331,16 @@ export default class Tokenizer {
     }
   }
 
+  /**
+   * 读取当前字符后的下一个字符码。
+   */
   private peek() {
     return this.buffer.charCodeAt(this.index + 1)
   }
 
+  /**
+   * 默认文本状态：识别 `<`、实体引用与插值起始。
+   */
   private stateText(c: number): void {
     if (c === CharCodes.Lt) {
       if (this.index > this.sectionStart) {
@@ -336,6 +361,9 @@ export default class Tokenizer {
   public delimiterClose: Uint8Array = defaultDelimitersClose
   private delimiterIndex = -1
 
+  /**
+   * 匹配插值开始分隔符。
+   */
   private stateInterpolationOpen(c: number): void {
     if (c === this.delimiterOpen[this.delimiterIndex]) {
       if (this.delimiterIndex === this.delimiterOpen.length - 1) {
@@ -357,6 +385,9 @@ export default class Tokenizer {
     }
   }
 
+  /**
+   * 处理插值内部文本，直到命中结束分隔符。
+   */
   private stateInterpolation(c: number): void {
     if (c === this.delimiterClose[0]) {
       this.state = State.InterpolationClose
@@ -365,6 +396,9 @@ export default class Tokenizer {
     }
   }
 
+  /**
+   * 校验插值结束分隔符是否完整匹配，并在匹配后回调 parser。
+   */
   private stateInterpolationClose(c: number) {
     if (c === this.delimiterClose[this.delimiterIndex]) {
       if (this.delimiterIndex === this.delimiterClose.length - 1) {
@@ -386,6 +420,9 @@ export default class Tokenizer {
 
   public currentSequence: Uint8Array = undefined!
   private sequenceIndex = 0
+  /**
+   * 处理特殊标签起始序列（如 script/style/title/textarea）的匹配。
+   */
   private stateSpecialStartSequence(c: number): void {
     const isEnd = this.sequenceIndex === this.currentSequence.length
     const isMatch = isEnd
@@ -407,6 +444,9 @@ export default class Tokenizer {
   }
 
   /** Look for an end tag. For <title> and <textarea>, also decode entities. */
+  /**
+   * 处理 RCDATA / RAWTEXT 模式下的正文内容与结束标签识别。
+   */
   private stateInRCDATA(c: number): void {
     if (this.sequenceIndex === this.currentSequence.length) {
       if (c === CharCodes.Gt || isWhitespace(c)) {
@@ -530,17 +570,26 @@ export default class Tokenizer {
     }
   }
 
+  /**
+   * 进入特殊标签的 RCDATA/RAWTEXT 处理流程。
+   */
   private startSpecial(sequence: Uint8Array, offset: number) {
     this.enterRCDATA(sequence, offset)
     this.state = State.SpecialStartSequence
   }
 
+  /**
+   * 记录当前特殊标签对应的结束序列，并切到 RCDATA 模式。
+   */
   public enterRCDATA(sequence: Uint8Array, offset: number): void {
     this.inRCDATA = true
     this.currentSequence = sequence
     this.sequenceIndex = offset
   }
 
+  /**
+   * 识别 `<` 之后接下来的内容是开始标签、结束标签、注释还是处理指令。
+   */
   private stateBeforeTagName(c: number): void {
     if (c === CharCodes.ExclamationMark) {
       this.state = State.BeforeDeclaration
@@ -578,11 +627,17 @@ export default class Tokenizer {
       this.stateText(c)
     }
   }
+  /**
+   * 读取普通开始标签名，直到进入属性或标签结束阶段。
+   */
   private stateInTagName(c: number): void {
     if (isEndOfTagSection(c)) {
       this.handleTagName(c)
     }
   }
+  /**
+   * 在 SFC 根层级下读取标签名，并为非 template 根块切换到原始文本模式。
+   */
   private stateInSFCRootTagName(c: number): void {
     if (isEndOfTagSection(c)) {
       const tag = this.buffer.slice(this.sectionStart, this.index)
@@ -592,12 +647,18 @@ export default class Tokenizer {
       this.handleTagName(c)
     }
   }
+  /**
+   * 结束标签名识别，并切换到属性处理阶段。
+   */
   private handleTagName(c: number) {
     this.cbs.onopentagname(this.sectionStart, this.index)
     this.sectionStart = -1
     this.state = State.BeforeAttrName
     this.stateBeforeAttrName(c)
   }
+  /**
+   * 读取结束标签名前的过渡状态。
+   */
   private stateBeforeClosingTagName(c: number): void {
     if (isWhitespace(c)) {
       // Ignore
@@ -615,6 +676,9 @@ export default class Tokenizer {
       this.sectionStart = this.index
     }
   }
+  /**
+   * 读取结束标签名并在遇到 `>` 或空白时触发回调。
+   */
   private stateInClosingTagName(c: number): void {
     if (c === CharCodes.Gt || isWhitespace(c)) {
       this.cbs.onclosetag(this.sectionStart, this.index)
@@ -623,6 +687,9 @@ export default class Tokenizer {
       this.stateAfterClosingTagName(c)
     }
   }
+  /**
+   * 跳过结束标签尾部剩余字符，直到真正回到文本状态。
+   */
   private stateAfterClosingTagName(c: number): void {
     // Skip everything until ">"
     if (c === CharCodes.Gt) {
@@ -630,6 +697,9 @@ export default class Tokenizer {
       this.sectionStart = this.index + 1
     }
   }
+  /**
+   * 处理开始标签内的属性入口、`/>` 和异常的 `</` 情况。
+   */
   private stateBeforeAttrName(c: number): void {
     if (c === CharCodes.Gt) {
       this.cbs.onopentagend(this.index)
@@ -661,6 +731,9 @@ export default class Tokenizer {
       this.handleAttrStart(c)
     }
   }
+  /**
+   * 根据属性前缀判断当前读取的是普通属性还是指令。
+   */
   private handleAttrStart(c: number) {
     if (c === CharCodes.LowerV && this.peek() === CharCodes.Dash) {
       this.state = State.InDirName
@@ -679,6 +752,9 @@ export default class Tokenizer {
       this.sectionStart = this.index
     }
   }
+  /**
+   * 处理自闭合标签尾部。
+   */
   private stateInSelfClosingTag(c: number): void {
     if (c === CharCodes.Gt) {
       this.cbs.onselfclosingtag(this.index)
@@ -690,6 +766,9 @@ export default class Tokenizer {
       this.stateBeforeAttrName(c)
     }
   }
+  /**
+   * 读取普通属性名。
+   */
   private stateInAttrName(c: number): void {
     if (c === CharCodes.Eq || isEndOfTagSection(c)) {
       this.cbs.onattribname(this.sectionStart, this.index)
@@ -706,6 +785,9 @@ export default class Tokenizer {
       )
     }
   }
+  /**
+   * 读取指令名（如 `v-bind` / `v-on`）。
+   */
   private stateInDirName(c: number): void {
     if (c === CharCodes.Eq || isEndOfTagSection(c)) {
       this.cbs.ondirname(this.sectionStart, this.index)
@@ -720,6 +802,9 @@ export default class Tokenizer {
       this.sectionStart = this.index + 1
     }
   }
+  /**
+   * 读取指令参数部分。
+   */
   private stateInDirArg(c: number): void {
     if (c === CharCodes.Eq || isEndOfTagSection(c)) {
       this.cbs.ondirarg(this.sectionStart, this.index)
@@ -732,6 +817,9 @@ export default class Tokenizer {
       this.sectionStart = this.index + 1
     }
   }
+  /**
+   * 读取动态指令参数 `[]` 内部内容。
+   */
   private stateInDynamicDirArg(c: number): void {
     if (c === CharCodes.RightSquare) {
       this.state = State.InDirArg
@@ -746,6 +834,9 @@ export default class Tokenizer {
       }
     }
   }
+  /**
+   * 读取指令修饰符片段。
+   */
   private stateInDirModifier(c: number): void {
     if (c === CharCodes.Eq || isEndOfTagSection(c)) {
       this.cbs.ondirmodifier(this.sectionStart, this.index)
@@ -755,12 +846,18 @@ export default class Tokenizer {
       this.sectionStart = this.index + 1
     }
   }
+  /**
+   * 在属性名读取结束后切换到“等待等号或下一个属性”的状态。
+   */
   private handleAttrNameEnd(c: number): void {
     this.sectionStart = this.index
     this.state = State.AfterAttrName
     this.cbs.onattribnameend(this.index)
     this.stateAfterAttrName(c)
   }
+  /**
+   * 处理属性名后的状态分发：等号、标签结束或下一个属性。
+   */
   private stateAfterAttrName(c: number): void {
     if (c === CharCodes.Eq) {
       this.state = State.BeforeAttrValue
@@ -774,6 +871,9 @@ export default class Tokenizer {
       this.handleAttrStart(c)
     }
   }
+  /**
+   * 根据引号类型选择属性值的实际读取状态。
+   */
   private stateBeforeAttrValue(c: number): void {
     if (c === CharCodes.DoubleQuote) {
       this.state = State.InAttrValueDq
@@ -787,6 +887,9 @@ export default class Tokenizer {
       this.stateInAttrValueNoQuotes(c) // Reconsume token
     }
   }
+  /**
+   * 处理带引号属性值的公共逻辑。
+   */
   private handleInAttrValue(c: number, quote: number) {
     if (c === quote || (__BROWSER__ && this.fastForwardTo(quote))) {
       this.cbs.onattribdata(this.sectionStart, this.index)
@@ -800,12 +903,21 @@ export default class Tokenizer {
       this.startEntity()
     }
   }
+  /**
+   * 处理双引号属性值。
+   */
   private stateInAttrValueDoubleQuotes(c: number): void {
     this.handleInAttrValue(c, CharCodes.DoubleQuote)
   }
+  /**
+   * 处理单引号属性值。
+   */
   private stateInAttrValueSingleQuotes(c: number): void {
     this.handleInAttrValue(c, CharCodes.SingleQuote)
   }
+  /**
+   * 处理无引号属性值，并做必要的非法字符校验。
+   */
   private stateInAttrValueNoQuotes(c: number): void {
     if (isWhitespace(c) || c === CharCodes.Gt) {
       this.cbs.onattribdata(this.sectionStart, this.index)
@@ -828,6 +940,9 @@ export default class Tokenizer {
       this.startEntity()
     }
   }
+  /**
+   * 决定 `<!` 之后是 CDATA、注释还是普通声明。
+   */
   private stateBeforeDeclaration(c: number): void {
     if (c === CharCodes.LeftSquare) {
       this.state = State.CDATASequence
@@ -837,6 +952,9 @@ export default class Tokenizer {
         c === CharCodes.Dash ? State.BeforeComment : State.InDeclaration
     }
   }
+  /**
+   * 跳过普通声明内容，直到遇到 `>`。
+   */
   private stateInDeclaration(c: number): void {
     if (c === CharCodes.Gt || this.fastForwardTo(CharCodes.Gt)) {
       // this.cbs.ondeclaration(this.sectionStart, this.index)
@@ -844,6 +962,9 @@ export default class Tokenizer {
       this.sectionStart = this.index + 1
     }
   }
+  /**
+   * 处理 `<? ... ?>` 这类 processing instruction。
+   */
   private stateInProcessingInstruction(c: number): void {
     if (c === CharCodes.Gt || this.fastForwardTo(CharCodes.Gt)) {
       this.cbs.onprocessinginstruction(this.sectionStart, this.index)
@@ -851,6 +972,9 @@ export default class Tokenizer {
       this.sectionStart = this.index + 1
     }
   }
+  /**
+   * 决定 `<!--` 注释是否已经真正进入 comment-like 状态。
+   */
   private stateBeforeComment(c: number): void {
     if (c === CharCodes.Dash) {
       this.state = State.InCommentLike
@@ -862,6 +986,9 @@ export default class Tokenizer {
       this.state = State.InDeclaration
     }
   }
+  /**
+   * 处理特殊注释分支，直到遇到 `>`。
+   */
   private stateInSpecialComment(c: number): void {
     if (c === CharCodes.Gt || this.fastForwardTo(CharCodes.Gt)) {
       this.cbs.oncomment(this.sectionStart, this.index)
@@ -869,6 +996,9 @@ export default class Tokenizer {
       this.sectionStart = this.index + 1
     }
   }
+  /**
+   * 在 `<s...` 前缀下决定是 script/style 还是普通标签。
+   */
   private stateBeforeSpecialS(c: number): void {
     if (c === Sequences.ScriptEnd[3]) {
       this.startSpecial(Sequences.ScriptEnd, 4)
@@ -879,6 +1009,9 @@ export default class Tokenizer {
       this.stateInTagName(c) // Consume the token again
     }
   }
+  /**
+   * 在 `<t...` 前缀下决定是 title/textarea 还是普通标签。
+   */
   private stateBeforeSpecialT(c: number): void {
     if (c === Sequences.TitleEnd[3]) {
       this.startSpecial(Sequences.TitleEnd, 4)
@@ -890,6 +1023,9 @@ export default class Tokenizer {
     }
   }
 
+  /**
+   * 开始解析 HTML entity。
+   */
   private startEntity() {
     if (!__BROWSER__) {
       this.baseState = this.state
@@ -903,6 +1039,9 @@ export default class Tokenizer {
     }
   }
 
+  /**
+   * 持续把字符喂给 entity 解码器，直到一个实体被完整消费。
+   */
   private stateInEntity(): void {
     if (!__BROWSER__) {
       const length = this.entityDecoder!.write(this.buffer, this.index)
@@ -925,6 +1064,9 @@ export default class Tokenizer {
    * Iterates through the buffer, calling the function corresponding to the current state.
    *
    * States that are more likely to be hit are higher up, as a performance improvement.
+   */
+  /**
+   * 驱动整个状态机遍历输入字符串。
    */
   public parse(input: string): void {
     this.buffer = input
@@ -1080,6 +1222,9 @@ export default class Tokenizer {
   /**
    * Remove data that has already been consumed from the buffer.
    */
+  /**
+   * 在解析结束前把仍留在缓冲区里的文本或属性值片段补发出去。
+   */
   private cleanup() {
     // If we are inside of text or attributes, emit what we already have.
     if (this.sectionStart !== this.index) {
@@ -1100,6 +1245,9 @@ export default class Tokenizer {
     }
   }
 
+  /**
+   * 完成本轮解析，收尾实体状态并触发最终 onend 回调。
+   */
   private finish() {
     if (!__BROWSER__ && this.state === State.InEntity) {
       this.entityDecoder!.end()
@@ -1112,6 +1260,9 @@ export default class Tokenizer {
   }
 
   /** Handle any trailing data. */
+  /**
+   * 处理输入末尾剩余的尾部数据，避免最后一个 token 丢失。
+   */
   private handleTrailingData() {
     const endIndex = this.buffer.length
 
@@ -1150,6 +1301,9 @@ export default class Tokenizer {
     }
   }
 
+  /**
+   * 把实体解码结果重新发回给 parser，对文本态和属性态分别走不同回调。
+   */
   private emitCodePoint(cp: number, consumed: number): void {
     if (!__BROWSER__) {
       if (this.baseState !== State.Text && this.baseState !== State.InRCDATA) {

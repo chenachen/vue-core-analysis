@@ -1,3 +1,9 @@
+/**
+ * 编译器配置模型。
+ *
+ * 这里定义 parser / transform / codegen 三阶段共享的选项契约，
+ * 上层的 `compiler-dom`、`compiler-sfc` 都是基于这些类型再扩展自己的输入。
+ */
 import type {
   ElementNode,
   Namespace,
@@ -164,6 +170,9 @@ export type BindingMetadata = {
   __propsAliases?: Record<string, string>
 }
 
+/**
+ * transform 与 codegen 都会使用到的公共选项。
+ */
 interface SharedTransformCodegenOptions {
   /**
    * Transform expressions like {{ foo }} to `_ctx.foo`.

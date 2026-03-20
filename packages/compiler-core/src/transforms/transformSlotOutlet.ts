@@ -1,3 +1,11 @@
+/**
+ * `<slot>` 出口 transform。
+ *
+ * 它把 `<slot>` 节点转换成 `renderSlot()` 调用，并负责整理：
+ * - slot 名称
+ * - 透传给 slot 的 props
+ * - fallback children
+ */
 import type { NodeTransform, TransformContext } from '../transform'
 import {
   type CallExpression,
@@ -15,6 +23,9 @@ import { RENDER_SLOT } from '../runtimeHelpers'
 import { camelize } from '@vue/shared'
 import { processExpression } from './transformExpression'
 
+/**
+ * 识别 `<slot>` 出口并生成对应的 `renderSlot()` codegen 节点。
+ */
 export const transformSlotOutlet: NodeTransform = (node, context) => {
   if (isSlotOutlet(node)) {
     const { children, loc } = node
@@ -57,6 +68,9 @@ interface SlotOutletProcessResult {
   slotProps: PropsExpression | undefined
 }
 
+/**
+ * 提取 `<slot>` 上声明的名称与 props，并把非 name 属性交给 `buildProps()` 统一处理。
+ */
 export function processSlotOutlet(
   node: SlotOutletNode,
   context: TransformContext,

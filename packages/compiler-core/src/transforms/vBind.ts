@@ -1,3 +1,9 @@
+/**
+ * `v-bind` 参数版 transform。
+ *
+ * 无参数 `v-bind="obj"` 会在 `transformElement` 里统一处理；
+ * 这里专门负责 `:foo="bar"`、`.prop`、`.attr`、`.camel` 等带参数写法。
+ */
 import type { DirectiveTransform, TransformContext } from '../transform'
 import {
   type DirectiveNode,
@@ -15,6 +21,9 @@ import { processExpression } from './transformExpression'
 // v-bind without arg is handled directly in ./transformElement.ts due to its affecting
 // codegen for the entire props object. This transform here is only for v-bind
 // *with* args.
+/**
+ * 把带参数的 `v-bind` 改写成普通 prop 键值对。
+ */
 export const transformBind: DirectiveTransform = (dir, _node, context) => {
   const { modifiers, loc } = dir
   const arg = dir.arg!
@@ -96,6 +105,9 @@ export const transformBind: DirectiveTransform = (dir, _node, context) => {
   }
 }
 
+/**
+ * 把 `:foo` 这种同名缩写展开为 `:foo="foo"`。
+ */
 export const transformBindShorthand = (
   dir: DirectiveNode,
   context: TransformContext,
@@ -109,6 +121,9 @@ export const transformBindShorthand = (
   }
 }
 
+/**
+ * 为动态参数注入 `.prop` / `.attr` 这类编译前缀标记。
+ */
 const injectPrefix = (arg: ExpressionNode, prefix: string) => {
   if (arg.type === NodeTypes.SIMPLE_EXPRESSION) {
     if (arg.isStatic) {

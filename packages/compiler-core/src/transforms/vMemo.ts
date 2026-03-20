@@ -1,3 +1,9 @@
+/**
+ * `v-memo` transform。
+ *
+ * 它会把目标子树包装成 `withMemo()` 调用，让运行时可以基于依赖数组
+ * 跳过整段子树的重新求值与 patch。
+ */
 import type { NodeTransform } from '../transform'
 import { findDir } from '../utils'
 import {
@@ -13,6 +19,9 @@ import { WITH_MEMO } from '../runtimeHelpers'
 
 const seen = new WeakSet()
 
+/**
+ * 识别 `v-memo`，并在退出阶段把当前节点改写成 memo 包装结构。
+ */
 export const transformMemo: NodeTransform = (node, context) => {
   if (node.type === NodeTypes.ELEMENT) {
     const dir = findDir(node, 'memo')
