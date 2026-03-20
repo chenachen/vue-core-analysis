@@ -344,6 +344,9 @@ function resolveSetupReference(name: string, context: TransformContext) {
 
   const camelName = camelize(name)
   const PascalName = capitalize(camelName)
+  /**
+   * 按原名 / camelCase / PascalCase 三种形式在 script setup 绑定里查找匹配项。
+   */
   const checkType = (type: BindingTypes) => {
     if (bindings[name] === type) {
       return name
@@ -422,6 +425,9 @@ export function buildProps(
   let hasVnodeHook = false
   const dynamicPropNames: string[] = []
 
+  /**
+   * 把当前已收集的静态 props 刷入 merge 参数列表。
+   */
   const pushMergeArg = (arg?: PropsExpression) => {
     if (properties.length) {
       mergeArgs.push(
@@ -433,6 +439,9 @@ export function buildProps(
   }
 
   // mark template ref on v-for
+  /**
+   * 在 `v-for` 场景下为 template ref 打上 `ref_for` 标记。
+   */
   const pushRefVForMarker = () => {
     if (context.scopes.vFor > 0) {
       properties.push(
@@ -444,6 +453,9 @@ export function buildProps(
     }
   }
 
+  /**
+   * 扫描单个 prop 对 patchFlag、dynamicProps、hydration 标记的影响。
+   */
   const analyzePatchFlag = ({ key, value }: Property) => {
     if (isStaticExp(key)) {
       const name = key.content

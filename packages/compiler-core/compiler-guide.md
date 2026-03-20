@@ -2,7 +2,7 @@
 
 > 目标：把 Vue 3 编译器三层目录如何协作讲清楚，并把“`.vue` 文件 / 模板字符串 → AST → transform → render 函数 → 运行时渲染器”的完整闭环串起来。
 
-> 配套阅读：本轮已经在 `packages/compiler-core/src`、`packages/compiler-dom/src`、`packages/compiler-sfc/src` 的主链路文件补入了更细的文件级与函数级注释。建议你一边看本文，一边打开对应源码顺着注释读。
+> 配套阅读：本轮已经完成 `packages/compiler-core/src` 与 `packages/compiler-dom/src` 的全量文件级、函数级注释补充；`packages/compiler-sfc/src` 目前仍以主链路阅读为主，后续会继续展开。建议你一边看本文，一边打开对应源码顺着注释读。
 
 ---
 

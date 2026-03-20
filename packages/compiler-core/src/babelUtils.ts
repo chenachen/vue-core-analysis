@@ -110,6 +110,9 @@ export function walkIdentifiers(
   })
 }
 
+/**
+ * 判断一个标识符在当前 Babel AST 语境中是否属于“被引用”而不是“被声明”。
+ */
 export function isReferencedIdentifier(
   id: Identifier,
   parent: Node | null,

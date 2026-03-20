@@ -154,6 +154,9 @@ export function processExpression(
       const isDestructureAssignment =
         parent && isInDestructureAssignment(parent, parentStack)
       const isNewExpression = parent && isInNewExpression(parentStack)
+      /**
+       * 在需要时为 setup 绑定包上 `unref()`，并兼容 `new` 表达式语境。
+       */
       const wrapWithUnref = (raw: string) => {
         const wrapped = `${context.helperString(UNREF)}(${raw})`
         return isNewExpression ? `(${wrapped})` : wrapped

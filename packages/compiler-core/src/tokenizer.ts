@@ -168,6 +168,9 @@ export function isWhitespace(c: number): boolean {
   )
 }
 
+/**
+ * 判断当前字符是否意味着标签头部片段结束。
+ */
 function isEndOfTagSection(c: number): boolean {
   return c === CharCodes.Slash || c === CharCodes.Gt || isWhitespace(c)
 }

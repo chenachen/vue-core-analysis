@@ -114,6 +114,9 @@ export type SlotFnBuilder = (
   loc: SourceLocation,
 ) => FunctionExpression
 
+/**
+ * 默认的客户端 slot 函数构造器。
+ */
 const buildClientSlotFn: SlotFnBuilder = (props, _vForExp, children, loc) =>
   createFunctionExpression(
     props,

@@ -165,6 +165,9 @@ function parseFilter(node: SimpleExpressionNode, context: TransformContext) {
     pushFilter()
   }
 
+  /**
+   * 记录当前扫描到的一个 filter 片段，并推进游标。
+   */
   function pushFilter() {
     filters.push(exp.slice(lastFilterIndex, i).trim())
     lastFilterIndex = i + 1

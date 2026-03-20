@@ -110,6 +110,9 @@ interface MappingItem {
 
 const PURE_ANNOTATION = `/*@__PURE__*/`
 
+/**
+ * 把 helper symbol 转成解构别名片段，如 `openBlock: _openBlock`。
+ */
 const aliasHelper = (s: symbol) => `${helperNameMap[s]}: _${helperNameMap[s]}`
 
 type CodegenNode = TemplateChildNode | JSChildNode | SSRCodegenNode
@@ -262,10 +265,16 @@ function createCodegenContext(
     },
   }
 
+  /**
+   * 按当前缩进层级输出换行与缩进空格。
+   */
   function newline(n: number) {
     context.push('\n' + `  `.repeat(n), NewlineType.Start)
   }
 
+  /**
+   * 向 source map 追加一条当前位置与源码位置之间的映射。
+   */
   function addMapping(loc: Position, name: string | null = null) {
     // we use the private property to directly add the mapping
     // because the addMapping() implementation in source-map-js has a bunch of

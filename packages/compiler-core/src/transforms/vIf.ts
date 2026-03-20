@@ -256,6 +256,9 @@ function createCodegenNodeForBranch(
   }
 }
 
+/**
+ * 为某个 `v-if` / `v-else-if` / `v-else` 分支生成最终的子树 codegen 入口。
+ */
 function createChildrenCodegenNode(
   branch: IfBranchNode,
   keyIndex: number,
@@ -322,6 +325,9 @@ function createChildrenCodegenNode(
   }
 }
 
+/**
+ * 判断相邻条件分支上的 key 是否语义等价。
+ */
 function isSameKey(
   a: AttributeNode | DirectiveNode | undefined,
   b: AttributeNode | DirectiveNode,
@@ -351,6 +357,9 @@ function isSameKey(
   return true
 }
 
+/**
+ * 取出一串嵌套条件表达式里最末尾、可继续挂接 alternate 的父条件节点。
+ */
 function getParentCondition(
   node: IfConditionalExpression | CacheExpression,
 ): IfConditionalExpression {

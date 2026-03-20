@@ -185,6 +185,9 @@ const getCachedNode = (
 }
 
 const dataAriaRE = /^(data|aria)-/
+/**
+ * 判断属性名在当前命名空间下是否可安全静态字符串化。
+ */
 const isStringifiableAttr = (name: string, ns: Namespaces) => {
   return (
     (ns === Namespaces.HTML
@@ -229,6 +232,9 @@ function analyzeNode(node: StringifiableNode): [number, number] | false {
   // output compared to imperative node insertions.
   // probably only need to check for most common case
   // i.e. non-phrasing-content tags inside `<p>`
+  /**
+   * 深度遍历元素子树，确认它适合被整体字符串化。
+   */
   function walk(node: ElementNode): boolean {
     const isOptionTag = node.tag === 'option' && node.ns === Namespaces.HTML
     for (let i = 0; i < node.props.length; i++) {
@@ -286,6 +292,9 @@ function analyzeNode(node: StringifiableNode): [number, number] | false {
   return walk(node) ? [nc, ec] : false
 }
 
+/**
+ * 把单个静态节点序列化为 HTML 字符串片段。
+ */
 function stringifyNode(
   node: string | TemplateChildNode,
   context: TransformContext,
@@ -315,6 +324,9 @@ function stringifyNode(
   }
 }
 
+/**
+ * 把单个元素节点及其属性/子节点序列化成完整 HTML 字符串。
+ */
 function stringifyElement(
   node: ElementNode,
   context: TransformContext,
@@ -394,6 +406,9 @@ function stringifyElement(
 // in addition, constant exps bail on presence of parens so you can't even
 // run JSFuck in here. But we mark it unsafe for security review purposes.
 // (see compiler-core/src/transforms/transformExpression)
+/**
+ * 计算编译期常量表达式的实际字符串值。
+ */
 function evaluateConstant(exp: ExpressionNode): string {
   if (exp.type === NodeTypes.SIMPLE_EXPRESSION) {
     return new Function(`return (${exp.content})`)()

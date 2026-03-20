@@ -256,6 +256,9 @@ function walk(
     )
   }
 
+  /**
+   * 为当前静态值创建缓存表达式，并在 HMR + v-for 场景下补齐额外标记。
+   */
   function getCacheExpression(value: JSChildNode): CacheExpression {
     const exp = context.cache(value)
     // #6978, #7138, #7114
@@ -267,6 +270,9 @@ function walk(
     return exp
   }
 
+  /**
+   * 从 slots 对象里取出指定名称的 slot 函数节点。
+   */
   function getSlotNode(
     node: VNodeCall,
     name: string | ExpressionNode,
@@ -288,6 +294,9 @@ function walk(
   }
 }
 
+/**
+ * 递归分析节点是否是编译期常量，并给出可提升/可缓存等级。
+ */
 export function getConstantType(
   node: TemplateChildNode | SimpleExpressionNode | CacheExpression,
   context: TransformContext,
@@ -436,6 +445,9 @@ const allowHoistedHelperSet = new Set([
   GUARD_REACTIVE_PROPS,
 ])
 
+/**
+ * 判断某些可提升 helper 调用的返回值常量等级。
+ */
 function getConstantTypeOfHelperCall(
   value: CallExpression,
   context: TransformContext,
@@ -456,6 +468,9 @@ function getConstantTypeOfHelperCall(
   return ConstantTypes.NOT_CONSTANT
 }
 
+/**
+ * 分析元素 codegen props 的常量等级。
+ */
 function getGeneratedPropsConstantType(
   node: PlainElementNode,
   context: TransformContext,
@@ -495,6 +510,9 @@ function getGeneratedPropsConstantType(
   return returnType
 }
 
+/**
+ * 取出普通元素最终生成到 VNode 调用上的 props 表达式。
+ */
 function getNodeProps(node: PlainElementNode) {
   const codegenNode = node.codegenNode!
   if (codegenNode.type === NodeTypes.VNODE_CALL) {

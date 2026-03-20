@@ -449,6 +449,9 @@ export function traverseChildren(
   context: TransformContext,
 ): void {
   let i = 0
+  /**
+   * 当前遍历子节点被删除时，回退循环索引，避免跳过后续兄弟节点。
+   */
   const nodeRemoved = () => {
     i--
   }
